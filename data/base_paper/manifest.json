@@ -1,0 +1,91 @@
+{
+  "dataset": "sohomghosh/indicfinnlp-financial-nlp-for-indian-languages",
+  "url": "https://www.kaggle.com/datasets/sohomghosh/indicfinnlp-financial-nlp-for-indian-languages",
+  "version": 2,
+  "retrieved_utc": "2026-09-03T06:33:51+00:00",
+  "kagglehub_version": "1.0.2",
+  "docs": [
+    {
+      "local": "README.md",
+      "sha256": "eb07ce55eeb12b4674a0b20e73bcbe4b11ebb2a47b2ad73f89c55e9286a2f2db"
+    },
+    {
+      "local": "license.txt",
+      "sha256": "58032a8173195237068ab02d429948bc3233d8e6858d1b9ddfdc47e3bbc3d847"
+    }
+  ],
+  "files": [
+    {
+      "task": 1,
+      "language": "bengali",
+      "upstream": "IndicFinNLP_data/IndicFinNLP_data/task_1/task_1_dataset_bengali_refined_submit.xlsx",
+      "local": "raw/task_1/bengali.xlsx",
+      "bytes": 502637,
+      "sha256": "b626bb5f08f2950540fdf47bd93b36a0c1740eb9ce167242a8fd4b922a2088a6"
+    },
+    {
+      "task": 1,
+      "language": "hindi",
+      "upstream": "IndicFinNLP_data/IndicFinNLP_data/task_1/task_1_dataset_hindi_refined_submit.xlsx",
+      "local": "raw/task_1/hindi.xlsx",
+      "bytes": 851368,
+      "sha256": "34ca2ddc930060a4bde8e1bc65f3e4fb8f2592c191fe6b5c4cb04d6f2b675dd3"
+    },
+    {
+      "task": 1,
+      "language": "telugu",
+      "upstream": "IndicFinNLP_data/IndicFinNLP_data/task_1/task_1_dataset_telugu_refined_submit.xlsx",
+      "local": "raw/task_1/telugu.xlsx",
+      "bytes": 447292,
+      "sha256": "cdc823546443210488cd8b4187ae641e6310474397894959e33c1e4985ff6ce0"
+    },
+    {
+      "task": 2,
+      "language": "bengali",
+      "upstream": "IndicFinNLP_data/IndicFinNLP_data/task_2/task_2_dataset_bengali_Sustainability.xlsx",
+      "local": "raw/task_2/bengali.xlsx",
+      "bytes": 310771,
+      "sha256": "b35fa631c26ca304da69457e3ae1b198bfb83927ca79553ec705b5227badc782"
+    },
+    {
+      "task": 2,
+      "language": "hindi",
+      "upstream": "IndicFinNLP_data/IndicFinNLP_data/task_2/task_2_dataset_hindi_Sustainability.xlsx",
+      "local": "raw/task_2/hindi.xlsx",
+      "bytes": 320956,
+      "sha256": "b6b95964aadc42107a5ea70c04dba6a2b2d10dde7602eab62c5d43ff14931ee0"
+    },
+    {
+      "task": 2,
+      "language": "telugu",
+      "upstream": "IndicFinNLP_data/IndicFinNLP_data/task_2/task_2_dataset_telugu_Sustainability.xlsx",
+      "local": "raw/task_2/telugu.xlsx",
+      "bytes": 298743,
+      "sha256": "69199dd663680281c4d2793a1e7328e45c594b171dc6e66fa6243b3869ef52c0"
+    },
+    {
+      "task": 3,
+      "language": "bengali",
+      "upstream": "IndicFinNLP_data/IndicFinNLP_data/task_3/task_3_dataset_bengali_submit.xlsx",
+      "local": "raw/task_3/bengali.xlsx",
+      "bytes": 81801,
+      "sha256": "1883bf0bbaf933a21a3c40e844deb889afce16443c7a0b7977bf143ded2e71bb"
+    },
+    {
+      "task": 3,
+      "language": "hindi",
+      "upstream": "IndicFinNLP_data/IndicFinNLP_data/task_3/task_3_dataset_hindi_submit.xlsx",
+      "local": "raw/task_3/hindi.xlsx",
+      "bytes": 81977,
+      "sha256": "04c4b19bdcb2fc5fc9867d4aabb6f091da4df13c5b7493e8f766438e0d118b5b"
+    },
+    {
+      "task": 3,
+      "language": "telugu",
+      "upstream": "IndicFinNLP_data/IndicFinNLP_data/task_3/task_3_dataset_telugu_submit.xlsx",
+      "local": "raw/task_3/telugu.xlsx",
+      "bytes": 83740,
+      "sha256": "913aac4e4a2a7f1c18dc5f6e87db47f0932b275d050730d89a04dd20b5d13ea2"
+    }
+  ]
+}
