@@ -220,3 +220,6 @@ __marimo__/
 # Cached embeddings: deterministic and regenerable from the model +
 # upstream data, ~20MB per task. The alignment maps they produce ARE committed.
 data/verification/*/emb/
+
+# Per-batch translation checkpoints (§3, resumable GPU jobs).
+cache/

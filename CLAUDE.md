@@ -324,7 +324,8 @@ env/                 ✓ venv, Python 3.11.15 (gitignored)
 
 configs/
   labels.json        ✓ canonical labels per task; task_1 is null (no labels)
-                       translation_config.json, paths.json still to come
+  translation_config.json ✓ frozen decoding, identical for all 9 directions
+                       paths.json still to come
 src/
   __init__.py        ✓
   download_dataset/  ✓ upstream fetch; complete, no open work
@@ -335,7 +336,7 @@ src/
   align.py           ✓ T-102b item correspondence recovery
   corpus_io.py       ✓ all reads/writes; format, schema and label enforcement
   ids.py             ✓ key construction, block mapping, join helpers
-  translate.py          IndicTrans2 wrapper, resumable batching
+  translate.py       ✓ IndicTrans2 wrapper, resumable batching
   entities.py           numeral/currency preservation checks
   labse_gate.py         embedding + cosine similarity + thresholding
   integrity.py          structural + script-leakage checks
@@ -345,10 +346,12 @@ scripts/
   t102_audit.py      ✓ python -m scripts.t102_audit --task {n} [--independence]
   t102b_align.py     ✓ python -m scripts.t102b_align --task {n}
   t103_ingest.py     ✓ python -m scripts.t103_ingest --task {n}
+  t104_smoke.py      ✓ python -m scripts.t104_smoke --task {n} [--benchmark]
                        (one thin CLI per task, named by task ID)
 data/
   base_paper/        ✓ upstream IndicFinNLP, committed; see §7.1
   raw/task_{n}/      ✓ native splits ingested; MT output still to come
+cache/translate/       per-batch checkpoints (gitignored)
   verification/task_3/ ✓ alignment.parquet
   verification/task_{n}/  alignment maps, scores, embeddings
   v1.0/task_{n}/        frozen release + manifest.json
@@ -557,9 +560,34 @@ across all 9 directions**, so drift figures are comparable between them.
 
 Must be resumable: on restart, skip already-translated `item_id`s.
 
+Decoding is frozen in `configs/translation_config.json`: beam 5, max length 256, no
+sampling. `decoding_fingerprint()` hashes everything that can change the output text and
+is logged with each artefact (rule 8). Batch size is deliberately **excluded** from that
+hash — it must not affect the result, and catching it if it ever does is the point.
+
+The model is loaded **once** and reused across directions. Loading per direction means
+nine loads of a 4.8 GB model, and on the 4 GB card an OOM on the second — the same
+mistake that broke the LaBSE pass in T-102.
+
+Runs checkpoint after every batch under `cache/translate/`, keyed by `item_id`, so an
+interrupted run resumes instead of restarting (§3, intermittent GPU). A failed batch is
+flagged and the run continues (§11); empty output is flagged, never dropped (rule 1).
+
 **Done when:** 20 hand-checked sentences translate correctly for each of the 9
 directions; config committed; the 320M distilled variant is benchmarked as the 4 GB
 fallback and the choice is documented.
+
+**Status: code complete and tested; acceptance pending a GPU run.** The pipeline, the
+frozen config and the 9-direction smoke test are written, and 8 tests cover resume,
+failure handling, empty-output flagging and fingerprint stability without loading the
+model. What remains needs the weights downloaded:
+
+```
+python -m scripts.t104_smoke --task 2 --benchmark
+```
+
+That translates 20 real sentences per direction through both models, writes them side
+by side for hand-checking, and produces the 1B-vs-320M comparison §8 asks for.
 
 ---
 
