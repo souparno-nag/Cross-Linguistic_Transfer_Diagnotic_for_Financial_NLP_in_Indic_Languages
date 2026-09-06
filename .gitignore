@@ -216,3 +216,7 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Cached embeddings: deterministic and regenerable from the model +
+# upstream data, ~20MB per task. The alignment maps they produce ARE committed.
+data/verification/*/emb/

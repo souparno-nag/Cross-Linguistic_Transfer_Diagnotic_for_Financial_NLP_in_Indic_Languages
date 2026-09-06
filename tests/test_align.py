@@ -46,3 +46,17 @@ def test_independent_task_is_refused():
         align_by_key(1)
     with pytest.raises(ValueError, match="no join key"):
         align_by_key(2)
+
+
+def test_task2_has_no_exact_key():
+    """Task 2 must go through embedding alignment, not a join."""
+    with pytest.raises(ValueError, match="no join key"):
+        align_by_key(2)
+
+
+def test_task3_rejects_embedding_alignment():
+    """Task 3 has an exact key; guessing at it with a model would be worse."""
+    from src.align import align_by_embedding
+
+    with pytest.raises(ValueError, match="exact join key"):
+        align_by_embedding(3)

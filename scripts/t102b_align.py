@@ -20,7 +20,12 @@ from __future__ import annotations
 import argparse
 import sys
 
-from src.align import align_by_key, alignment_config, summarise
+from src.align import (
+    align_by_embedding,
+    align_by_key,
+    alignment_config,
+    summarise,
+)
 from src.audit import TASK_COLUMNS, config_hash
 from src.download_dataset.paths import REPO_ROOT
 
@@ -31,25 +36,39 @@ REPORT_ROOT = REPO_ROOT / "reports"
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--task", type=int, required=True)
+    parser.add_argument("--tau", type=float, default=0.82)
+    parser.add_argument("--model", default="sentence-transformers/LaBSE")
+    parser.add_argument("--batch-size", type=int, default=64)
+    parser.add_argument("--device", default=None)
     args = parser.parse_args(argv)
 
     spec = TASK_COLUMNS.get(args.task)
     if spec is None:
         print(f"unknown task {args.task}", file=sys.stderr)
         return 2
-    if not spec.get("join_key"):
+    if spec.get("label") is None:
         print(
-            f"Task {args.task} has no join key. Task 1 is independently sourced "
-            "and must not be aligned; task 2 needs embedding alignment, which is "
-            "not implemented yet.",
+            f"Task {args.task} is independently sourced and must not be aligned. "
+            "Its languages hold genuinely different content; aligning them would "
+            "invent a correspondence that does not exist.",
             file=sys.stderr,
         )
         return 2
 
-    result = align_by_key(args.task)
-
     out_dir = VERIFICATION_ROOT / f"task_{args.task}"
     out_dir.mkdir(parents=True, exist_ok=True)
+
+    if spec.get("join_key"):
+        result = align_by_key(args.task)
+    else:
+        result = align_by_embedding(
+            args.task,
+            model_name=args.model,
+            tau=args.tau,
+            batch_size=args.batch_size,
+            device=args.device,
+            cache_dir=out_dir / "emb",
+        )
     alignment_path = out_dir / "alignment.parquet"
     result.frame.to_parquet(alignment_path, index=False)
 

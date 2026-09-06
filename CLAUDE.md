@@ -185,7 +185,7 @@ These are not preferences. Violating them invalidates the corpus.
 | Corpus splits | **Parquet** | `data/raw/task_{n}/{block}/{lang}.parquet` |
 | Frozen corpus | **Parquet** | `data/v1.0/task_{n}/{block}/{lang}.parquet` |
 | Alignment maps | Parquet | `data/verification/task_{n}/alignment.parquet` |
-| Embeddings | `.npy` | `data/verification/task_{n}/emb/` |
+| Embeddings | `.npy` | `data/verification/task_{n}/emb/` (gitignored — regenerable, ~20 MB/task) |
 | Similarity scores | Parquet | `data/verification/task_{n}/labse_scores.parquet` |
 | Label schema, configs, manifests | `.json` | `configs/`, `data/base_paper/manifest.json`, `data/v1.0/manifest.json` |
 
@@ -437,15 +437,23 @@ silently re-points at a different item if upstream reorders anything (§4 rule 7
 - **Task 3** — exact join on `URL`. No model needed. **Done: 532/532 items align
   across all three languages, zero unmatched, and every aligned item carries the same
   label in all three.** `data/verification/task_3/alignment.parquet`.
-- **Task 2** — no join key; needs mutual-nearest-neighbour search on LaBSE embeddings
-  above τ. Not yet implemented. Expect ~1769 of ~2200 to align three ways, with the
-  remainder kept in their own splits but outside the parallel set (§4 rule 1).
+- **Task 2** — no join key, so alignment is by **mutual** nearest neighbour on LaBSE
+  above τ, required to be **three-way consistent**. Mutual matching stops ten source
+  sentences collapsing onto one target; three-way agreement means each pair survived
+  two independent routes. **Done: 1769 items align three ways** (from 2029/2019/1833
+  pairwise), all carrying identical labels. The 469/459/303 rows that did not align
+  are kept in their own splits but cannot form a parallel item.
+  `data/verification/task_2/alignment.parquet`.
 - **Task 1** — independently sourced. **Must not be aligned**; the CLI refuses it.
   Aligning it would invent a correspondence that does not exist.
 
+Unmatched rows are reported, never a failure — the splits are genuinely different
+sizes, and §4 rule 1 keeps them. A conflicting label **is** a failure: the corpus
+cannot carry one gold label for an item whose languages disagree.
+
 **Done when:** every item either aligns across all three languages or is reported as
 unmatched; no aligned item carries conflicting labels; the script exits non-zero
-otherwise.
+otherwise. **Tasks 2 and 3 both pass; task 1 is refused by design.**
 
 ---
 
