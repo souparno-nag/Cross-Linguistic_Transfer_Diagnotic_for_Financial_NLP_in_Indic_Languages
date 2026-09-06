@@ -185,9 +185,31 @@ pin.
 `sentencepiece` is also required — IndicTrans2's tokenizer needs it and it is not pulled
 in automatically.
 
-Hardware: RTX 3060 (12 GB, primary) and RTX 3050 (4 GB, inference/embedding only).
-Assume GPU access is intermittent — every GPU job must be **resumable** and must
-checkpoint partial output.
+**`use_cache=False` is mandatory even on 4.x.** IndicTrans2's `modeling_indictrans.py`
+reads `past_key_values[0][0].shape[2] if past_key_values is not None else 0`. Modern
+`transformers` passes a `Cache` object rather than the legacy tuple: it is not `None`,
+so the guard passes, but it is empty on the first decode step, so `[0][0]` is `None` and
+generation dies with `AttributeError: 'NoneType' object has no attribute 'shape'`. The
+setting lives in `configs/translation_config.json` and costs decode speed; it is a
+correctness requirement, not a tuning knob.
+
+### 3.3 Hardware — corrected in T-104
+
+The machine has **one GPU: an RTX 3050 Laptop, 4 GB.** §3's earlier claim of a 12 GB
+RTX 3060 as primary was wrong; `torch.cuda.device_count()` is 1. Everything must fit in
+4 GB, and `cuda:0` *is* the small card.
+
+The 1B model nonetheless fits: 2.42 GB loaded in fp16, peaking under 2.8 GB at beam 5,
+batch 8. The 320M distilled variant is therefore not required on VRAM grounds. What is
+required is `PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True` — without it beam search
+OOMs on *fragmentation* rather than genuine exhaustion. `src/translate.py` sets it at
+module scope, before torch is first imported.
+
+Measured on short text at beam 5, batch 8: ~3 sentences/s, so the full 92,760-row
+generation is roughly 8 hours. Longer task-1 and task-2 sentences will be slower.
+
+GPU access is intermittent — every GPU job must be **resumable** and must checkpoint
+partial output.
 
 ---
 

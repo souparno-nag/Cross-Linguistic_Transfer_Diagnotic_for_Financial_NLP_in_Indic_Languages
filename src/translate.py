@@ -17,6 +17,7 @@ not load on 5.x.
 from __future__ import annotations
 
 import json
+import os
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -24,6 +25,11 @@ import pandas as pd
 
 from .audit import config_hash
 from .download_dataset.paths import REPO_ROOT
+
+# Beam search on a 4 GB card fails on fragmentation rather than true exhaustion:
+# the 1B model needs ~2.4 GB and peaks under 2.8 GB, but the default allocator
+# still OOMs. Must be set before torch is first imported, hence module scope.
+os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
 
 CONFIG_PATH = REPO_ROOT / "configs" / "translation_config.json"
 CHECKPOINT_ROOT = REPO_ROOT / "cache" / "translate"

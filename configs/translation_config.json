@@ -2,15 +2,15 @@
   "model": "ai4bharat/indictrans2-indic-indic-1B",
   "fallback_model": "ai4bharat/indictrans2-indic-indic-dist-320M",
   "revision": "main",
-  "note": "Decoding is identical across all 9 directions so drift figures are comparable between them (CLAUDE.md §8, T-104). Changing any value here invalidates comparisons against artefacts already produced under the old config hash.",
+  "note": "Decoding is identical across all 9 directions so drift figures are comparable between them (CLAUDE.md \u00a78, T-104). Changing any value here invalidates comparisons against artefacts produced under the old fingerprint. use_cache=false is REQUIRED, not a tuning choice: IndicTrans2's remote modelling code reads past_key_values as a legacy tuple, but modern transformers passes a Cache object that is non-None yet empty on the first step, so the model's `is not None` guard passes and it crashes on .shape. See CLAUDE.md \u00a73.2. early_stopping was removed because transformers reports it as an invalid flag and ignores it; keeping it would imply a setting that is not in effect.",
   "decoding": {
     "num_beams": 5,
     "max_length": 256,
     "min_length": 0,
     "length_penalty": 1.0,
-    "early_stopping": true,
     "do_sample": false,
-    "num_return_sequences": 1
+    "num_return_sequences": 1,
+    "use_cache": false
   },
   "tokenizer": {
     "truncation": true,
@@ -20,7 +20,7 @@
   "processor": {
     "inference": true
   },
-  "batch_size": 16,
+  "batch_size": 8,
   "seed": 20260903,
   "lang_codes": {
     "hin": "hin_Deva",

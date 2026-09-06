@@ -123,7 +123,10 @@ def main(argv: list[str] | None = None) -> int:
         try:
             frame = run(args.task, model_name, config, args.sample, args.device)
         except Exception as error:  # noqa: BLE001
-            print(f"{label} FAILED: {type(error).__name__}: {error}", file=sys.stderr)
+            import traceback
+
+            print(f"\n{label} FAILED: {type(error).__name__}: {error}", file=sys.stderr)
+            traceback.print_exc()
             return 1
         frame["model"] = label
         path = report_dir / f"t104_smoke_{label}.parquet"
