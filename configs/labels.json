@@ -1,0 +1,27 @@
+{
+  "task_2": {
+    "column": "label",
+    "labels": [
+      "sustainable",
+      "unsustainable"
+    ],
+    "note": "index is position in this list; frozen once written (§4 rule 6)"
+  },
+  "task_3": {
+    "column": "ESG_Theme",
+    "labels": [
+      "climate change",
+      "corporate behavior",
+      "corporate governance",
+      "environmental opportunities",
+      "human capital",
+      "natural capital",
+      "pollution waste",
+      "product liability",
+      "social opportunities",
+      "stake holder opposition"
+    ],
+    "note": "index is position in this list; frozen once written (§4 rule 6)"
+  },
+  "task_1": null
+}

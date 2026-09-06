@@ -229,6 +229,16 @@ Every corpus Parquet file has exactly these columns:
 `(block_id, item_id, lang)` is the primary key. Rows never move between tasks, so the
 task is carried by the path (§5), not by a column.
 
+`item_id` is derived from content, never from row position — a positional id silently
+re-points at a different item if upstream reorders anything. Two consequences:
+
+- **A task-1 item is a `(sentence, span)` pair, not a sentence.** A sentence containing
+  three numbers appears three times, once per number; 6776 of 10640 Hindi rows share a
+  sentence with another row. Its id therefore includes the span.
+- **Exact-duplicate rows get an occurrence suffix** (`…#1`, `…#2`). Task 2 has four such
+  rows, identical in both text and label. Rule 1 forbids dropping them, and a
+  content-derived id cannot otherwise separate them.
+
 ### 6.1 Numeral-task schema variant (`task_1`)
 
 Task 1 has no class label — it marks a number inside a sentence. It uses the same
@@ -267,7 +277,9 @@ requirements.txt     ✓ kagglehub, pandas, openpyxl, pyarrow, sentence-transfor
 env/                 ✓ venv, Python 3.11.15 (gitignored)
 .cache/kagglehub/    ✓ upstream download cache (gitignored)
 
-configs/               translation_config.json, labels.json, paths.json
+configs/
+  labels.json        ✓ canonical labels per task; task_1 is null (no labels)
+                       translation_config.json, paths.json still to come
 src/
   __init__.py        ✓
   download_dataset/  ✓ upstream fetch; complete, no open work
@@ -276,8 +288,8 @@ src/
   unicode_ranges.py  ✓ §9's script/digit tables, dependency-free
   audit.py           ✓ T-102 audit + independence tests
   align.py           ✓ T-102b item correspondence recovery
-  corpus_io.py          all reads/writes; format enforcement
-  ids.py                key construction, join helpers, validation
+  corpus_io.py       ✓ all reads/writes; format, schema and label enforcement
+  ids.py             ✓ key construction, block mapping, join helpers
   translate.py          IndicTrans2 wrapper, resumable batching
   entities.py           numeral/currency preservation checks
   labse_gate.py         embedding + cosine similarity + thresholding
@@ -287,10 +299,11 @@ scripts/
   __init__.py        ✓
   t102_audit.py      ✓ python -m scripts.t102_audit --task {n} [--independence]
   t102b_align.py     ✓ python -m scripts.t102b_align --task {n}
+  t103_ingest.py     ✓ python -m scripts.t103_ingest --task {n}
                        (one thin CLI per task, named by task ID)
 data/
   base_paper/        ✓ upstream IndicFinNLP, committed; see §7.1
-  raw/task_{n}/         per-block MT output
+  raw/task_{n}/      ✓ native splits ingested; MT output still to come
   verification/task_3/ ✓ alignment.parquet
   verification/task_{n}/  alignment maps, scores, embeddings
   v1.0/task_{n}/        frozen release + manifest.json
@@ -472,8 +485,21 @@ Depends on §7.1's open question being answered — the task choice fixes the la
 - Round-trip write→read preserves a fixture containing Malayalam text, Telugu digits,
   a currency symbol, and a lakh/crore expression, byte-for-byte.
 
-This task has no code dependencies — its input, `data/base_paper/`, is already on disk.
-Start here, once the task choice in §7.1 is settled.
+**Status: DONE**, with one criterion necessarily deferred.
+
+| Criterion | State |
+|---|---|
+| Loader refuses unknown labels, and a `label_id` disagreeing with the schema | passing |
+| Byte-for-byte round trip across all four scripts, Telugu digits, `₹`, lakh/crore | passing |
+| Cross-language join returns exactly N with zero nulls | passing at **3-way**: task 2 joins to 1769, task 3 to 532 |
+| 4-way join | **deferred to T-106** — the fourth arm is Malayalam, which does not exist until it is translated |
+
+Native splits are ingested for all three tasks — 22786 / 6538 / 1596 rows, none
+dropped. Task 1's languages correctly join to **zero**: it is independently sourced, so
+a cross-language join is meaningless and the test asserts it stays that way.
+
+Ingest keeps unaligned rows (§4 rule 1) with a block-local id and an `unaligned` flag,
+so they remain available while staying visibly outside the parallel set.
 
 ---
 
@@ -672,6 +698,8 @@ Every module in `src/` ships with tests. Minimum coverage:
 - **`integrity.py`** — a deliberately script-leaked fixture is caught
 - **`align.py`** — ids are key-derived and stable; every item appears once per
   language; conflicting labels are caught; an independently-sourced task is refused
+- **`ids.py`** — task-1 spans yield distinct ids; duplicates get a suffix and unique
+  ids do not; Malayalam has no block
 
 Run tests before any task is marked done.
 
