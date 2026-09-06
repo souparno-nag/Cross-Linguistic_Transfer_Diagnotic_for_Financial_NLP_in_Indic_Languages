@@ -7,8 +7,16 @@ diagnostic pipeline. If a request drifts into Phase 2+, say so and stop.
 
 ## 1. What Phase 1 delivers
 
-A frozen, machine-translated, semantically parallel ESG classification corpus across
-four Indic languages, screened for translation drift, with a datasheet.
+**Three** frozen, machine-translated, semantically parallel corpora across four Indic
+languages, screened for translation drift, each with a datasheet.
+
+§2's design is a **template applied once per IndicFinNLP task**, not a single corpus:
+
+| Task | Content | Corpus type |
+|---|---|---|
+| `task_1` | numerals in financial text | numeral span (schema variant, §6.1) |
+| `task_2` | sustainability sentences | binary classification |
+| `task_3` | ESG news headlines | 10-class classification |
 
 Everything downstream (zero-shot transfer measurement, failure diagnostics) depends on
 this corpus being **row-aligned, label-preserving, and immutable once frozen**. Silent
@@ -18,26 +26,31 @@ row loss here corrupts every result in the project and is not recoverable later.
 
 ## 2. Corpus design — LOCKED, do not modify
 
-> **⚠ T-102 finding: the premise of this section does not hold for IndicFinNLP.
-> Do not start T-104/T-106 until this is resolved.**
+> **⚠ T-102 finding: this section's premise holds for task 1 only. Resolved — see
+> §2.2 for the per-task consequences.**
 >
-> §2 assumes three *independently sourced* native splits. They are not. Task 2's
-> Hindi, Bengali and Telugu splits are the same content in shuffled row order:
+> §2 assumes three *independently sourced* native splits. For tasks 2 and 3 they are
+> not: their Hindi, Bengali and Telugu splits are the same content in shuffled order.
+> For task 2:
 > 88.5–93.5% of sampled sentences have a nearest cross-language neighbour at or
 > above τ=0.82, against 0.0% for same-domain but genuinely different content, and
 > the split under test scores *above* the known-parallel positive control (task 3).
 > 80% of matched pairs carry identical numeral sets. Task 3 is parallel too, proven
-> outright by its URL column. Task 1 is not a classification task.
+> outright by its URL column.
 >
-> **Every task in this dataset is a parallel corpus. There are no independent
-> native splits to be had here.** See `reports/native_audit.md` §3.
+> **Task 1 is the exception and the only independently sourced multilingual data in
+> IndicFinNLP**: median nearest cross-language match 0.58–0.63 with 8–15% above τ,
+> far closer to the 0.0% negative control than to task 2's 93%. It is not a
+> classification task, but it is uncontaminated. See `reports/native_audit.md` §3.
 >
-> Consequences for the design as written: blocks H, B and T do not hold distinct
-> content, so the "12 splits" are ~3× redundant and the cross-block contamination
-> T-113 tries to rule out is guaranteed rather than merely risked. Conversely the
-> translationese conditions get *stronger* — native Hindi and MT-Hindi-from-Bengali
-> can now be compared on the same underlying item, which the original design could
-> not do. This needs a decision (§11), not a workaround.
+> Consequences, for tasks 2 and 3 only: blocks H, B and T do not hold distinct
+> content, so their "12 splits" are ~3× redundant and the cross-block contamination
+> T-113 tries to rule out is guaranteed rather than merely risked. An alignment step
+> is therefore mandatory for those two — without it you cannot tell which items
+> overlap between a training language and an evaluation one. Conversely the
+> translationese conditions get *stronger*: native Hindi and MT-Hindi-from-Bengali
+> can be compared on the same underlying item, which the original design could not
+> do. Task 1 is unaffected and needs no alignment step.
 
 Three native source splits from IndicFinNLP. Each is translated into the other three
 languages. **9 translation directions, 12 splits total.**
@@ -62,17 +75,40 @@ Malayalam having no native version is a known, documented limitation. Do not att
 synthesise one. It follows directly from the upstream data: IndicFinNLP ships Hindi,
 Bengali and Telugu only (§7.1).
 
-### 2.1 Parallel control set — added after T-102
+### 2.1 Human translations as a quality ceiling
 
-IndicFinNLP task 3 is already parallel across all three languages (999 rows each,
-identical URL sets, identical row order — see §7.1). That disqualifies it as a native
-source, but makes it a **human-translated reference set**: the same content rendered in
-all three languages by people rather than by IndicTrans2.
+Tasks 2 and 3 are already parallel across Hindi, Bengali and Telugu, and those existing
+versions were produced by people rather than by IndicTrans2. That is a second, free
+asset on top of each task's own corpus.
 
-It is retained as a control, outside the 12 splits and outside the freeze in §2's
-table. Use it in T-104 and T-110 as a quality ceiling — LaBSE similarity on human
-translations of the same content bounds what MT similarity can reasonably reach, which
-is what makes τ defensible rather than asserted. It is never mixed into the corpus.
+Once a task's splits are aligned, every Indic→Indic direction among those three
+languages has a **human reference translation** for the same item. Use it in T-110 as
+the quality ceiling: what a human translation of this content scores bounds what an MT
+system can reasonably be expected to reach, which is what makes τ defensible rather
+than asserted. Where a reference exists, prefer scoring MT output against it directly
+over judging similarity to the source.
+
+Malayalam has no reference, and neither does task 1 in any direction. Those fall back
+to source-similarity alone, and T-110 must say so rather than implying one standard
+was applied throughout.
+
+### 2.2 Per-task instantiation
+
+The block table above is instantiated once per task. What differs is only whether the
+native splits are genuinely independent, which decides whether an alignment step is
+needed first:
+
+| Task | Natives independent? | Alignment step | Notes |
+|---|---|---|---|
+| `task_1` | **yes** — median cross-language match 0.58–0.63, 8–15% above τ | none needed | §2 works exactly as originally written. The only contamination-free task. |
+| `task_2` | no — 0.91, 93% above τ | **required**, by embedding match | Human-translated but row-shuffled. 1769 of ~2200 align 3-way. |
+| `task_3` | no — 0.88, 77% above τ | free — join on `URL` | 532 rows per language, already row-order aligned. |
+
+Where natives are not independent, the same sentence exists in every language, so a
+split used for training in one language must not be used for evaluation in another
+without saying so. That is what makes the alignment mandatory rather than convenient:
+without it you cannot tell which items overlap. T-113 owns the resulting condition
+matrix.
 
 ### Language codes (FLORES-style, used by IndicTrans2)
 
@@ -138,11 +174,16 @@ These are not preferences. Violating them invalidates the corpus.
 | Artefact | Format | Path |
 |---|---|---|
 | Upstream source data | `.xlsx` (upstream's own format) | `data/base_paper/raw/task_{n}/{language}.xlsx` |
-| Corpus splits | **Parquet** | `data/raw/{block}/{lang}.parquet` |
-| Frozen corpus | **Parquet** | `data/v1.0/{block}/{lang}.parquet` |
-| Embeddings | `.npy` | `data/verification/emb/` |
-| Similarity scores | Parquet | `data/verification/labse_scores.parquet` |
+| Corpus splits | **Parquet** | `data/raw/task_{n}/{block}/{lang}.parquet` |
+| Frozen corpus | **Parquet** | `data/v1.0/task_{n}/{block}/{lang}.parquet` |
+| Alignment maps | Parquet | `data/verification/task_{n}/alignment.parquet` |
+| Embeddings | `.npy` | `data/verification/task_{n}/emb/` |
+| Similarity scores | Parquet | `data/verification/task_{n}/labse_scores.parquet` |
 | Label schema, configs, manifests | `.json` | `configs/`, `data/base_paper/manifest.json`, `data/v1.0/manifest.json` |
+
+Every derived path carries a `task_{n}` level. Without it the three corpora collide —
+`data/raw/H/hin.parquet` is ambiguous across tasks, and silently overwriting one task's
+split with another's is exactly the unrecoverable corruption §1 warns about.
 | Reports | `.md` + Parquet | `reports/` — `native_audit.{md,parquet}`, `native_independence.parquet` |
 | Throwaway caches | `.pkl` | `cache/` (gitignored, never released) |
 | kagglehub download cache | kagglehub's own | `.cache/kagglehub/` (gitignored, never released) |
@@ -177,7 +218,33 @@ Every corpus Parquet file has exactly these columns:
 | `labse_sim` | float | `null` for native rows |
 | `flags` | list[str] | e.g. `translation_drift`, `entity_loss`, `empty_output` |
 
-`(block_id, item_id, lang)` is the primary key.
+`(block_id, item_id, lang)` is the primary key. Rows never move between tasks, so the
+task is carried by the path (§5), not by a column.
+
+### 6.1 Numeral-task schema variant (`task_1`)
+
+Task 1 has no class label — it marks a number inside a sentence. It uses the same
+columns as above **except** that `label` and `label_id` are replaced by:
+
+| Column | Type | Notes |
+|---|---|---|
+| `number_indic` | str | the number as written in the source script |
+| `number_english` | str | the same value in ASCII digits |
+| `start_posn` | int | character offset into `text`, **end-exclusive** |
+| `end_posn` | int | `text[start_posn:end_posn] == number_indic` |
+| `magnitude` | int | upstream's scale marker |
+| `span_recovered` | bool | `null` for native rows; see below |
+
+Upstream's offsets are exact: `indic[start_posn:end_posn]` reproduces `number_indic`
+on 500/500 sampled rows in each language.
+
+**Offsets do not survive translation.** A translated sentence has a different length in
+a different script, so `start_posn` is meaningless on an MT row and must be *recovered*
+by locating the translated numeral in the output, not carried across. Recovery can
+fail — the model may drop, reword or mis-transcribe the number. Record the outcome in
+`span_recovered` and flag failures; per §4 rule 1 the row is kept either way. That
+failure rate is a headline result, not an error: whether financial numerals survive
+Indic→Indic translation is the question this project exists to answer.
 
 ---
 
@@ -213,9 +280,9 @@ scripts/
                        (one thin CLI per task, named by task ID)
 data/
   base_paper/        ✓ upstream IndicFinNLP, committed; see §7.1
-  raw/                  per-block MT output
-  verification/         scores, embeddings
-  v1.0/                 frozen release + manifest.json
+  raw/task_{n}/         per-block MT output
+  verification/task_{n}/  alignment maps, scores, embeddings
+  v1.0/task_{n}/        frozen release + manifest.json
 reports/             ✓ native_audit.md, native_audit.parquet,
                        native_independence.parquet
 tests/
@@ -266,12 +333,17 @@ task supplies `H_nat`/`B_nat`/`T_nat`. The audit answers it:
 
 - **Task 2 is the native source.** `sentence_indic` is `text`; `label` is `label`, a
   binary `sustainable` / `unsustainable` shared identically by all three languages.
-- **Task 3 cannot be.** Its three languages hold 999 rows each with identical URL sets
+- **Task 3 cannot be.** Its three languages hold 532 rows each with identical URL sets
   in identical row order — it is one set of articles translated three ways, so it fails
   the independence premise of §2 by construction. Retained as the control set in §2.1.
+  Each URL appears once per language; there is no internal duplication.
 - **Task 1 is not a classification task** (no label column), so it is out as a corpus
-  source. Its `number_indic` / `number_english` / `start_posn` / `end_posn` columns are
-  the natural fixture source for T-105's numeral checker.
+  source *for the ESG label*. Its `number_indic` / `number_english` / `start_posn` /
+  `end_posn` columns are the natural fixture source for T-105's numeral checker.
+  Its spans are end-exclusive — `indic[start_posn:end_posn]` reproduces
+  `number_indic` exactly, 500/500 on a sample from each language. Unlike tasks 2 and
+  3 it is **not** parallel across languages (see §2), which makes it the only
+  contamination-free option in the dataset.
 
 ---
 
@@ -387,7 +459,7 @@ Roughly 6–7 GPU-hours. Checkpoint after every batch.
 
 **Done when:** row-count parity with the source split for every direction; zero
 unaligned rows; zero silently-empty translations (empty output is flagged, not dropped);
-output at `data/raw/{block}/{lang}.parquet`.
+output at `data/raw/task_{n}/{block}/{lang}.parquet`.
 
 ---
 
@@ -412,7 +484,7 @@ Embed source and target, cosine similarity per pair, threshold τ = 0.82. All 9
 directions, **every pair, nothing sampled**. Cache embeddings as `.npy`. Runs on the
 3050.
 
-**Done when:** `data/verification/labse_scores.parquet` has a score for every MT row;
+**Done when:** `data/verification/task_{n}/labse_scores.parquet` has a score for every MT row;
 `labse_sim` is populated in the corpus.
 
 ---
@@ -459,8 +531,9 @@ symmetric?
 ### T-112 — Freeze corpus v1.0
 `src/freeze.py`
 
-Copy all 12 splits into `data/v1.0/`, write `manifest.json` with per-file SHA-256, make
-the directory read-only.
+Copy all 12 splits **per task** into `data/v1.0/task_{n}/`, write `manifest.json` with
+per-file SHA-256, make the directory read-only. A task may be frozen independently once
+its own checks pass; the manifest covers whatever is present.
 
 **Done when:** the manifest verifies; a tamper test (modify one file, re-verify) fails
 as expected.

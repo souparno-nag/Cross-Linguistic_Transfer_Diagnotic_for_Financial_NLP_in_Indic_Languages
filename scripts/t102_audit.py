@@ -184,9 +184,7 @@ def render(
         f"Task {CONTROL_TASK} is therefore one set of articles translated three "
         f"ways, not three independent corpora. It cannot supply the native "
         f"splits, and is retained instead as a human-translated parallel "
-        f"control set for judging MT quality in T-104 and T-110. Note it also "
-        f"carries only {control['unique_urls']['hindi']} unique URLs across "
-        f"{control['rows']['hindi']} rows, so it duplicates articles internally.",
+        f"control set for judging MT quality in T-104 and T-110.",
         "",
         f"### 3.2 Task {NATIVE_TASK} — LaBSE tests",
         "",

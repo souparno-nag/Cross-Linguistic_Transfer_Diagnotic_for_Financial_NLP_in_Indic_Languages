@@ -1,6 +1,6 @@
 # T-102 — Native split audit
 
-Generated 2026-09-03T13:52:46+00:00 · config hash `cd3b4dc6c39aacf7`
+Generated 2026-09-06T19:47:01+00:00 · config hash `cd3b4dc6c39aacf7`
 
 ```json
 {
@@ -55,7 +55,7 @@ Union: `sustainable`, `unsustainable`
 
 Row counts {'hindi': 532, 'bengali': 532, 'telugu': 532}, of which 532 URLs appear in all three languages and 532 rows carry the same URL at the same index. Parallel: **True**.
 
-Task 3 is therefore one set of articles translated three ways, not three independent corpora. It cannot supply the native splits, and is retained instead as a human-translated parallel control set for judging MT quality in T-104 and T-110. Note it also carries only 532 unique URLs across 532 rows, so it duplicates articles internally.
+Task 3 is therefore one set of articles translated three ways, not three independent corpora. It cannot supply the native splits, and is retained instead as a human-translated parallel control set for judging MT quality in T-104 and T-110.
 
 ### 3.2 Task 2 — LaBSE tests
 
