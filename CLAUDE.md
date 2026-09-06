@@ -612,13 +612,33 @@ direction below 95% is flagged; affected rows get `entity_loss` in `flags`.
 `scripts/t106_generate.py`
 
 Block H → {ben, mal, tel}; Block B → {hin, mal, tel}; Block T → {hin, ben, mal}.
-Labels carried forward under strict row alignment.
+Labels carried forward under strict row alignment. **Run once per task.**
 
-Roughly 6–7 GPU-hours. Checkpoint after every batch.
+**Cost, corrected.** The original "roughly 6–7 GPU-hours" was for one task of ~2200
+rows. Across all three:
+
+| Task | Native rows (H/B/T) | Translations | Rough GPU-hours at ~3k/hr |
+|---|---|---|---|
+| `task_1` | 10640 / 6130 / 6016 | 68,358 | ~23 |
+| `task_2` | 2238 / 2228 / 2072 | 19,614 | ~6.5 |
+| `task_3` | 532 / 532 / 532 | 4,788 | ~1.6 |
+| **total** | | **92,760** | **~31** |
+
+Task 1 alone is three and a half times task 2. Given intermittent GPU access (§3), run
+tasks in ascending cost — task 3 first, so the whole path is proven end to end in under
+two hours before committing a day to task 1. Checkpointing after every batch (T-104)
+is what makes this survivable; a run that has to restart from zero is not.
+
+**Task 1 needs span recovery, and cannot simply carry its annotations across.** Its
+`start_posn`/`end_posn` index the source string; the translation has a different length
+in a different script. Re-locate the numeral in the output and record the outcome in
+`span_recovered` (§6.1). Failures are flagged and kept, and the failure rate is a
+headline result rather than an error.
 
 **Done when:** row-count parity with the source split for every direction; zero
 unaligned rows; zero silently-empty translations (empty output is flagged, not dropped);
-output at `data/raw/task_{n}/{block}/{lang}.parquet`.
+`span_recovered` populated for every task-1 MT row; output at
+`data/raw/task_{n}/{block}/{lang}.parquet`.
 
 ---
 

@@ -1,6 +1,6 @@
 # T-102 — Native split audit
 
-Generated 2026-09-06T20:02:09+00:00 · config hash `b16f7deb3658ee05`
+Generated 2026-09-06T20:55:53+00:00 · config hash `b16f7deb3658ee05`
 
 ```json
 {
