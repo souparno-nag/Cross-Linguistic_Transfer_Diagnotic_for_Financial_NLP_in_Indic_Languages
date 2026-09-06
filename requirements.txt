@@ -10,11 +10,15 @@ openpyxl
 pyarrow
 
 # Verification (T-102 independence tests, T-108 LaBSE gate).
-sentence-transformers
+# Pinned below 6.x: 6.x requires transformers>=5, which IndicTrans2 cannot use.
+sentence-transformers<6
 
-# Translation (T-104). IndicProcessor only — IndicDataCollator is broken under
-# transformers 5.x and unused; see CLAUDE.md §3.2.
+# Translation (T-104). transformers<5 is required, not preferred: IndicTrans2's
+# remote modelling code breaks on 5.x in three places, one unshimmable.
+# See CLAUDE.md §3.2.
+transformers<5
 IndicTransToolkit
+sentencepiece
 
 # Tests (CLAUDE.md §10).
 pytest

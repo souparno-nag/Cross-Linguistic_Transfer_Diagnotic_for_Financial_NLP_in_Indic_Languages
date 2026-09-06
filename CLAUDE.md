@@ -153,27 +153,37 @@ it. Do not read a stalled download as a broken environment.
 twice, as `pytorch_model.bin` *and* `model.safetensors`. Only one is needed: 4.8 GB for
 `indic-indic-1B`, 1.3 GB for `indic-indic-dist-320M`.
 
-### 3.2 IndicTransToolkit vs `transformers` 5.x — resolved, do not downgrade
+### 3.2 `transformers` must be pinned below 5 — resolved
 
-`transformers` **5.16.1** is installed, pulled in by `sentence-transformers` 6.0.1
-(which requires `>=5.0.0,<6.0.0`). `IndicTransToolkit` 1.1.1 — the only released
-version — fails on it:
+**Pinned: `transformers==4.57.6`, `sentence-transformers==5.7.0`.** Do not upgrade
+either without re-reading this section.
 
-```
-ImportError: cannot import name 'PreTrainedTokenizerBase'
-             from 'transformers.tokenization_utils'
-```
+`sentence-transformers` 6.x requires `transformers>=5`, and installing it pulled 5.16.1.
+IndicTrans2 does not work on 5.x. Its released checkpoints carry their own modelling
+code loaded with `trust_remote_code=True`, written against 4.x, and 5.x breaks it in
+three places:
 
-**This does not require a downgrade, and downgrading would break LaBSE.** The failure is
-confined to `IndicDataCollator` in `collator.py`, which is training-time batching this
-project never uses; it breaks the whole package only because `__init__.py` imports all
-three submodules eagerly. `IndicProcessor` is a compiled Cython extension that imports
-nothing from `transformers` and works correctly under 5.16.1 — verified on preprocess
-and postprocess.
+1. `configuration_indictrans.py` imports `transformers.onnx`, removed in 5.x.
+2. `IndicTransToolkit`'s `IndicDataCollator` imports `PreTrainedTokenizerBase` from
+   `transformers.tokenization_utils`, moved in 5.x — and `__init__.py` imports every
+   submodule eagerly, so the whole package fails.
+3. `tokenization_indictrans.py` assigns `self.unk_token` **before** calling
+   `super().__init__()`. 5.x's attribute machinery raises
+   `AttributeError: IndicTransTokenizer has no attribute _special_tokens_map`.
 
-So import the processor submodule without executing the package `__init__`.
-`src/translate.py` owns that workaround; do not patch `site-packages`, which is not
-reproducible.
+The first two can be shimmed. The third cannot without patching private internals of a
+class loaded from remote code, which would not be reproducible. Pinning is the correct
+fix, not a workaround — a shim stack three deep against library internals is exactly
+what §11's "reproducible in October by someone re-reading it cold" rules out.
+
+`sentence-transformers` 5.7.0 is the newest release that accepts `transformers` 4.x, and
+resolves cleanly. **LaBSE output is unaffected**: after the downgrade, T-102b's task-2
+alignment reproduced bit-identically (same 5307 rows, same item ids, frame-equal) and
+T-102's independence figures were unchanged to four decimals. §4 rule 7 holds across the
+pin.
+
+`sentencepiece` is also required — IndicTrans2's tokenizer needs it and it is not pulled
+in automatically.
 
 Hardware: RTX 3060 (12 GB, primary) and RTX 3050 (4 GB, inference/embedding only).
 Assume GPU access is intermittent — every GPU job must be **resumable** and must
