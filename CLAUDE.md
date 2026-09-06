@@ -166,6 +166,14 @@ These are not preferences. Violating them invalidates the corpus.
 7. **Determinism.** Every script takes an explicit seed. Two runs of the same config
    produce byte-identical output.
 8. **Log the config hash** with every artefact written.
+9. **Never Unicode-normalise task 1's text without recomputing its offsets.** Its
+   `start_posn`/`end_posn` index the raw upstream string. NFC decomposes precomposed
+   nukta letters (`ड़` `ढ़` `ज़` `য়` `ড়`), lengthening the text, and composes Telugu
+   vowel signs, shortening it. All 22786 spans are correct as shipped; normalising
+   breaks **880** of them while leaving the text looking fine. Normalisation is not
+   cleaning here — it is silent, unrecoverable corruption. Tasks 2 and 3 carry no
+   offsets and may be normalised freely (task 2 is already fully NFC; task 3 has 5
+   rows that are not).
 
 ---
 
@@ -184,7 +192,7 @@ These are not preferences. Violating them invalidates the corpus.
 Every derived path carries a `task_{n}` level. Without it the three corpora collide —
 `data/raw/H/hin.parquet` is ambiguous across tasks, and silently overwriting one task's
 split with another's is exactly the unrecoverable corruption §1 warns about.
-| Reports | `.md` + Parquet | `reports/` — `native_audit.{md,parquet}`, `native_independence.parquet` |
+| Reports | `.md` + Parquet | `reports/task_{n}/` — `native_audit.{md,parquet}`, `native_independence.parquet`, `native_independence_controls.parquet` |
 | Throwaway caches | `.pkl` | `cache/` (gitignored, never released) |
 | kagglehub download cache | kagglehub's own | `.cache/kagglehub/` (gitignored, never released) |
 
@@ -283,8 +291,8 @@ data/
   raw/task_{n}/         per-block MT output
   verification/task_{n}/  alignment maps, scores, embeddings
   v1.0/task_{n}/        frozen release + manifest.json
-reports/             ✓ native_audit.md, native_audit.parquet,
-                       native_independence.parquet
+reports/task_{n}/    ✓ native_audit.{md,parquet}, native_independence.parquet,
+                       native_independence_controls.parquet — one dir per task
 tests/
 cache/                 gitignored
 ```
@@ -391,9 +399,24 @@ duplicate/empty-row count, and a written independence finding; `native_audit.par
 `native_independence.parquet` and `native_independence_controls.parquet` carry the
 numbers; the script exits non-zero on any failed check.
 
-**Status: DONE.** Phase A passes. The independence tests fail by design — see the
-warning in §2. `python -m scripts.t102_audit --independence` exits 1 and will keep
-doing so until the design question is settled.
+Run once per task: `python -m scripts.t102_audit --task {n} --independence`. Each task
+writes its own report directory; a single shared path would let each run overwrite the
+last.
+
+**Status: DONE for all three tasks.**
+
+| Task | Phase A | Independence verdict |
+|---|---|---|
+| `task_1` | passes | **independent** — median 0.58–0.64, 8.5–15.5% above τ, inside the negative-control band |
+| `task_2` | passes | parallel — median 0.88–0.91, 88.5–93.5% above τ |
+| `task_3` | passes | parallel — proven by `URL`; embedding controls skipped as degenerate |
+
+Tasks 2 and 3 exit non-zero on the independence check. That is the correct result, not
+a failure to fix: it records that their natives are not independent, which §2.2 handles
+with an alignment step.
+
+The NFC check is reported, not failed — see rule 9. For task 1 it is replaced by a
+span-integrity check, which does fail if any offset stops pointing at its number.
 
 ---
 

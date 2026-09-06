@@ -39,9 +39,9 @@ from .unicode_ranges import (
 # Upstream ships a different shape per task; the audit only needs to know
 # which column carries the text and which the label.
 TASK_COLUMNS = {
-    1: {"text": "indic", "label": None},
-    2: {"text": "sentence_indic", "label": "label"},
-    3: {"text": "news_title_indic", "label": "ESG_Theme"},
+    1: {"text": "indic", "label": None, "spans": True, "join_key": None},
+    2: {"text": "sentence_indic", "label": "label", "join_key": None},
+    3: {"text": "news_title_indic", "label": "ESG_Theme", "join_key": "URL"},
 }
 
 # The native splits for the corpus in §2. Settled in T-102: task 3 is already
@@ -111,6 +111,10 @@ class SplitAudit:
     duplicate_conflicting_labels: int = 0
     conflicting_examples: list[str] = field(default_factory=list)
     non_nfc: int = 0
+    nfc_changes_length: int = 0
+    spans_total: int = 0
+    spans_correct: int = 0
+    spans_broken_by_nfc: int = 0
     replacement_char: int = 0
     joiner_rows: int = 0
     script_chars: dict[str, int] = field(default_factory=dict)
@@ -135,14 +139,46 @@ class SplitAudit:
                 f"{self.language}: {self.duplicate_conflicting_labels} duplicate texts "
                 "carry conflicting labels"
             )
-        if self.non_nfc:
-            problems.append(f"{self.language}: {self.non_nfc} rows are not NFC")
+        # Non-NFC text is reported, not failed. Tasks 1 and 3 contain nukta
+        # letters (ड़, য়, …) that NFC decomposes and Telugu vowel signs it
+        # composes, so "not NFC" is a property of the source, not damage. What
+        # *would* be damage is normalising task 1 anyway — see below.
+        if self.spans_total and self.spans_correct != self.spans_total:
+            problems.append(
+                f"{self.language}: {self.spans_total - self.spans_correct} of "
+                f"{self.spans_total} numeral spans do not point at their number"
+            )
         if self.replacement_char:
             problems.append(
                 f"{self.language}: {self.replacement_char} rows contain U+FFFD "
                 "(encoding corruption)"
             )
         return problems
+
+
+def _check_spans(frame: pd.DataFrame, text_col: str) -> tuple[int, int, int]:
+    """Verify task 1's numeral offsets, and how many NFC would break.
+
+    Offsets are character positions into the *raw* upstream text and are
+    end-exclusive. NFC is not safe to apply here: it decomposes nukta letters
+    (lengthening the string) and composes Telugu vowel signs (shortening it),
+    which shifts every offset after the affected character. Normalising task 1
+    without recomputing offsets silently corrupts the annotation.
+    """
+    total = correct = broken = 0
+    for _, row in frame.iterrows():
+        try:
+            start, end = int(row["start_posn"]), int(row["end_posn"])
+        except (TypeError, ValueError):
+            continue
+        total += 1
+        number = str(row["number_indic"]).strip()
+        raw = str(row[text_col])
+        if raw[start:end] == number:
+            correct += 1
+            if unicodedata.normalize("NFC", raw)[start:end] != number:
+                broken += 1
+    return total, correct, broken
 
 
 def audit_split(task: int, language: str) -> SplitAudit:
@@ -195,10 +231,17 @@ def audit_split(task: int, language: str) -> SplitAudit:
             result.rows_with_ascii_digits += 1
         if not is_nfc(text):
             result.non_nfc += 1
+            if len(unicodedata.normalize("NFC", text)) != len(text):
+                result.nfc_changes_length += 1
         if REPLACEMENT_CHAR in text:
             result.replacement_char += 1
         if ZWJ in text or ZWNJ in text:
             result.joiner_rows += 1
+
+    if spec.get("spans"):
+        result.spans_total, result.spans_correct, result.spans_broken_by_nfc = (
+            _check_spans(frame, text_col)
+        )
 
     result.script_chars = dict(script_total)
     result.digit_chars = dict(digit_total)

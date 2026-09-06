@@ -43,11 +43,24 @@ from src.audit import (
 from src.download_dataset.paths import REPO_ROOT
 from src.unicode_ranges import script_of
 
-REPORT_DIR = REPO_ROOT / "reports"
-REPORT_MD = REPORT_DIR / "native_audit.md"
-REPORT_PARQUET = REPORT_DIR / "native_audit.parquet"
-INDEPENDENCE_PARQUET = REPORT_DIR / "native_independence.parquet"
-CONTROLS_PARQUET = REPORT_DIR / "native_independence_controls.parquet"
+REPORT_ROOT = REPO_ROOT / "reports"
+
+
+def report_paths(task: int) -> dict:
+    """Per-task report locations.
+
+    Every task writes its own directory. A single shared `native_audit.md`
+    means each run silently overwrites the last, which is the same collision
+    §5 fixes for corpus data.
+    """
+    directory = REPORT_ROOT / f"task_{task}"
+    return {
+        "dir": directory,
+        "md": directory / "native_audit.md",
+        "summary": directory / "native_audit.parquet",
+        "independence": directory / "native_independence.parquet",
+        "controls": directory / "native_independence_controls.parquet",
+    }
 
 DEFAULT_SEED = 20260903
 DEFAULT_SAMPLE = 200
@@ -69,6 +82,10 @@ def summary_frame(audits) -> pd.DataFrame:
                 "duplicate_texts": a.duplicate_texts,
                 "duplicate_conflicting_labels": a.duplicate_conflicting_labels,
                 "non_nfc": a.non_nfc,
+                "nfc_changes_length": a.nfc_changes_length,
+                "spans_total": a.spans_total,
+                "spans_correct": a.spans_correct,
+                "spans_broken_by_nfc": a.spans_broken_by_nfc,
                 "replacement_char": a.replacement_char,
                 "joiner_rows": a.joiner_rows,
                 "leaked_script_rows": a.leaked_script_rows,
@@ -162,6 +179,31 @@ def render(
         ]
         parts += [""]
 
+    if any(a.non_nfc for a in audits):
+        total_nfc = sum(a.non_nfc for a in audits)
+        parts += [
+            "### Normalisation",
+            "",
+            f"{total_nfc} rows are not in NFC. This is a property of the source, "
+            "not damage: the text uses precomposed nukta letters (ड़, ঢ়, য় …) "
+            "which NFC decomposes, lengthening the string, and Telugu vowel "
+            "signs which NFC composes, shortening it.",
+            "",
+        ]
+        if any(a.spans_total for a in audits):
+            broken = sum(a.spans_broken_by_nfc for a in audits)
+            parts += [
+                f"**Do not normalise this task.** Its numeral offsets index the "
+                f"raw text, and every one of them is correct as shipped "
+                f"({sum(a.spans_correct for a in audits)}/"
+                f"{sum(a.spans_total for a in audits)}). Applying NFC shifts "
+                f"characters and would break **{broken}** spans while leaving the "
+                "text looking perfectly fine — silent, unrecoverable corruption of "
+                "the kind §1 warns about. Normalise only if the offsets are "
+                "recomputed in the same step.",
+                "",
+            ]
+
     for a in audits:
         if a.conflicting_examples:
             parts += [
@@ -209,7 +251,11 @@ def render(
             "",
             "#### Calibration controls",
             "",
-            md_table(controls),
+            md_table(controls)
+            if controls is not None
+            else f"_Not run: this **is** task {CONTROL_TASK}, whose parallelism is "
+            "already proven outright by its URL column (§3.1). Embedding controls "
+            "would compare it against itself._",
             "",
             "A raw B2 share is not interpretable on its own — every sentence "
             "here is narrow-domain ESG text, so a high score could be topical "
@@ -279,6 +325,7 @@ def main(argv: list[str] | None = None) -> int:
         "batch_size": args.batch_size if args.independence else None,
     }
 
+    paths = report_paths(args.task)
     provenance_ok, provenance_rows = verify_provenance()
     audits = [audit_split(args.task, lang) for lang in LANGUAGES]
     vocab = label_vocabularies(audits)
@@ -311,23 +358,27 @@ def main(argv: list[str] | None = None) -> int:
         independence, verdicts = independence_tests(
             embeddings, seed=args.seed, sample=args.sample, tau=args.tau
         )
-        controls = calibration_controls(
+        # Auditing task 3 against itself would make the positive anchor
+        # trivially 1.0. Its parallelism is already proven by URL, so the
+        # LaBSE controls add nothing there.
+        controls = None if args.task == CONTROL_TASK else calibration_controls(
             embeddings,
             control_embeddings,
             seed=args.seed,
             sample=args.sample,
             tau=args.tau,
         )
-        controls.to_parquet(CONTROLS_PARQUET, index=False)
-        INDEPENDENCE_PARQUET.parent.mkdir(parents=True, exist_ok=True)
-        independence.to_parquet(INDEPENDENCE_PARQUET, index=False)
+        if controls is not None:
+            controls.to_parquet(paths["controls"], index=False)
+        paths["dir"].mkdir(parents=True, exist_ok=True)
+        independence.to_parquet(paths["independence"], index=False)
         for pair, verdict in verdicts.items():
             if verdict["parallel_suspected"]:
                 failures.append(f"independence: {pair} looks parallel, not independent")
 
-    REPORT_DIR.mkdir(parents=True, exist_ok=True)
-    summary_frame(audits).to_parquet(REPORT_PARQUET, index=False)
-    REPORT_MD.write_text(
+    paths["dir"].mkdir(parents=True, exist_ok=True)
+    summary_frame(audits).to_parquet(paths["summary"], index=False)
+    paths["md"].write_text(
         render(
             audits,
             provenance_ok,
@@ -343,11 +394,12 @@ def main(argv: list[str] | None = None) -> int:
         )
     )
 
-    print(f"Wrote {REPORT_MD.relative_to(REPO_ROOT)}")
-    print(f"Wrote {REPORT_PARQUET.relative_to(REPO_ROOT)}")
+    print(f"Wrote {paths['md'].relative_to(REPO_ROOT)}")
+    print(f"Wrote {paths['summary'].relative_to(REPO_ROOT)}")
     if independence is not None:
-        print(f"Wrote {INDEPENDENCE_PARQUET.relative_to(REPO_ROOT)}")
-        print(f"Wrote {CONTROLS_PARQUET.relative_to(REPO_ROOT)}")
+        print(f"Wrote {paths['independence'].relative_to(REPO_ROOT)}")
+        if controls is not None:
+            print(f"Wrote {paths['controls'].relative_to(REPO_ROOT)}")
     if failures:
         print(f"\n{len(failures)} check(s) failed:", file=sys.stderr)
         for failure in failures:
