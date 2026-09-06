@@ -2,3 +2,15 @@
 
 # Kagggle
 kagglehub
+
+# Data / IO (T-102 onwards). Parquet is the corpus format; openpyxl reads the
+# upstream .xlsx release only, at the ingest boundary.
+pandas
+openpyxl
+pyarrow
+
+# Verification (T-102 independence tests, T-108 LaBSE gate).
+sentence-transformers
+
+# Tests (CLAUDE.md §10).
+pytest
