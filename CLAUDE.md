@@ -275,6 +275,7 @@ src/
     download.py      ✓ python -m src.download_dataset.download [--force]
   unicode_ranges.py  ✓ §9's script/digit tables, dependency-free
   audit.py           ✓ T-102 audit + independence tests
+  align.py           ✓ T-102b item correspondence recovery
   corpus_io.py          all reads/writes; format enforcement
   ids.py                key construction, join helpers, validation
   translate.py          IndicTrans2 wrapper, resumable batching
@@ -284,11 +285,13 @@ src/
   freeze.py             hashing, manifest, immutability
 scripts/
   __init__.py        ✓
-  t102_audit.py      ✓ python -m scripts.t102_audit [--independence]
+  t102_audit.py      ✓ python -m scripts.t102_audit --task {n} [--independence]
+  t102b_align.py     ✓ python -m scripts.t102b_align --task {n}
                        (one thin CLI per task, named by task ID)
 data/
   base_paper/        ✓ upstream IndicFinNLP, committed; see §7.1
   raw/task_{n}/         per-block MT output
+  verification/task_3/ ✓ alignment.parquet
   verification/task_{n}/  alignment maps, scores, embeddings
   v1.0/task_{n}/        frozen release + manifest.json
 reports/task_{n}/    ✓ native_audit.{md,parquet}, native_independence.parquet,
@@ -297,7 +300,7 @@ tests/
 cache/                 gitignored
 ```
 
-`unicode_ranges.py` and `audit.py` are additions to the original module list, made in
+`unicode_ranges.py`, `audit.py` and `align.py` are additions to the original module list, made in
 T-102. The first exists because §9's codepoint tables are needed by T-102, T-105 and
 T-107 alike and three hand-copied copies would drift; the second because §7's
 "one thin CLI per task" leaves nowhere for real audit logic to live.
@@ -417,6 +420,32 @@ with an alignment step.
 
 The NFC check is reported, not failed — see rule 9. For task 1 it is replaced by a
 span-integrity check, which does fail if any offset stops pointing at its number.
+
+---
+
+### T-102b — Align parallel native splits
+`src/align.py`, `scripts/t102b_align.py`
+
+Tasks 2 and 3 hold the same content in every language, but nothing in the released
+files says which item is which. Recover that mapping. Without it there is no way to
+tell which items overlap between a language used for training and one used for
+evaluation, which is what makes the transfer numbers meaningful (§2.2).
+
+`item_id` is derived from the join key, never from row position — a positional id
+silently re-points at a different item if upstream reorders anything (§4 rule 7).
+
+- **Task 3** — exact join on `URL`. No model needed. **Done: 532/532 items align
+  across all three languages, zero unmatched, and every aligned item carries the same
+  label in all three.** `data/verification/task_3/alignment.parquet`.
+- **Task 2** — no join key; needs mutual-nearest-neighbour search on LaBSE embeddings
+  above τ. Not yet implemented. Expect ~1769 of ~2200 to align three ways, with the
+  remainder kept in their own splits but outside the parallel set (§4 rule 1).
+- **Task 1** — independently sourced. **Must not be aligned**; the CLI refuses it.
+  Aligning it would invent a correspondence that does not exist.
+
+**Done when:** every item either aligns across all three languages or is reported as
+unmatched; no aligned item carries conflicting labels; the script exits non-zero
+otherwise.
 
 ---
 
@@ -633,6 +662,8 @@ Every module in `src/` ships with tests. Minimum coverage:
 - **`labse_gate.py`** — known-similar and known-dissimilar pairs land on the expected
   side of τ
 - **`integrity.py`** — a deliberately script-leaked fixture is caught
+- **`align.py`** — ids are key-derived and stable; every item appears once per
+  language; conflicting labels are caught; an independently-sourced task is refused
 
 Run tests before any task is marked done.
 
