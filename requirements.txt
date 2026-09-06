@@ -12,5 +12,9 @@ pyarrow
 # Verification (T-102 independence tests, T-108 LaBSE gate).
 sentence-transformers
 
+# Translation (T-104). IndicProcessor only — IndicDataCollator is broken under
+# transformers 5.x and unused; see CLAUDE.md §3.2.
+IndicTransToolkit
+
 # Tests (CLAUDE.md §10).
 pytest

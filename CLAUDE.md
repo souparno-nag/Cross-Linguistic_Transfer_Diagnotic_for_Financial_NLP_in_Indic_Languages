@@ -133,12 +133,47 @@ Currently provisioned: `env/` (gitignored venv, Python 3.11.15) with `kagglehub`
 (`python -m src.…`, `python -m scripts.…`) so the `REPO_ROOT` anchoring in
 `src/download_dataset/paths.py` resolves.
 
-**Risk flagged in T-102, affects T-104.** Installing `sentence-transformers` pulled
-`transformers` **5.16.1**. §3's floor of `>=4.51` is satisfied, but IndicTrans2 ships
-custom modelling code loaded via `trust_remote_code=True` that was written against
-`transformers` 4.x, and the 5.x release removed deprecated APIs. Verify the model loads
-before building anything on it in T-104; if it does not, pin `transformers<5` and check
-that LaBSE still works under the pin.
+### 3.1 IndicTrans2 access — gated, do this before T-104
+
+The `ai4bharat/indictrans2-*` repos are **gated** (`gated=auto`). Downloads fail with
+`401 … gated repo` until the licence is accepted and the machine is authenticated.
+Approval is automatic, so there is no wait for a human reviewer:
+
+1. Accept the terms at <https://huggingface.co/ai4bharat/indictrans2-indic-indic-1B>
+   (and the 320M distilled repo if the fallback will be used).
+2. Create a read token at <https://huggingface.co/settings/tokens>.
+3. `hf auth login` — or export `HF_TOKEN`.
+
+Authenticating also raises the Hub rate limit. Unauthenticated pulls stalled repeatedly
+while fetching LaBSE, twice hanging at exactly 1.024 GB with the process alive and
+throughput at zero; `curl -C -` with `--speed-limit`/`--speed-time` was needed to finish
+it. Do not read a stalled download as a broken environment.
+
+**Download sizes are half what the repo totals suggest.** Each repo ships the weights
+twice, as `pytorch_model.bin` *and* `model.safetensors`. Only one is needed: 4.8 GB for
+`indic-indic-1B`, 1.3 GB for `indic-indic-dist-320M`.
+
+### 3.2 IndicTransToolkit vs `transformers` 5.x — resolved, do not downgrade
+
+`transformers` **5.16.1** is installed, pulled in by `sentence-transformers` 6.0.1
+(which requires `>=5.0.0,<6.0.0`). `IndicTransToolkit` 1.1.1 — the only released
+version — fails on it:
+
+```
+ImportError: cannot import name 'PreTrainedTokenizerBase'
+             from 'transformers.tokenization_utils'
+```
+
+**This does not require a downgrade, and downgrading would break LaBSE.** The failure is
+confined to `IndicDataCollator` in `collator.py`, which is training-time batching this
+project never uses; it breaks the whole package only because `__init__.py` imports all
+three submodules eagerly. `IndicProcessor` is a compiled Cython extension that imports
+nothing from `transformers` and works correctly under 5.16.1 — verified on preprocess
+and postprocess.
+
+So import the processor submodule without executing the package `__init__`.
+`src/translate.py` owns that workaround; do not patch `site-packages`, which is not
+reproducible.
 
 Hardware: RTX 3060 (12 GB, primary) and RTX 3050 (4 GB, inference/embedding only).
 Assume GPU access is intermittent — every GPU job must be **resumable** and must
