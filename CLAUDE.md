@@ -18,6 +18,27 @@ row loss here corrupts every result in the project and is not recoverable later.
 
 ## 2. Corpus design — LOCKED, do not modify
 
+> **⚠ T-102 finding: the premise of this section does not hold for IndicFinNLP.
+> Do not start T-104/T-106 until this is resolved.**
+>
+> §2 assumes three *independently sourced* native splits. They are not. Task 2's
+> Hindi, Bengali and Telugu splits are the same content in shuffled row order:
+> 88.5–93.5% of sampled sentences have a nearest cross-language neighbour at or
+> above τ=0.82, against 0.0% for same-domain but genuinely different content, and
+> the split under test scores *above* the known-parallel positive control (task 3).
+> 80% of matched pairs carry identical numeral sets. Task 3 is parallel too, proven
+> outright by its URL column. Task 1 is not a classification task.
+>
+> **Every task in this dataset is a parallel corpus. There are no independent
+> native splits to be had here.** See `reports/native_audit.md` §3.
+>
+> Consequences for the design as written: blocks H, B and T do not hold distinct
+> content, so the "12 splits" are ~3× redundant and the cross-block contamination
+> T-113 tries to rule out is guaranteed rather than merely risked. Conversely the
+> translationese conditions get *stronger* — native Hindi and MT-Hindi-from-Bengali
+> can now be compared on the same underlying item, which the original design could
+> not do. This needs a decision (§11), not a workaround.
+
 Three native source splits from IndicFinNLP. Each is translated into the other three
 languages. **9 translation directions, 12 splits total.**
 
@@ -38,7 +59,20 @@ Every block is **4-way parallel**: one native split + three MT splits, all shari
 | Malayalam | `Ml←H`, `Ml←B`, `Ml←T`        | **no** |
 
 Malayalam having no native version is a known, documented limitation. Do not attempt to
-synthesise one.
+synthesise one. It follows directly from the upstream data: IndicFinNLP ships Hindi,
+Bengali and Telugu only (§7.1).
+
+### 2.1 Parallel control set — added after T-102
+
+IndicFinNLP task 3 is already parallel across all three languages (999 rows each,
+identical URL sets, identical row order — see §7.1). That disqualifies it as a native
+source, but makes it a **human-translated reference set**: the same content rendered in
+all three languages by people rather than by IndicTrans2.
+
+It is retained as a control, outside the 12 splits and outside the freeze in §2's
+table. Use it in T-104 and T-110 as a quality ceiling — LaBSE similarity on human
+translations of the same content bounds what MT similarity can reasonably reach, which
+is what makes τ defensible rather than asserted. It is never mixed into the corpus.
 
 ### Language codes (FLORES-style, used by IndicTrans2)
 
@@ -57,10 +91,18 @@ hin_Deva   ben_Beng   tel_Telu   mal_Mlym
   (fallback on 4 GB VRAM: the distilled 320M variant)
 - Similarity model: `sentence-transformers/LaBSE`
 
-Currently provisioned: `env/` (gitignored venv, Python 3.11.15). `requirements.txt`
-pins only `kagglehub` so far — it grows as tasks land, and nothing above is installed
-yet. Run everything as a module from the repo root (`python -m src.…`) so the
-`REPO_ROOT` anchoring in `src/download_dataset/paths.py` resolves.
+Currently provisioned: `env/` (gitignored venv, Python 3.11.15) with `kagglehub`,
+`pandas`, `openpyxl`, `pyarrow` and `sentence-transformers`. IndicTransToolkit and its
+`transformers` pin arrive with T-104. Run everything as a module from the repo root
+(`python -m src.…`, `python -m scripts.…`) so the `REPO_ROOT` anchoring in
+`src/download_dataset/paths.py` resolves.
+
+**Risk flagged in T-102, affects T-104.** Installing `sentence-transformers` pulled
+`transformers` **5.16.1**. §3's floor of `>=4.51` is satisfied, but IndicTrans2 ships
+custom modelling code loaded via `trust_remote_code=True` that was written against
+`transformers` 4.x, and the 5.x release removed deprecated APIs. Verify the model loads
+before building anything on it in T-104; if it does not, pin `transformers<5` and check
+that LaBSE still works under the pin.
 
 Hardware: RTX 3060 (12 GB, primary) and RTX 3050 (4 GB, inference/embedding only).
 Assume GPU access is intermittent — every GPU job must be **resumable** and must
@@ -101,7 +143,7 @@ These are not preferences. Violating them invalidates the corpus.
 | Embeddings | `.npy` | `data/verification/emb/` |
 | Similarity scores | Parquet | `data/verification/labse_scores.parquet` |
 | Label schema, configs, manifests | `.json` | `configs/`, `data/base_paper/manifest.json`, `data/v1.0/manifest.json` |
-| Reports | `.md` + Parquet | `reports/` |
+| Reports | `.md` + Parquet | `reports/` — `native_audit.{md,parquet}`, `native_independence.parquet` |
 | Throwaway caches | `.pkl` | `cache/` (gitignored, never released) |
 | kagglehub download cache | kagglehub's own | `.cache/kagglehub/` (gitignored, never released) |
 
@@ -144,8 +186,8 @@ Every corpus Parquet file has exactly these columns:
 `✓` marks what exists today. Everything unmarked is created by the tasks in §8.
 
 ```
-CLAUDE.md            ✓ this file — gitignored, deliberately not committed
-requirements.txt     ✓ kagglehub only so far
+CLAUDE.md            ✓ this file — now tracked (the .gitignore entry was removed)
+requirements.txt     ✓ kagglehub, pandas, openpyxl, pyarrow, sentence-transformers
 .gitignore           ✓
 env/                 ✓ venv, Python 3.11.15 (gitignored)
 .cache/kagglehub/    ✓ upstream download cache (gitignored)
@@ -156,6 +198,8 @@ src/
   download_dataset/  ✓ upstream fetch; complete, no open work
     paths.py         ✓ REPO_ROOT-anchored paths, TASKS, LANGUAGES, raw_path()
     download.py      ✓ python -m src.download_dataset.download [--force]
+  unicode_ranges.py  ✓ §9's script/digit tables, dependency-free
+  audit.py           ✓ T-102 audit + independence tests
   corpus_io.py          all reads/writes; format enforcement
   ids.py                key construction, join helpers, validation
   translate.py          IndicTrans2 wrapper, resumable batching
@@ -163,18 +207,27 @@ src/
   labse_gate.py         embedding + cosine similarity + thresholding
   integrity.py          structural + script-leakage checks
   freeze.py             hashing, manifest, immutability
-scripts/               one thin CLI per task, named by task ID
+scripts/
+  __init__.py        ✓
+  t102_audit.py      ✓ python -m scripts.t102_audit [--independence]
+                       (one thin CLI per task, named by task ID)
 data/
   base_paper/        ✓ upstream IndicFinNLP, committed; see §7.1
   raw/                  per-block MT output
   verification/         scores, embeddings
   v1.0/                 frozen release + manifest.json
-reports/
+reports/             ✓ native_audit.md, native_audit.parquet,
+                       native_independence.parquet
 tests/
 cache/                 gitignored
 ```
 
-The eight modules above stay **flat in `src/`**. `download_dataset/` is a package
+`unicode_ranges.py` and `audit.py` are additions to the original module list, made in
+T-102. The first exists because §9's codepoint tables are needed by T-102, T-105 and
+T-107 alike and three hand-copied copies would drift; the second because §7's
+"one thin CLI per task" leaves nowhere for real audit logic to live.
+
+The corpus modules stay **flat in `src/`**. `download_dataset/` is a package
 because it owns paths, a CLI, and a manifest writer together; do not take it as a
 precedent and nest the corpus modules.
 
@@ -208,13 +261,17 @@ which is where §2's "Malayalam has no native version" comes from:
 | `task_2` | sustainability sentences | `sentence_indic`, `label` ∈ {sustainable, unsustainable}, `language` | binary classification |
 | `task_3` | ESG news titles | `URL`, `news_title_indic`, `ESG_Theme`, `language` | multi-class classification |
 
-**Open question, blocks T-103.** §1 calls the corpus "ESG classification" but does
-not say which task supplies `H_nat`/`B_nat`/`T_nat`. Task 2 and task 3 are both
-defensible readings and they imply different `labels.json`, different `text` columns,
-and different class counts. Task 1 has no label column and cannot be the source for a
-classification corpus as specced — though its numeral spans are the natural fixture
-source for T-105. **Resolve this before writing `configs/labels.json`**; §4 rule 6
-forbids inventing or remapping labels afterwards.
+**Settled in T-102.** §1 called the corpus "ESG classification" without saying which
+task supplies `H_nat`/`B_nat`/`T_nat`. The audit answers it:
+
+- **Task 2 is the native source.** `sentence_indic` is `text`; `label` is `label`, a
+  binary `sustainable` / `unsustainable` shared identically by all three languages.
+- **Task 3 cannot be.** Its three languages hold 999 rows each with identical URL sets
+  in identical row order — it is one set of articles translated three ways, so it fails
+  the independence premise of §2 by construction. Retained as the control set in §2.1.
+- **Task 1 is not a classification task** (no label column), so it is out as a corpus
+  source. Its `number_indic` / `number_english` / `start_posn` / `end_posn` columns are
+  the natural fixture source for T-105's numeral checker.
 
 ---
 
@@ -233,13 +290,38 @@ row counts, class distribution, encoding, duplicates, empty rows, licence proven
 Provenance is already recorded: cite the SHA-256s from `data/base_paper/manifest.json`
 rather than re-deriving them, and confirm they still verify.
 
-Then confirm the three native splits are **not already translations of each other**:
-sample 200 random cross-language pairs, embed with LaBSE, report the similarity
-distribution. High similarity would mean hidden parallelism, which changes the whole
-design.
+Then confirm the three native splits are **not already translations of each other**.
+
+The original wording here — "sample 200 random cross-language pairs, embed with LaBSE,
+report the similarity distribution" — does not test anything: random pairs drawn from
+two corpora score low whether or not the corpora are parallel. That sampling is kept as
+a control, and the finding rests on three tests:
+
+- **B3, structural.** Row counts and per-class proportions. Near-identical class shares
+  across supposedly independent corpora are evidence of a shared source. Free, no model.
+  Where a join key exists (task 3's `URL`) this alone is decisive.
+- **B1, order-aligned.** Cosine of `(src[i], tgt[i])` against an index-shuffled control.
+  Catches parallelism that preserved row order — how task 3 is built.
+- **B2, nearest-neighbour.** For each of 200 sampled source sentences, the maximum
+  cosine over the **entire** target split. This is the real test: it still fires when
+  rows were shuffled or partially dropped, which B1 cannot detect. The written finding
+  cites B2.
+
+Seeded explicitly (§4 rule 7) with the config hash logged (rule 8).
+
+Because a raw B2 share is not interpretable in a single narrow domain, the run also
+emits **calibration controls**: a positive anchor (the control task, proven parallel)
+and negative anchors (genuinely different content in the same domain and language
+pair). The finding is only valid if the negative anchors sit far below τ.
 
 **Done when:** `reports/native_audit.md` exists with per-language class histograms, a
-duplicate/empty-row count, and a written independence finding.
+duplicate/empty-row count, and a written independence finding; `native_audit.parquet`,
+`native_independence.parquet` and `native_independence_controls.parquet` carry the
+numbers; the script exits non-zero on any failed check.
+
+**Status: DONE.** Phase A passes. The independence tests fail by design — see the
+warning in §2. `python -m scripts.t102_audit --independence` exits 1 and will keep
+doing so until the design question is settled.
 
 ---
 
@@ -435,6 +517,13 @@ Script blocks — used by the leakage check:
 | Telugu | U+0C00–U+0C7F |
 | Malayalam | U+0D00–U+0D7F |
 
+**Exclude U+0964 (danda) and U+0965 (double danda) from every script tally.** They sit
+inside the Devanagari block but are shared Indic punctuation: Bengali, Telugu and
+Malayalam all use the danda as a sentence terminator. Counting them as Devanagari flags
+essentially every Bengali row as script leakage — it produced 2211 false positives on
+`task_2/bengali.xlsx` before being fixed. `src/unicode_ranges.py` owns this exclusion;
+use that module rather than re-deriving these tables.
+
 ---
 
 ## 10. Testing
@@ -463,3 +552,6 @@ Run tests before any task is marked done.
 - **Prefer boring code.** This is a research pipeline that must be reproducible in
   October by someone re-reading it cold.
 - **When a check fails, show the failing rows.** A count is not a diagnosis.
+- **Commit after every meaningful change.** A completed task, a passing check, a fixed
+  bug, or any other self-contained unit of work gets its own commit before moving on —
+  don't let unrelated changes pile up uncommitted.
