@@ -123,8 +123,8 @@ hin_Deva   ben_Beng   tel_Telu   mal_Mlym
 - **Python 3.11** exactly. Assert it at entry point; fail loudly on mismatch.
 - **Linux or WSL2.** IndicTransToolkit is not built or tested for Windows.
 - `torch>=2.5`, `transformers>=4.51`, `numpy>=2.1` — required by IndicTransToolkit.
-- Translation model: **`ai4bharat/indictrans2-indic-indic-dist-320M`** — chosen in
-  T-104, see §3.5. The 1B remains available via `--fallback` but is not the default.
+- Translation model: **`ai4bharat/indictrans2-indic-indic-1B`** — see §3.5. The 320M
+  distilled variant remains available via `--fallback` but is not the default.
 - Similarity model: `sentence-transformers/LaBSE`
 
 Currently provisioned: `env/` (gitignored venv, Python 3.11.15) with `kagglehub`,
@@ -620,7 +620,7 @@ All 9 directions translate on every task under both models, with no empty output
 | 1B | 61.2 s | 99.4% |
 | 320M distilled | **18.4 s** | **100%** |
 
-### 3.5 Model choice — 320M, decided in T-104
+### 3.5 Model choice — 1B, settled after T-105
 
 Measured on task 1, 180 rows, the same 9 directions:
 
@@ -629,17 +629,32 @@ Measured on task 1, 180 rows, the same 9 directions:
 | `indic-indic-1B` | 105.8 s | 86.1% | ~15 h |
 | **`indic-indic-dist-320M`** | **12.7 s** | 82.8% | **~2–5 h** |
 
-**8.3× slower for 3.3 points on a digit proxy**, and on task 3 the 320M was *better*
-(100% vs 99.4%). The 1B also runs at the edge of 4 GB: `ben→tel` took 80.7 s against
-2–6 s elsewhere, the OOM backoff repeatedly halving batches, so its real cost may exceed
-15 h.
+On that evidence the 320M was chosen: 8.3× faster for 3.3 points on a digit proxy, and
+on task 3 it was *better* (100% vs 99.4%).
 
-The digit proxy says nothing about fluency, where a distilled model usually gives up
-more than it does on numbers. That trade was accepted deliberately. Reading the
-side-by-side output in `reports/task_*/t104_smoke_*.parquet` is the outstanding check.
+**T-105 reversed it.** Once output corruption was measured rather than digit
+preservation, the picture changed:
+
+| Model | Time (task 1) | Digits identical | **Corrupted rows** |
+|---|---|---|---|
+| **`indic-indic-1B`** | 105.8 s | 86.1% | **4.4%** |
+| `indic-indic-dist-320M` | 12.7 s | 82.8% | **10.0%** |
+
+**The 320M mangles more than twice as many rows.** The digit proxy could not see this —
+it asks whether numbers survived, not whether the sentence came out intact. A 3.3-point
+digit gap reads as a cheap trade for 8× speed; a doubled corruption rate does not, and
+corruption is unrecoverable once frozen (§1).
+
+**Decision: the 1B, at roughly 15 GPU-hours for the full T-106 run** against 2–5 on the
+320M. Integrity over turnaround, because a fast corpus with 10% mangled rows is worth
+less than a slow clean one.
+
+The 1B runs near the 4 GB limit and depends on the OOM backoff in
+`translate_adaptive()`; `ben→tel` needed 80.7 s against 2–6 s elsewhere, so the real
+cost may exceed 15 h. Budget for that rather than being surprised by it.
 
 Switching the model changes `decoding_fingerprint()`, which is intended — artefacts are
-only comparable within one fingerprint. Nothing had been generated under the old one.
+only comparable within one fingerprint. Nothing has been generated under any of them.
 
 **A fixed batch size cannot work at 4 GB; batching must adapt.** Task 1's Telugu split
 has 280 rows over 1000 characters against a median of 117, so any batch sized for
@@ -689,9 +704,8 @@ By target: hin 5%, mal 3%, tel 3%, ben 2% — not the Bengali/Malayalam-only pat
 first count suggested.
 
 **The 320M corrupts more than twice as often as the 1B on task 1 (10.0% vs 4.4%).**
-That is a quality difference the digit proxy in §3.5 could not see, and it argues
-against the 320M more strongly than the 3.3-point digit gap did. Revisit §3.5 before
-committing to the full T-106 run.
+That is a quality difference the digit proxy could not see, and it decided the model
+choice: §3.5 selects the 1B on this evidence.
 
 **Entity-placeholder leakage.** `IndicProcessor` substitutes entities for `<ID n>`
 placeholders and restores them after decoding. The model sometimes *translates the
@@ -790,7 +804,10 @@ Labels carried forward under strict row alignment. **Run once per task.**
 **Cost, corrected.** The original "roughly 6–7 GPU-hours" was for one task of ~2200
 rows. Across all three:
 
-| Task | Native rows (H/B/T) | Translations | Rough GPU-hours at ~3k/hr |
+Timings below assume the 1B at its measured task-1 rate (~1.7 rows/s). The 320M would
+be roughly 8× faster but corrupts twice as many rows — see §3.5.
+
+| Task | Native rows (H/B/T) | Translations | Rough GPU-hours |
 |---|---|---|---|
 | `task_1` | 10640 / 6130 / 6016 | 68,358 | ~23 |
 | `task_2` | 2238 / 2228 / 2072 | 19,614 | ~6.5 |
