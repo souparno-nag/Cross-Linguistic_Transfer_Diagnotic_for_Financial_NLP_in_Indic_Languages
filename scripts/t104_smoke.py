@@ -46,8 +46,25 @@ def to_ascii_digits(text: str) -> str:
     return str(text).translate(table)
 
 
+# A comma is a thousands separator only when exactly three digits follow it.
+# Without this, "जुलाई 22,2019" parses as the single number 22,2019 rather than
+# 22 and 2019, and a correct translation is scored as a numeral change.
+THOUSANDS_SEPARATOR = re.compile(r"(?<=\d),(?=\d{3}(?!\d))")
+
+
 def numerals(text: str) -> list[str]:
-    return sorted(re.findall(r"\d+(?:[.,]\d+)*", to_ascii_digits(text)))
+    """Numbers in a string, comparable across scripts and separators."""
+    folded = THOUSANDS_SEPARATOR.sub("", to_ascii_digits(text))
+    return sorted(re.findall(r"\d+(?:\.\d+)?", folded))
+
+
+# IndicProcessor substitutes entities for `<ID n>` placeholders and restores
+# them afterwards. The model sometimes translates the placeholder text itself
+# — `ID` becomes `আই. ডি.` in Bengali — and restoration then fails, so the real
+# content is lost. Separately, a nukta in Bengali source can emerge as a
+# literal `u09bc` escape that gets transliterated into the target script.
+PLACEHOLDER_LEAK = re.compile(r"<[^>]{1,40}>")
+ESCAPE_LEAK = re.compile(r"u09[0-9a-f]{2}|u093[0-9a-f]|യു[0-9]|ইউ[0-9]", re.IGNORECASE)
 
 
 def directions() -> list[tuple[str, str, str]]:
@@ -85,9 +102,14 @@ def run(task: int, model_name: str, config: dict, sample: int, device: str | Non
             if numerals(src) == numerals(out)
         )
         empty = sum(1 for out in outputs if not str(out).strip())
+        placeholders = sum(1 for out in outputs if PLACEHOLDER_LEAK.search(str(out)))
+        escapes = sum(1 for out in outputs if ESCAPE_LEAK.search(str(out)))
+        corrupt = ""
+        if placeholders or escapes:
+            corrupt = f"  CORRUPT placeholder {placeholders} escape {escapes}"
         print(
             f"{source}->{target} ({block}): {elapsed:5.1f}s  "
-            f"numerals identical {kept}/{len(frame)}  empty {empty}"
+            f"numerals identical {kept}/{len(frame)}  empty {empty}{corrupt}"
         )
         for src, out in zip(frame["text"], outputs):
             rows.append(
@@ -101,6 +123,8 @@ def run(task: int, model_name: str, config: dict, sample: int, device: str | Non
                     "tgt_numerals": " ".join(numerals(out)),
                     "numerals_identical": numerals(src) == numerals(out),
                     "empty": not str(out).strip(),
+                    "placeholder_leak": bool(PLACEHOLDER_LEAK.search(str(out))),
+                    "escape_leak": bool(ESCAPE_LEAK.search(str(out))),
                     "seconds_for_direction": round(elapsed, 2),
                 }
             )
@@ -163,6 +187,8 @@ def main(argv: list[str] | None = None) -> int:
                 "rows": len(frame),
                 "numerals_identical": round(frame["numerals_identical"].mean(), 4),
                 "empty": int(frame["empty"].sum()),
+                "placeholder_leak": int(frame["placeholder_leak"].sum()),
+                "escape_leak": int(frame["escape_leak"].sum()),
                 "total_seconds": round(
                     frame.groupby(["src_lang", "tgt_lang"])["seconds_for_direction"]
                     .first()

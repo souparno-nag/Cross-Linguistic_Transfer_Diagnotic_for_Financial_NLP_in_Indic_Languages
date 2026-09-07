@@ -623,12 +623,50 @@ not returned, so each direction starts with less room than the last; the 1B run 
 several directions in with ~1 GB held beyond the model's 2.42 GB. `Translator.free()`
 is called after every direction.
 
-**Digit-identity is not an accuracy score.** The smoke test reports how often the digit
-set is unchanged. A correct translation can legitimately change it: `১০০ মিলিয়ন`
-(100 million) → `10 करोड़` (10 crore) is right, and counts as a mismatch. Every
-"failure" inspected so far has been of exactly this kind. **T-105 must compare scale-aware
-values, not digit strings**, or it will report correct translations as entity loss —
-which would corrupt the direction ranking in T-111.
+**All three tasks now translate end to end on the 320M, with no empty output.**
+
+| Task | 180 rows | Digits identical | True numeral loss |
+|---|---|---|---|
+| `task_1` | 12.7 s | 82.8% | **1.7%** (3 rows) |
+| `task_2` | 118.8 s | 97.2% | — |
+| `task_3` | 18.4 s | 100% | — |
+
+**Digit-identity is not an accuracy score.** Classifying task 1's 31 differing rows by
+hand: 12 are correct scale conversions, 6 are scale expansions, 10 are corrupted output
+(below), and only **3 are genuine numeral loss**. Reporting 17% loss where the truth is
+1.7% would have made task 1 look like the worst direction set in T-111 when it is not.
+
+### 3.4 Two silent corruption modes in IndicTrans2 output — found in T-104
+
+Each hits ~1% of rows. Both destroy content while leaving fluent-looking text, so
+neither is visible without an explicit check. **T-107 must detect both; rows carrying
+them must be flagged, not silently kept as clean.**
+
+**Entity-placeholder leakage — Bengali and Malayalam targets only (4 and 3 of 720 rows;
+0 for Hindi and Telugu).** `IndicProcessor` substitutes entities for `<ID n>`
+placeholders and restores them after decoding. The model sometimes *translates the
+placeholder text itself* — `ID` becomes `আই. ডি.` in Bengali, `ഐ. ഡി.` in Malayalam — so
+restoration cannot match it and the real content is lost:
+
+```
+SRC  पीआईबी हिंदी (@PIBHindi) July 22, 2019
+MT   পি. আই. বি হিন্দি (<আই. ডি. 1>) জুলাই 22,2019     ← @PIBHindi destroyed
+```
+
+It also swallows numeric ranges: a source reading `6-555 टन` emerges as `<আই. ডি. 1> টন`.
+
+**Escape leakage — caused by nukta characters, Bengali source only.** A nukta
+(`ড়` `য়`, U+09BC) in the source can emerge as the literal escape `u09bc`, transliterated
+into the target script. This is not a guess: **all 8 affected rows have a nukta in the
+source and no non-nukta row leaked**, a 3.4% rate among nukta-bearing sources.
+
+```
+SRC  গড় ফলন প্রায় ৮ মে টন/হেক্টর।
+MT   ഗോഡ് _ യു09ബിസി വിളവ് ഏകദേശം 8 മെയ് ടൺ/ഹെക്ടർ ആണ്.
+```
+
+Same character class as rule 9. Nukta handling is a recurring hazard in this pipeline,
+not a one-off.
 
 ---
 
@@ -644,13 +682,24 @@ Check per direction:
 - percentages preserved
 - lakh/crore scale terms preserved
 
-**Compare values, not digit strings.** Indic and Western numbering differ, so a correct
-translation routinely changes the digits: `১০০ মিলিয়ন` (100 million) → `10 करोड़`
-(10 crore) is the same quantity written two ways. Normalise both sides to a numeric
-value with its scale word applied — 100 × 10⁶ and 10 × 10⁷ are both 10⁸ — before
-comparing. A naive digit-set comparison flags these as entity loss; T-104's smoke test
-does exactly that and every failure it reported turned out to be a correct conversion.
-Getting this wrong inflates the loss rate and corrupts T-111's ranking.
+**Compare values, not digit strings.** Two distinct traps, both measured in T-104:
+
+1. **Scale words.** `১০০ মিলিয়ন` (100 million) → `10 करोड़` (10 crore) is the same
+   quantity. Normalise both sides to a number with its scale word applied — 100 × 10⁶
+   and 10 × 10⁷ are both 10⁸ — before comparing. Also handle expansion: `50 हजार`
+   correctly becomes `50,000`.
+2. **Thousands separators.** A comma is a separator only when exactly three digits
+   follow. `जुलाई 22, 2019` → `জুলাই 22,2019` must parse as 22 and 2019, not as one
+   number 22,2019.
+
+Getting either wrong inflates the loss rate. On task 1 the naive check reported 17%
+loss where the true figure is 1.7%, which would have made task 1 look like the worst
+direction set in T-111 when it is among the better ones.
+
+**Exclude corrupted rows from the numeral rate.** Rows carrying the placeholder or
+escape corruption of §3.4 have lost content for a reason unrelated to numeral handling.
+Counting them as numeral loss attributes the failure to the wrong cause — they were 10
+of task 1's 31 differing rows.
 
 **Done when:** `reports/entity_preservation.parquet` gives a per-direction rate; any
 direction below 95% is flagged; affected rows get `entity_loss` in `flags`.
@@ -699,6 +748,13 @@ unaligned rows; zero silently-empty translations (empty output is flagged, not d
 - No label drift between source and target rows
 - No encoding corruption
 - **Script leakage**: a Malayalam split must not contain Devanagari, etc. See §9.
+- **Entity-placeholder leakage**: an unrestored `<ID n>` in MT output. See §3.4.
+  Concentrated in Bengali and Malayalam targets.
+- **Escape leakage**: a literal `u09bc`-style escape in MT output, caused by nukta
+  characters in Bengali source. See §3.4.
+
+The last two each hit ~1% of rows and leave fluent-looking text, so nothing catches
+them without an explicit check. Flag them; per rule 1 the rows stay.
 
 **Done when:** `reports/integrity.json` is all green, or every failure is enumerated
 with row IDs.
