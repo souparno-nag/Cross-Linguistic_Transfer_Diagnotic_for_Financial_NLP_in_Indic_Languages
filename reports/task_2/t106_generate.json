@@ -1,0 +1,95 @@
+{
+  "config": {
+    "task": 2,
+    "model": "ai4bharat/indictrans2-indic-indic-1B",
+    "decoding_fingerprint": "08e5a3dc7f258d7e",
+    "device": "cuda"
+  },
+  "config_hash": "49a8eabc277c8387",
+  "batch_size": 8,
+  "batch_timeout": 600,
+  "directions": [
+    {
+      "rows": 2228,
+      "unique_source_texts": 2228,
+      "empty": 0,
+      "block": "B",
+      "src_lang": "ben",
+      "tgt_lang": "hin",
+      "seconds": 0.0
+    },
+    {
+      "rows": 2228,
+      "unique_source_texts": 2228,
+      "empty": 0,
+      "block": "B",
+      "src_lang": "ben",
+      "tgt_lang": "tel",
+      "seconds": 0.0
+    },
+    {
+      "rows": 2228,
+      "unique_source_texts": 2228,
+      "empty": 0,
+      "block": "B",
+      "src_lang": "ben",
+      "tgt_lang": "mal",
+      "seconds": 0.0
+    },
+    {
+      "rows": 2238,
+      "unique_source_texts": 2237,
+      "empty": 0,
+      "block": "H",
+      "src_lang": "hin",
+      "tgt_lang": "ben",
+      "seconds": 0.0
+    },
+    {
+      "rows": 2238,
+      "unique_source_texts": 2237,
+      "empty": 0,
+      "block": "H",
+      "src_lang": "hin",
+      "tgt_lang": "tel",
+      "seconds": 0.0
+    },
+    {
+      "rows": 2238,
+      "unique_source_texts": 2237,
+      "empty": 0,
+      "block": "H",
+      "src_lang": "hin",
+      "tgt_lang": "mal",
+      "seconds": 0.0
+    },
+    {
+      "rows": 2072,
+      "unique_source_texts": 2069,
+      "empty": 0,
+      "block": "T",
+      "src_lang": "tel",
+      "tgt_lang": "hin",
+      "seconds": 0.0
+    },
+    {
+      "rows": 2072,
+      "unique_source_texts": 2069,
+      "empty": 0,
+      "block": "T",
+      "src_lang": "tel",
+      "tgt_lang": "ben",
+      "seconds": 0.0
+    },
+    {
+      "rows": 2072,
+      "unique_source_texts": 2069,
+      "empty": 0,
+      "block": "T",
+      "src_lang": "tel",
+      "tgt_lang": "mal",
+      "seconds": 0.0
+    }
+  ],
+  "failed": []
+}

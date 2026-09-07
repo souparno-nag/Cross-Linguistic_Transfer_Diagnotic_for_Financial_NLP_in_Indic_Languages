@@ -853,7 +853,7 @@ outstanding.** `src/spans.py`, `src/generate.py`, `scripts/t106_generate.py`, 33
 |---|---|
 | Row-count parity, ids, labels carried through, empty flagged | enforced in `check_split`, raises rather than reporting |
 | `span_recovered` populated on every task-1 MT row | enforced; `-1` offsets and `span_not_recovered` when the number is gone |
-| All 9 directions generated, per task | `task_3` **done**; `task_2` and `task_1` outstanding |
+| All 9 directions generated, per task | `task_3` **done**; `task_2` done bar one direction; `task_1` outstanding |
 
 **Task 3 is generated: all 9 directions, 4788 MT rows, no empty output.** Every
 direction's labels are identical to its source split's, and each of blocks H, B and T
@@ -905,6 +905,16 @@ against 2-6 s elsewhere).
 Each run writes `reports/task_{n}/t106_generate.{json,md}` with the decoding
 fingerprint, the run config hash (§4 rule 8), and per-direction row, empty and
 span-recovery counts.
+
+**Task 2 is generated: 19,614 MT rows, no empty output, no mis-flagged rows.** Labels
+are identical to each source split's and every block joins 4-way — 2238, 2228 and 2072
+items for H, B and T. 19 rows carry §3.4 corruption and 3 carry another script, both for
+T-107.
+
+`hin→tel` is the exception and must be regenerated: its checkpoint was written partly
+by the CPU fallback below. The 1583 rows produced on the GPU were kept and the remaining
+654 set aside, so re-running that one direction (~9 min) restores it. Until then
+`data/raw/task_2/H/tel.parquet` is provisional and is deliberately not committed.
 
 **A batch can stall inside `generate`, and the run gives no sign of it.** Task 2's
 `hin→tel` sat for 47 minutes on one batch of 8 ordinary sentences (81-240 characters,
