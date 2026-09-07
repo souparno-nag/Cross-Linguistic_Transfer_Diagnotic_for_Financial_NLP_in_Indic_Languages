@@ -360,6 +360,8 @@ src/
   ids.py             ✓ key construction, block mapping, join helpers
   translate.py       ✓ IndicTrans2 wrapper, resumable batching
   entities.py        ✓ scale-aware numeral/currency checks; corruption detection
+  spans.py           ✓ task-1 numeral re-location in MT output (T-106)
+  generate.py        ✓ native split + translations -> §6 MT rows (T-106)
   labse_gate.py         embedding + cosine similarity + thresholding
   integrity.py          structural + script-leakage checks
   freeze.py             hashing, manifest, immutability
@@ -370,6 +372,7 @@ scripts/
   t103_ingest.py     ✓ python -m scripts.t103_ingest --task {n}
   t104_smoke.py      ✓ python -m scripts.t104_smoke --task {n} [--benchmark]
   t105_entities.py   ✓ python -m scripts.t105_entities --task {n} [--from-smoke]
+  t106_generate.py   ✓ python -m scripts.t106_generate --task {n} [--dry-run]
                        (one thin CLI per task, named by task ID)
 data/
   base_paper/        ✓ upstream IndicFinNLP, committed; see §7.1
@@ -825,10 +828,60 @@ in a different script. Re-locate the numeral in the output and record the outcom
 `span_recovered` (§6.1). Failures are flagged and kept, and the failure rate is a
 headline result rather than an error.
 
+**Identical sentences are translated once.** Task 1's item is a *(sentence, span)*
+pair, so a sentence carrying three numbers is three rows sharing one text: 10640 Hindi
+rows hold 6357 distinct sentences. Translating per row would pay for the same sentence
+up to three times and could return three different translations of it, leaving the
+corpus with three versions of one sentence differing only by which number was annotated.
+The distinct texts go to the model and the result is shared, which cuts task 1 by 41%:
+
+| Task | Rows to translate | Distinct sentences | Saved |
+|---|---|---|---|
+| `task_1` | 68,358 | **40,401** | 41% |
+| `task_2` | 19,614 | 19,602 | — |
+| `task_3` | 4,788 | 4,788 | — |
+
 **Done when:** row-count parity with the source split for every direction; zero
 unaligned rows; zero silently-empty translations (empty output is flagged, not dropped);
 `span_recovered` populated for every task-1 MT row; output at
 `data/raw/task_{n}/{block}/{lang}.parquet`.
+
+**Status: code complete and verified on one direction; the generation runs are
+outstanding.** `src/spans.py`, `src/generate.py`, `scripts/t106_generate.py`, 33 tests.
+
+| Criterion | State |
+|---|---|
+| Row-count parity, ids, labels carried through, empty flagged | enforced in `check_split`, raises rather than reporting |
+| `span_recovered` populated on every task-1 MT row | enforced; `-1` offsets and `span_not_recovered` when the number is gone |
+| All 9 directions generated, per task | **outstanding** — only `task_3` `tel→mal` exists |
+
+Run the tasks in ascending cost, one command each; every direction resumes from its
+checkpoint, so an interrupted run costs nothing but the batch in flight:
+
+```
+python -m scripts.t106_generate --task 3 --dry-run   # plan only, loads no model
+python -m scripts.t106_generate --task 3             # ~40 min
+python -m scripts.t106_generate --task 2             # ~3-7 h
+python -m scripts.t106_generate --task 1             # ~6-14 h
+```
+
+`--block H` and `--targets ben,mal` cut a run down to part of the matrix when GPU
+access is short; `--fallback` switches to the 320M, which §3.5 rejected on corruption
+grounds and which changes the decoding fingerprint, so do not mix its output with the
+1B's. Measured throughput on task 3 was 532 rows in 268 s (2.0 rows/s) for `tel→mal`;
+the wider spread above allows for the slow directions §3.5 saw (`ben→tel` at 80.7 s
+against 2-6 s elsewhere).
+
+Each run writes `reports/task_{n}/t106_generate.{json,md}` with the decoding
+fingerprint, the run config hash (§4 rule 8), and per-direction row, empty and
+span-recovery counts.
+
+**Span recovery, as built.** The numeral is matched by *value*, not digit string, so a
+Bengali `২৪`, an ASCII `24` and a grouped `25,000` are all found, and `22, 2019` reads
+as two numbers rather than one. A number rewritten as an equivalent quantity
+(`১০০ মিলিয়ন` → `10 करोड़`) leaves no digit token to point at but lost nothing; it is
+flagged `span_scale_shift` and kept separate from a number genuinely dropped, because
+T-111 ranks directions on that difference.
 
 ---
 
@@ -990,6 +1043,12 @@ Every module in `src/` ships with tests. Minimum coverage:
 - **`integrity.py`** — a deliberately script-leaked fixture is caught
 - **`align.py`** — ids are key-derived and stable; every item appears once per
   language; conflicting labels are caught; an independently-sourced task is refused
+- **`spans.py`** — a recovered span's offsets slice the number out of the
+  *translation*; `22, 2019` reads as two numbers; a rescaled number is
+  distinguished from a lost one
+- **`generate.py`** — every source row yields exactly one MT row with the same
+  id and label; a duplicated sentence is translated once; row loss, reordering
+  and an unflagged empty translation are all refused
 - **`ids.py`** — task-1 spans yield distinct ids; duplicates get a suffix and unique
   ids do not; Malayalam has no block
 
