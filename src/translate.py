@@ -88,7 +88,22 @@ class Translator:
         from IndicTransToolkit import IndicProcessor
 
         if self.device is None:
-            self.device = "cuda" if torch.cuda.is_available() else "cpu"
+            if not torch.cuda.is_available():
+                # Falling back silently is worse than stopping. CPU runs in
+                # float32 where the card runs float16, so the two produce
+                # different text for the same input, and a corpus generated
+                # half on each is not comparable within one decoding
+                # fingerprint (§4 rule 7) — while looking perfectly fine.
+                # It happened: after a killed run left the driver wedged, a
+                # resumed direction quietly continued on CPU.
+                raise RuntimeError(
+                    "no CUDA device. torch.cuda.is_available() is False — if a "
+                    "run was just killed, the driver may be wedged: check "
+                    "`nvidia-smi`, then `sudo rmmod nvidia_uvm && sudo modprobe "
+                    "nvidia_uvm`. Pass --device cpu to translate on CPU "
+                    "deliberately, but do not mix its output with GPU output."
+                )
+            self.device = "cuda"
         revision = self.config.get("revision", "main")
 
         self.tokenizer = AutoTokenizer.from_pretrained(

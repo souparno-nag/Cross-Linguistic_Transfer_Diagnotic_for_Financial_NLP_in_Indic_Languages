@@ -144,6 +144,10 @@ def main(argv: list[str] | None = None) -> int:
         "task": args.task,
         "model": model_name,
         "decoding_fingerprint": fingerprint,
+        # Recorded because it changes the output text: CPU runs float32 where
+        # the card runs float16. Splits generated on different devices are not
+        # comparable even under one fingerprint.
+        "device": args.device or "cuda",
     }
     print(f"model: {model_name}")
     print(f"decoding fingerprint: {fingerprint}")

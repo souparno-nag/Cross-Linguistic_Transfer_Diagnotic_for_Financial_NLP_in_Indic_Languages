@@ -220,3 +220,18 @@ def test_a_stalled_batch_is_halved_then_skipped(config, frame):
 def test_timeout_of_zero_disables_the_deadline():
     with T.batch_deadline(0):
         pass
+
+
+def test_cpu_fallback_is_refused_unless_asked_for(config, monkeypatch):
+    """A silent CPU fallback changes the output text and hides it.
+
+    CPU runs float32 where the card runs float16, so the same sentence comes
+    out differently. A corpus generated half on each looks fine and is not
+    comparable. This happened: a wedged driver after a killed run sent a
+    resumed direction to CPU without stopping.
+    """
+    import torch
+
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
+    with pytest.raises(RuntimeError, match="no CUDA device"):
+        T.Translator(model_name="unused", config=config)

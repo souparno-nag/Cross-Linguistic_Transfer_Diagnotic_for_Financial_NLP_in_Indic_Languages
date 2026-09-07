@@ -923,6 +923,21 @@ carries on (§11) — the seven rows beside it keep their translations rather th
 checkpointed as empty to save one bad one. Without this, one row can silently eat a
 task-1 run's whole night.
 
+**A killed run can wedge the driver, and the next run will quietly use the CPU.**
+After the stalled task-2 run was killed, `nvidia-smi` showed the card free and healthy
+but `torch.cuda.is_available()` returned False in a fresh process with
+`CUDA unknown error`. The resumed direction loaded on CPU and carried on translating
+without stopping. That is worse than failing: CPU runs float32 where the card runs
+float16, so the same sentence comes out differently, and a corpus generated half on
+each is not comparable within one decoding fingerprint (§4 rule 7) while looking
+entirely normal. `Translator` now refuses to auto-select CPU; `--device cpu` still
+works when it is deliberate, and the device is recorded in the run manifest. The driver
+usually recovers without a reboot:
+
+```
+sudo rmmod nvidia_uvm && sudo modprobe nvidia_uvm   # with no compute process running
+```
+
 **Span recovery, as built.** The numeral is matched by *value*, not digit string, so a
 Bengali `২৪`, an ASCII `24` and a grouped `25,000` are all found, and `22, 2019` reads
 as two numbers rather than one. A number rewritten as an equivalent quantity
