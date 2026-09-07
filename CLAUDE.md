@@ -865,6 +865,26 @@ Two things for T-107 to pick up, counted but deliberately not flagged here: 5 ro
 carry §3.4 corruption, and 18 rows carry characters from another Indic script. Both are
 that task's checks, and the rows stay either way (§4 rule 1).
 
+**A resume bug in T-104's code, found by checking the generated splits.** Flags written
+to a checkpoint come back from Parquet as a numpy array rather than a list, and
+`translate_rows` treated anything that was not a list or tuple as a failed row — so
+**every resumed row was stamped `empty_output` while its text sat there intact**. It hit
+700 of task 3's 4788 rows, all of them fine translations. Nothing in the summary showed
+it: the run reports `empty` from the text, which was correct, and only a direct look at
+the flag column disagreed. `reconcile_flags()` now derives `empty_output` from the
+translation itself, so it is true by construction however the row arrived, and a
+regression test resumes a fully checkpointed direction and asserts no row comes back
+flagged.
+
+`--rebuild` re-derives the splits from existing checkpoints and loads no model, which
+is how the 700 rows were repaired without retranslating anything or touching the GPU.
+Use it after any fix to the row-building half, and after any run that resumed under the
+old code:
+
+```
+python -m scripts.t106_generate --task {n} --rebuild
+```
+
 Run the tasks in ascending cost, one command each; every direction resumes from its
 checkpoint, so an interrupted run costs nothing but the batch in flight:
 

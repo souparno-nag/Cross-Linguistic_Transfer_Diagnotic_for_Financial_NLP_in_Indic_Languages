@@ -153,3 +153,28 @@ def test_adaptive_batching_preserves_order(config):
     texts = [f"s{i}" for i in range(17)]
     out = T.translate_adaptive(OOMOnce(config, limit=3), texts, "hin", "ben", batch_size=16)
     assert out == [f"[ben] {t}" for t in texts]
+
+
+def test_resumed_rows_are_not_stamped_empty(config, frame):
+    """A checkpointed row comes back from Parquet as an array, not a list.
+
+    Reading that as "not a list, therefore failed" flagged every resumed row
+    as empty output while its text sat there intact — silently, since the text
+    was right and only the flag was wrong.
+    """
+    first = FakeTranslator(config)
+    T.translate_rows(first, frame, "hin", "ben", 2, "H", batch_size=4, progress=lambda *_: None)
+
+    second = FakeTranslator(config)
+    out = T.translate_rows(second, frame, "hin", "ben", 2, "H", batch_size=4, progress=lambda *_: None)
+    assert second.calls == [], "everything was already checkpointed"
+    assert all(f == [] for f in out["flags"]), f"resumed rows mis-flagged: {list(out['flags'])[:3]}"
+
+
+def test_flags_are_reconciled_with_the_text():
+    import numpy as np
+
+    assert T.reconcile_flags(np.array([], dtype=object), "ঠিক আছে") == []
+    assert T.reconcile_flags(np.array(["empty_output"], dtype=object), "ঠিক আছে") == []
+    assert T.reconcile_flags(np.array([], dtype=object), "   ") == ["empty_output"]
+    assert T.reconcile_flags(float("nan"), "") == ["empty_output"]

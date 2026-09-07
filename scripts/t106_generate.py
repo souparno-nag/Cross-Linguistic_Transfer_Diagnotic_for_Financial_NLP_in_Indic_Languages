@@ -34,7 +34,9 @@ from src.generate import broadcast, build_mt_frame, check_split, representatives
 from src.ids import BLOCK_NATIVE_LANG, targets_for_block
 from src.translate import (
     Translator,
+    checkpoint_path,
     decoding_fingerprint,
+    load_checkpoint,
     load_config,
     translate_rows,
 )
@@ -66,7 +68,9 @@ def seed_everything(seed: int) -> None:
         torch.cuda.manual_seed_all(seed)
 
 
-def run_direction(translator, task, block, source_lang, target_lang, batch_size, dry_run):
+def run_direction(
+    translator, task, block, source_lang, target_lang, batch_size, dry_run, rebuild
+):
     native = read_split(task, block, source_lang)
     unique = representatives(native)
     print(
@@ -75,6 +79,18 @@ def run_direction(translator, task, block, source_lang, target_lang, batch_size,
     )
     if dry_run:
         return native, None, None
+    if rebuild:
+        # Rebuilding reads the checkpoint and re-derives the split from it. No
+        # model, no GPU: the point is to re-run the frame-building half after a
+        # fix without paying for the translation again, or while another task's
+        # run has the card.
+        done = load_checkpoint(checkpoint_path(task, block, source_lang, target_lang))
+        outstanding = len(set(unique["item_id"]) - set(done["item_id"]))
+        if outstanding:
+            raise ValueError(
+                f"{outstanding} of {len(unique)} sentences are not in the "
+                "checkpoint; --rebuild cannot invent them, run without it"
+            )
 
     started = time.perf_counter()
     translated = translate_rows(
@@ -89,7 +105,8 @@ def run_direction(translator, task, block, source_lang, target_lang, batch_size,
     elapsed = time.perf_counter() - started
     # Reclaim allocator blocks before the next direction; without this the run
     # dies partway through with ~1 GB held beyond the model itself (§3.5).
-    translator.free()
+    if translator is not None:
+        translator.free()
 
     mt = build_mt_frame(task, native, broadcast(native, translated), target_lang)
     return native, mt, elapsed
@@ -104,6 +121,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--device", default=None)
     parser.add_argument("--fallback", action="store_true", help="use the 320M model")
     parser.add_argument("--dry-run", action="store_true", help="report the plan, load nothing")
+    parser.add_argument(
+        "--rebuild",
+        action="store_true",
+        help="re-derive the splits from existing checkpoints; loads no model",
+    )
     args = parser.parse_args(argv)
 
     config = load_config()
@@ -127,7 +149,7 @@ def main(argv: list[str] | None = None) -> int:
 
     seed_everything(config["seed"])
     translator = None
-    if not args.dry_run:
+    if not (args.dry_run or args.rebuild):
         translator = Translator(model_name=model_name, config=config, device=args.device)
         print(f"loaded on {translator.device}")
 
@@ -137,7 +159,7 @@ def main(argv: list[str] | None = None) -> int:
         try:
             native, mt, elapsed = run_direction(
                 translator, args.task, block, source_lang, target_lang,
-                args.batch_size, args.dry_run,
+                args.batch_size, args.dry_run, args.rebuild,
             )
         except Exception as error:  # noqa: BLE001
             # §11: report the direction and carry on; do not silently substitute

@@ -206,6 +206,28 @@ def load_checkpoint(path: Path) -> pd.DataFrame:
     return pd.read_parquet(path)
 
 
+def reconcile_flags(value, translation: str) -> list[str]:
+    """Flags for one row, made consistent with the text actually present.
+
+    `empty_output` is derived from the translation rather than trusted from
+    whatever the checkpoint held. That is not belt-and-braces: flags written to
+    Parquet come back as a numpy array, not a list, and the earlier isinstance
+    check treated anything that was not a list or tuple as a failed row — so
+    **every resumed row was stamped `empty_output` with its text intact**. It
+    went unnoticed until a fully checkpointed direction was rebuilt and all 532
+    rows came back flagged. Deriving the flag from the text makes it true by
+    construction whether the row was just produced, resumed, or absent from the
+    checkpoint altogether.
+    """
+    if value is None or isinstance(value, float):  # NaN: no checkpoint row at all
+        flags = []
+    else:
+        flags = [str(flag) for flag in value]
+    if str(translation).strip():
+        return [flag for flag in flags if flag != "empty_output"]
+    return flags if "empty_output" in flags else flags + ["empty_output"]
+
+
 def translate_rows(
     translator: Translator,
     frame: pd.DataFrame,
@@ -264,7 +286,8 @@ def translate_rows(
     # Return in the input's order, so callers can attach results by position.
     merged = frame[["item_id"]].merge(done, on="item_id", how="left")
     merged["translation"] = merged["translation"].fillna("")
-    merged["flags"] = merged["flags"].apply(
-        lambda value: list(value) if isinstance(value, (list, tuple)) else ["empty_output"]
-    )
+    merged["flags"] = [
+        reconcile_flags(flags, text)
+        for flags, text in zip(merged["flags"], merged["translation"])
+    ]
     return merged
