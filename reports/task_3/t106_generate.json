@@ -1,0 +1,21 @@
+{
+  "config": {
+    "task": 3,
+    "model": "ai4bharat/indictrans2-indic-indic-1B",
+    "decoding_fingerprint": "08e5a3dc7f258d7e"
+  },
+  "config_hash": "2f0c151370bebf45",
+  "batch_size": 8,
+  "directions": [
+    {
+      "rows": 532,
+      "unique_source_texts": 532,
+      "empty": 0,
+      "block": "T",
+      "src_lang": "tel",
+      "tgt_lang": "mal",
+      "seconds": 268.4
+    }
+  ],
+  "failed": []
+}

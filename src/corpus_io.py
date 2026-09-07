@@ -139,16 +139,25 @@ def validate(frame: pd.DataFrame, task: int) -> None:
                 f"e.g. {wrong.iloc[0]['label']!r} -> {wrong.iloc[0]['label_id']}"
             )
     else:
-        spans = frame[frame["origin"] == "native"]
-        broken = spans.apply(
-            lambda r: str(r["text"])[int(r["start_posn"]) : int(r["end_posn"])]
-            != str(r["number_indic"]),
-            axis=1,
-        )
-        if broken.any():
+        # A native row's offsets index the source string and must be exact. An
+        # MT row's were re-derived from the translation (§6.1), so they are
+        # checked only where recovery claims to have succeeded; a row whose
+        # number was not found carries -1 and is flagged, never dropped.
+        native_span = frame["origin"] == "native"
+        recovered = frame["span_recovered"].fillna(False).astype(bool)
+        spans = frame[native_span | recovered]
+        broken = [
+            row["item_id"]
+            for _, row in spans.iterrows()
+            if str(row["text"])[int(row["start_posn"]) : int(row["end_posn"])]
+            != str(row["number_indic"])
+        ]
+        if broken:
             raise ValueError(
-                f"{int(broken.sum())} native rows have offsets that do not point "
-                "at their number — see §4 rule 9, this is what normalising does"
+                f"{len(broken)} rows have offsets that do not point at their "
+                f"number, e.g. {broken[:3]} — on a native row see §4 rule 9, "
+                "this is what normalising does; on an MT row it is a span "
+                "recovered onto the wrong characters"
             )
 
     validate_keys(frame)
