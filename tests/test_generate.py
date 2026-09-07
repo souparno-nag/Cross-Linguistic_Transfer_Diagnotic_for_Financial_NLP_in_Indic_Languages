@@ -166,3 +166,55 @@ def test_check_split_reports_span_recovery_rate():
     mt = G.build_mt_frame(1, native, out, "mal")
     summary = G.check_split(1, native, mt)
     assert summary["span_recovered"] == 1 and summary["span_recovery_rate"] == 0.5
+
+
+def test_a_partial_run_does_not_wipe_the_rest_of_the_report(tmp_path):
+    """`--block H --targets tel` must not leave a 9-direction task showing one.
+
+    It did: regenerating one direction of task 2 overwrote the report with its
+    single row, losing the other eight.
+    """
+    import json
+
+    from scripts.t106_generate import merge_directions
+
+    config = {"decoding_fingerprint": "abc", "device": "cuda"}
+    path = tmp_path / "t106_generate.json"
+    path.write_text(
+        json.dumps(
+            {
+                "config": config,
+                "directions": [
+                    {"block": "H", "src_lang": "hin", "tgt_lang": "tel", "rows": 1},
+                    {"block": "B", "src_lang": "ben", "tgt_lang": "hin", "rows": 2},
+                ],
+                "failed": [],
+            }
+        )
+    )
+    rerun = [{"block": "H", "src_lang": "hin", "tgt_lang": "tel", "rows": 99}]
+    merged, failed = merge_directions(path, rerun, config, [])
+    assert len(merged) == 2, "the untouched direction must survive"
+    redone = next(d for d in merged if d["tgt_lang"] == "tel")
+    assert redone["rows"] == 99, "the rerun direction must be the new one"
+
+
+def test_a_different_fingerprint_replaces_rather_than_merges(tmp_path):
+    """Output from another model or decoding config is not comparable (§8)."""
+    import json
+
+    from scripts.t106_generate import merge_directions
+
+    path = tmp_path / "t106_generate.json"
+    path.write_text(
+        json.dumps(
+            {
+                "config": {"decoding_fingerprint": "old", "device": "cuda"},
+                "directions": [{"block": "B", "src_lang": "ben", "tgt_lang": "hin", "rows": 2}],
+                "failed": [],
+            }
+        )
+    )
+    rerun = [{"block": "H", "src_lang": "hin", "tgt_lang": "tel", "rows": 1}]
+    merged, _ = merge_directions(path, rerun, {"decoding_fingerprint": "new", "device": "cuda"}, [])
+    assert merged == rerun

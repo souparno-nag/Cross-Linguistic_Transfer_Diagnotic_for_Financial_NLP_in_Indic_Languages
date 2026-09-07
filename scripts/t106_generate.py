@@ -115,6 +115,40 @@ def run_direction(
     return native, mt, elapsed
 
 
+def merge_directions(report_path, summaries, run_config, failed):
+    """Fold this run's directions into whatever the report already holds.
+
+    A run restricted to one direction with `--block`/`--targets` would
+    otherwise overwrite the whole task's report with its single row — which is
+    exactly what happened when task 2's `hin→tel` was regenerated, leaving a
+    nine-direction task reporting one.
+
+    Merging only applies within one decoding fingerprint. Output produced under
+    a different model or decoding config is not comparable with what is already
+    there (§8), so a changed fingerprint replaces the report rather than
+    joining it.
+    """
+    import json as _json
+
+    key = lambda row: (row["block"], row["src_lang"], row["tgt_lang"])  # noqa: E731
+    kept = []
+    if report_path.exists():
+        previous = _json.loads(report_path.read_text())
+        same_run = previous.get("config", {}).get(
+            "decoding_fingerprint"
+        ) == run_config["decoding_fingerprint"] and previous.get("config", {}).get(
+            "device"
+        ) == run_config.get("device")
+        if same_run:
+            fresh = {key(row) for row in summaries}
+            kept = [row for row in previous.get("directions", []) if key(row) not in fresh]
+            failed = [d for d in previous.get("failed", []) if d not in failed] + failed
+
+    order = {(b, s, t): i for i, (b, s, t) in enumerate(directions(sorted(BLOCK_NATIVE_LANG), None))}
+    merged = sorted(kept + summaries, key=lambda row: order.get(key(row), 99))
+    return merged, sorted(set(failed))
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--task", type=int, required=True)
@@ -215,6 +249,11 @@ def main(argv: list[str] | None = None) -> int:
         print("no direction completed", file=sys.stderr)
         return 1
 
+    report_dir = REPORT_ROOT / f"task_{args.task}"
+    report_dir.mkdir(parents=True, exist_ok=True)
+    report_path = report_dir / "t106_generate.json"
+    summaries, failed = merge_directions(report_path, summaries, run_config, failed)
+
     frame = pd.DataFrame(summaries)
     ordered = ["block", "src_lang", "tgt_lang", "rows", "unique_source_texts", "empty"]
     ordered += [c for c in frame.columns if c not in ordered]
@@ -222,9 +261,7 @@ def main(argv: list[str] | None = None) -> int:
     print("\n===== summary =====")
     print(frame.to_string(index=False))
 
-    report_dir = REPORT_ROOT / f"task_{args.task}"
-    report_dir.mkdir(parents=True, exist_ok=True)
-    (report_dir / "t106_generate.json").write_text(
+    report_path.write_text(
         json.dumps(
             {
                 "config": run_config,

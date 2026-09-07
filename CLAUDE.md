@@ -911,10 +911,17 @@ are identical to each source split's and every block joins 4-way — 2238, 2228 
 items for H, B and T. 19 rows carry §3.4 corruption and 3 carry another script, both for
 T-107.
 
-`hin→tel` is the exception and must be regenerated: its checkpoint was written partly
-by the CPU fallback below. The 1583 rows produced on the GPU were kept and the remaining
-654 set aside, so re-running that one direction (~9 min) restores it. Until then
-`data/raw/task_2/H/tel.parquet` is provisional and is deliberately not committed.
+`hin→tel` was regenerated after the CPU fallback below contaminated its checkpoint:
+the 1583 known-GPU rows were kept and the other 654 redone on the card in 539 s. **Two
+of those 654 came back different** — the CPU-produced ones, wording genuinely changed,
+which is what the fallback was quietly doing. The other 652 were byte-identical across
+processes, which is §4 rule 7's determinism holding in practice rather than in
+principle.
+
+A run restricted with `--block`/`--targets` used to overwrite the whole task's report
+with its own single row; that one-direction rerun left a nine-direction task reporting
+one. The report now merges by direction, and only within one decoding fingerprint —
+output from another model or decoding config replaces it rather than joining it.
 
 **A batch can stall inside `generate`, and the run gives no sign of it.** Task 2's
 `hin→tel` sat for 47 minutes on one batch of 8 ordinary sentences (81-240 characters,
