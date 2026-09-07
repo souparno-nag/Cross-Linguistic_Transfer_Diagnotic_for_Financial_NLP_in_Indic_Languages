@@ -566,7 +566,7 @@ Depends on §7.1's open question being answered — the task choice fixes the la
 | Loader refuses unknown labels, and a `label_id` disagreeing with the schema | passing |
 | Byte-for-byte round trip across all four scripts, Telugu digits, `₹`, lakh/crore | passing |
 | Cross-language join returns exactly N with zero nulls | passing at **3-way**: task 2 joins to 1769, task 3 to 532 |
-| 4-way join | **deferred to T-106** — the fourth arm is Malayalam, which does not exist until it is translated |
+| 4-way join | **passing for task 3** since T-106 generated its Malayalam arm: 532 items on each of blocks H, B and T. Tasks 1 and 2 follow when their own runs finish |
 
 Native splits are ingested for all three tasks — 22786 / 6538 / 1596 rows, none
 dropped. Task 1's languages correctly join to **zero**: it is independently sourced, so
@@ -853,7 +853,17 @@ outstanding.** `src/spans.py`, `src/generate.py`, `scripts/t106_generate.py`, 33
 |---|---|
 | Row-count parity, ids, labels carried through, empty flagged | enforced in `check_split`, raises rather than reporting |
 | `span_recovered` populated on every task-1 MT row | enforced; `-1` offsets and `span_not_recovered` when the number is gone |
-| All 9 directions generated, per task | **outstanding** — only `task_3` `tel→mal` exists |
+| All 9 directions generated, per task | `task_3` **done**; `task_2` and `task_1` outstanding |
+
+**Task 3 is generated: all 9 directions, 4788 MT rows, no empty output.** Every
+direction's labels are identical to its source split's, and each of blocks H, B and T
+now joins **4-way on 532 items with no missing rows** — the criterion T-103 had to
+defer until Malayalam existed. Total 37 min of GPU time; `tel→mal` resumed from
+checkpoint in 0 s, which is the resume path working rather than an error.
+
+Two things for T-107 to pick up, counted but deliberately not flagged here: 5 rows
+carry §3.4 corruption, and 18 rows carry characters from another Indic script. Both are
+that task's checks, and the rows stay either way (§4 rule 1).
 
 Run the tasks in ascending cost, one command each; every direction resumes from its
 checkpoint, so an interrupted run costs nothing but the batch in flight:

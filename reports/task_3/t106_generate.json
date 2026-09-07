@@ -11,10 +11,82 @@
       "rows": 532,
       "unique_source_texts": 532,
       "empty": 0,
+      "block": "B",
+      "src_lang": "ben",
+      "tgt_lang": "hin",
+      "seconds": 211.2
+    },
+    {
+      "rows": 532,
+      "unique_source_texts": 532,
+      "empty": 0,
+      "block": "B",
+      "src_lang": "ben",
+      "tgt_lang": "tel",
+      "seconds": 174.3
+    },
+    {
+      "rows": 532,
+      "unique_source_texts": 532,
+      "empty": 0,
+      "block": "B",
+      "src_lang": "ben",
+      "tgt_lang": "mal",
+      "seconds": 257.9
+    },
+    {
+      "rows": 532,
+      "unique_source_texts": 532,
+      "empty": 0,
+      "block": "H",
+      "src_lang": "hin",
+      "tgt_lang": "ben",
+      "seconds": 185.0
+    },
+    {
+      "rows": 532,
+      "unique_source_texts": 532,
+      "empty": 0,
+      "block": "H",
+      "src_lang": "hin",
+      "tgt_lang": "tel",
+      "seconds": 264.3
+    },
+    {
+      "rows": 532,
+      "unique_source_texts": 532,
+      "empty": 0,
+      "block": "H",
+      "src_lang": "hin",
+      "tgt_lang": "mal",
+      "seconds": 269.3
+    },
+    {
+      "rows": 532,
+      "unique_source_texts": 532,
+      "empty": 0,
+      "block": "T",
+      "src_lang": "tel",
+      "tgt_lang": "hin",
+      "seconds": 276.3
+    },
+    {
+      "rows": 532,
+      "unique_source_texts": 532,
+      "empty": 0,
+      "block": "T",
+      "src_lang": "tel",
+      "tgt_lang": "ben",
+      "seconds": 181.3
+    },
+    {
+      "rows": 532,
+      "unique_source_texts": 532,
+      "empty": 0,
       "block": "T",
       "src_lang": "tel",
       "tgt_lang": "mal",
-      "seconds": 268.4
+      "seconds": 0.0
     }
   ],
   "failed": []
