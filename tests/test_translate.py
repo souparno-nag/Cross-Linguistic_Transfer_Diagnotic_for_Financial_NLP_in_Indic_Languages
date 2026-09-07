@@ -178,3 +178,45 @@ def test_flags_are_reconciled_with_the_text():
     assert T.reconcile_flags(np.array(["empty_output"], dtype=object), "ঠিক আছে") == []
     assert T.reconcile_flags(np.array([], dtype=object), "   ") == ["empty_output"]
     assert T.reconcile_flags(float("nan"), "") == ["empty_output"]
+
+
+def test_a_stalled_batch_is_halved_then_skipped(config, frame):
+    """A batch that hangs must cost one batch, not the whole run.
+
+    T-106 watched a single batch spin inside `generate` for 47 minutes with
+    nothing in the output to say so. Halving isolates the row responsible; a
+    row that still overruns is flagged and the run carries on (§11).
+    """
+    import time
+
+    class Stalls(FakeTranslator):
+        def __init__(self, config, on):
+            super().__init__(config)
+            self.on = on
+
+        def translate(self, texts, src_lang, tgt_lang):
+            self.calls.append(list(texts))
+            if self.on in texts:
+                time.sleep(3)
+            return [f"[{tgt_lang}] {t}" for t in texts]
+
+    stalling = Stalls(config, on="वाक्य 5")
+    out = T.translate_rows(
+        stalling, frame, "hin", "ben", 2, "H",
+        batch_size=4, timeout=1, progress=lambda *_: None,
+    )
+    assert len(out) == len(frame), "rule 1: a stalled batch never drops rows"
+    # The batch containing row 5 is retried at 2 and at 1, isolating it.
+    assert [len(c) for c in stalling.calls if len(c) == 1], "never narrowed to one row"
+
+    stalled = out[out["translation"] == ""]
+    assert list(stalled["item_id"]) == ["i5"], "only the stalling row is given up on"
+    assert all("empty_output" in f for f in stalled["flags"])
+    # Its neighbours in the same batch are fine and must be kept.
+    assert out[out["item_id"] == "i4"]["translation"].iloc[0] == "[ben] वाक्य 4"
+    assert out[out["item_id"] == "i7"]["translation"].iloc[0] == "[ben] वाक्य 7"
+
+
+def test_timeout_of_zero_disables_the_deadline():
+    with T.batch_deadline(0):
+        pass

@@ -906,6 +906,23 @@ Each run writes `reports/task_{n}/t106_generate.{json,md}` with the decoding
 fingerprint, the run config hash (§4 rule 8), and per-direction row, empty and
 span-recovery counts.
 
+**A batch can stall inside `generate`, and the run gives no sign of it.** Task 2's
+`hin→tel` sat for 47 minutes on one batch of 8 ordinary sentences (81-240 characters,
+nothing unusual): main thread at 100% CPU, GPU at 0%, checkpoint untouched, output
+still. `py-spy dump` put it in `transformers`' beam-search loop at
+`_update_model_kwargs_for_generation` — not in IndicProcessor, whose preprocessing runs
+in milliseconds on the same batch. `ptrace_scope` is 1 on this machine, so `py-spy`
+needs `sudo env "PATH=$PATH"`; pressing Ctrl+C in the run's terminal gets the same
+traceback more cheaply, and costs only the in-flight batch because everything before it
+is checkpointed.
+
+`translate_adaptive()` now runs each batch under a deadline (`--batch-timeout`, default
+600 s, 0 disables) and treats a stall exactly like an OOM: halve, retry, and isolate.
+A single row that still overruns is skipped, flagged and reported by text, and the run
+carries on (§11) — the seven rows beside it keep their translations rather than being
+checkpointed as empty to save one bad one. Without this, one row can silently eat a
+task-1 run's whole night.
+
 **Span recovery, as built.** The numeral is matched by *value*, not digit string, so a
 Bengali `২৪`, an ASCII `24` and a grouped `25,000` are all found, and `22, 2019` reads
 as two numbers rather than one. A number rewritten as an equivalent quantity

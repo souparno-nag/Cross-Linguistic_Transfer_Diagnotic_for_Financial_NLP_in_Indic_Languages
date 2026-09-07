@@ -33,6 +33,7 @@ from src.download_dataset.paths import REPO_ROOT
 from src.generate import broadcast, build_mt_frame, check_split, representatives
 from src.ids import BLOCK_NATIVE_LANG, targets_for_block
 from src.translate import (
+    DEFAULT_BATCH_TIMEOUT,
     Translator,
     checkpoint_path,
     decoding_fingerprint,
@@ -69,7 +70,8 @@ def seed_everything(seed: int) -> None:
 
 
 def run_direction(
-    translator, task, block, source_lang, target_lang, batch_size, dry_run, rebuild
+    translator, task, block, source_lang, target_lang, batch_size, dry_run, rebuild,
+    timeout=None,
 ):
     native = read_split(task, block, source_lang)
     unique = representatives(native)
@@ -101,6 +103,7 @@ def run_direction(
         task,
         block,
         batch_size=batch_size,
+        timeout=timeout if timeout is not None else DEFAULT_BATCH_TIMEOUT,
     )
     elapsed = time.perf_counter() - started
     # Reclaim allocator blocks before the next direction; without this the run
@@ -118,6 +121,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--block", action="append", choices=sorted(BLOCK_NATIVE_LANG))
     parser.add_argument("--targets", help="comma-separated subset, e.g. ben,mal")
     parser.add_argument("--batch-size", type=int, default=None)
+    parser.add_argument(
+        "--batch-timeout",
+        type=int,
+        default=DEFAULT_BATCH_TIMEOUT,
+        help="seconds before a batch is treated as stalled; 0 disables",
+    )
     parser.add_argument("--device", default=None)
     parser.add_argument("--fallback", action="store_true", help="use the 320M model")
     parser.add_argument("--dry-run", action="store_true", help="report the plan, load nothing")
@@ -159,7 +168,7 @@ def main(argv: list[str] | None = None) -> int:
         try:
             native, mt, elapsed = run_direction(
                 translator, args.task, block, source_lang, target_lang,
-                args.batch_size, args.dry_run, args.rebuild,
+                args.batch_size, args.dry_run, args.rebuild, args.batch_timeout,
             )
         except Exception as error:  # noqa: BLE001
             # §11: report the direction and carry on; do not silently substitute
@@ -217,6 +226,7 @@ def main(argv: list[str] | None = None) -> int:
                 "config": run_config,
                 "config_hash": config_hash(run_config),
                 "batch_size": args.batch_size or config["batch_size"],
+                "batch_timeout": args.batch_timeout,
                 "directions": summaries,
                 "failed": failed,
             },
