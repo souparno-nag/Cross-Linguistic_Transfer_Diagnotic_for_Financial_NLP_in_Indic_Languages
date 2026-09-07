@@ -107,3 +107,49 @@ def test_checkpoint_path_separates_tasks_and_directions():
     a = T.checkpoint_path(2, "H", "hin", "ben")
     assert a != T.checkpoint_path(3, "H", "hin", "ben")
     assert a != T.checkpoint_path(2, "H", "hin", "tel")
+
+
+class OOMOnce(FakeTranslator):
+    """Fails on any batch larger than `limit`, like a GPU running out."""
+
+    def __init__(self, config, limit):
+        super().__init__(config)
+        self.limit = limit
+        self.freed = 0
+
+    def free(self):
+        self.freed += 1
+
+    def translate(self, texts, src_lang, tgt_lang):
+        import torch
+
+        self.calls.append(list(texts))
+        if len(texts) > self.limit:
+            raise torch.OutOfMemoryError("simulated")
+        return [f"[{tgt_lang}] {t}" for t in texts]
+
+
+def test_adaptive_batching_backs_off_and_completes(config):
+    """One oversized batch must not lose the whole direction."""
+    texts = [f"वाक्य {i}" for i in range(10)]
+    fake = OOMOnce(config, limit=2)
+    out = T.translate_adaptive(fake, texts, "hin", "ben", batch_size=8)
+    assert out == [f"[ben] {t}" for t in texts]
+    assert fake.freed > 0, "should release cached blocks before retrying"
+    assert max(len(c) for c in fake.calls) == 8, "should try the full batch first"
+    assert all(len(c) <= 2 for c in fake.calls if len(c) <= 2)
+
+
+def test_adaptive_batching_reraises_when_a_single_row_cannot_fit(config):
+    """A row too big even alone is a real error, not something to swallow."""
+    import torch
+
+    fake = OOMOnce(config, limit=0)
+    with pytest.raises(torch.OutOfMemoryError):
+        T.translate_adaptive(fake, ["वाक्य"], "hin", "ben", batch_size=4)
+
+
+def test_adaptive_batching_preserves_order(config):
+    texts = [f"s{i}" for i in range(17)]
+    out = T.translate_adaptive(OOMOnce(config, limit=3), texts, "hin", "ben", batch_size=16)
+    assert out == [f"[ben] {t}" for t in texts]

@@ -611,9 +611,17 @@ translate on task 3 under both models, with no empty output.
 4 GB card with the 1B needing `use_cache=False`, it is the better default. Confirm on
 task 2's longer sentences before choosing — 320M has not yet been checked there.
 
-**Batch size must be respected, and long rows are why.** Task 1's Telugu split has 280
-rows over 1000 characters (max 2510). Beam 5 over 20 such rows in one `generate()` call
-OOMs the 4 GB card; chunking by `batch_size` is not optional at this VRAM.
+**A fixed batch size cannot work at 4 GB; batching must adapt.** Task 1's Telugu split
+has 280 rows over 1000 characters against a median of 117, so any batch sized for
+typical rows OOMs on the rare long one. Beam search holds `beam × batch × vocab` logits
+in float32 and IndicTrans2's vocabulary is large — that allocation fails first.
+`translate_adaptive()` halves the batch and retries on OOM, down to a single row, and
+re-raises only if one row alone cannot fit. Order is preserved.
+
+**Free the allocator between directions.** Activations are freed but their blocks are
+not returned, so each direction starts with less room than the last; the 1B run died
+several directions in with ~1 GB held beyond the model's 2.42 GB. `Translator.free()`
+is called after every direction.
 
 **Digit-identity is not an accuracy score.** The smoke test reports how often the digit
 set is unchanged. A correct translation can legitimately change it: `১০০ মিলিয়ন`

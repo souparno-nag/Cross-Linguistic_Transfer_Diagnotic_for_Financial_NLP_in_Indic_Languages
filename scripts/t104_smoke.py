@@ -29,7 +29,12 @@ import pandas as pd
 from src.corpus_io import read_split
 from src.download_dataset.paths import REPO_ROOT
 from src.ids import BLOCK_NATIVE_LANG, targets_for_block
-from src.translate import Translator, decoding_fingerprint, load_config
+from src.translate import (
+    Translator,
+    decoding_fingerprint,
+    load_config,
+    translate_adaptive,
+)
 
 REPORT_ROOT = REPO_ROOT / "reports"
 DIGIT_ZEROS = (0x0966, 0x09E6, 0x0C66, 0x0D66)
@@ -68,10 +73,11 @@ def run(task: int, model_name: str, config: dict, sample: int, device: str | Non
         # generate() call OOMs the 4 GB card on task 1, whose Telugu split has
         # 280 rows over 1000 characters (max 2510) — beam 5 over 20 long
         # sequences at once does not fit.
-        outputs = []
-        for start in range(0, len(texts), size):
-            outputs.extend(translator.translate(texts[start : start + size], source, target))
+        outputs = translate_adaptive(translator, texts, source, target, size)
         elapsed = time.perf_counter() - started
+        # Reclaim allocator blocks before the next direction; without this the
+        # run dies partway through with ~1 GB held beyond the model itself.
+        translator.free()
 
         kept = sum(
             1

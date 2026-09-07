@@ -124,6 +124,22 @@ class Translator:
         decoded = self.tokenizer.batch_decode(generated, skip_special_tokens=True)
         return self.processor.postprocess_batch(decoded, lang=target)
 
+    def free(self) -> None:
+        """Release cached blocks between directions.
+
+        Activations from one direction are freed but their allocator blocks are
+        not returned, so on a 4 GB card the next direction starts with less
+        room than the last. Left alone, the run dies several directions in with
+        ~1 GB apparently in use beyond the model's 2.42 GB.
+        """
+        import gc
+
+        import torch
+
+        gc.collect()
+        if str(self.device).startswith("cuda"):
+            torch.cuda.empty_cache()
+
     def unload(self) -> None:
         import gc
 
@@ -133,6 +149,50 @@ class Translator:
         gc.collect()
         if str(self.device).startswith("cuda"):
             torch.cuda.empty_cache()
+
+
+def translate_adaptive(
+    translator,
+    texts: list[str],
+    src_lang: str,
+    tgt_lang: str,
+    batch_size: int,
+) -> list[str]:
+    """Translate a list, halving the batch whenever the GPU runs out.
+
+    A fixed batch size cannot be right for this data: task 1's Telugu split has
+    280 rows over 1000 characters against a median of 117, so a batch sized for
+    typical rows OOMs on the rare long one. Beam search holds
+    `beam × batch × vocab` logits in float32 and IndicTrans2's vocabulary is
+    large, which is the allocation that fails first.
+
+    Retrying smaller costs a little time on those rows and keeps the run alive;
+    losing a whole direction because one row is long does not. A row that OOMs
+    on its own is genuinely too big to process and is re-raised.
+
+    Takes the translator as an argument rather than living on it: the retry
+    policy is not a property of the model, and this keeps it testable without a
+    GPU.
+    """
+    import torch
+
+    outputs: list[str] = []
+    index = 0
+    while index < len(texts):
+        size = max(1, batch_size)
+        while True:
+            chunk = texts[index : index + size]
+            try:
+                outputs.extend(translator.translate(chunk, src_lang, tgt_lang))
+                break
+            except torch.OutOfMemoryError:
+                if hasattr(translator, "free"):
+                    translator.free()
+                if size == 1:
+                    raise
+                size = max(1, size // 2)
+        index += len(chunk)
+    return outputs
 
 
 def checkpoint_path(task: int, block: str, src_lang: str, tgt_lang: str) -> Path:
@@ -178,8 +238,8 @@ def translate_rows(
         for start in range(0, total, size):
             chunk = pending.iloc[start : start + size]
             try:
-                outputs = translator.translate(
-                    [str(t) for t in chunk["text"]], src_lang, tgt_lang
+                outputs = translate_adaptive(
+                    translator, [str(t) for t in chunk["text"]], src_lang, tgt_lang, size
                 )
             except Exception as error:  # noqa: BLE001
                 # §11: report and continue rather than silently substituting.
