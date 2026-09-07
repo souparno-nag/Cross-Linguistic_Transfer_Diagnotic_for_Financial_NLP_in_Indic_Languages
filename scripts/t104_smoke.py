@@ -5,10 +5,13 @@
     python -m scripts.t104_smoke --task 2 --benchmark    # time both, compare
 
 Translates 20 real sentences per direction and writes them side by side for
-hand-checking, which is §8's acceptance criterion for this task. Also reports
-numeral preservation per direction — not a substitute for reading the output,
-but it catches the failure this project most cares about without waiting for
-T-105.
+hand-checking, which is §8's acceptance criterion for this task.
+
+It also reports how often the *digits* are identical between source and
+translation. Read that as a rough signal, not a score: a correct translation can
+legitimately change the digits, because Indic and Western numbering systems
+differ. `১০০ মিলিয়ন` (100 million) rendering as `10 करोड़` (10 crore) is right,
+and this check counts it as a mismatch. Handling that properly is T-105's job.
 
 Downloads the weights on first run: 4.8 GB for the 1B, 1.3 GB for the distilled
 fallback. The repos are gated; authenticate first (§3.1).
@@ -54,12 +57,20 @@ def directions() -> list[tuple[str, str, str]]:
 def run(task: int, model_name: str, config: dict, sample: int, device: str | None):
     translator = Translator(model_name=model_name, config=config, device=device)
     print(f"loaded {model_name} on {translator.device}\n")
+    size = config["batch_size"]
 
     rows = []
     for block, source, target in directions():
         frame = read_split(task, block, source).head(sample)
+        texts = [str(t) for t in frame["text"]]
         started = time.perf_counter()
-        outputs = translator.translate([str(t) for t in frame["text"]], source, target)
+        # Chunk by the configured batch size. Sending the whole sample in one
+        # generate() call OOMs the 4 GB card on task 1, whose Telugu split has
+        # 280 rows over 1000 characters (max 2510) — beam 5 over 20 long
+        # sequences at once does not fit.
+        outputs = []
+        for start in range(0, len(texts), size):
+            outputs.extend(translator.translate(texts[start : start + size], source, target))
         elapsed = time.perf_counter() - started
 
         kept = sum(
@@ -70,7 +81,7 @@ def run(task: int, model_name: str, config: dict, sample: int, device: str | Non
         empty = sum(1 for out in outputs if not str(out).strip())
         print(
             f"{source}->{target} ({block}): {elapsed:5.1f}s  "
-            f"numerals preserved {kept}/{len(frame)}  empty {empty}"
+            f"numerals identical {kept}/{len(frame)}  empty {empty}"
         )
         for src, out in zip(frame["text"], outputs):
             rows.append(
@@ -82,7 +93,7 @@ def run(task: int, model_name: str, config: dict, sample: int, device: str | Non
                     "translation": out,
                     "src_numerals": " ".join(numerals(src)),
                     "tgt_numerals": " ".join(numerals(out)),
-                    "numerals_preserved": numerals(src) == numerals(out),
+                    "numerals_identical": numerals(src) == numerals(out),
                     "empty": not str(out).strip(),
                     "seconds_for_direction": round(elapsed, 2),
                 }
@@ -128,6 +139,13 @@ def main(argv: list[str] | None = None) -> int:
             print(f"\n{label} FAILED: {type(error).__name__}: {error}", file=sys.stderr)
             traceback.print_exc()
             return 1
+        import gc
+
+        import torch
+
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
         frame["model"] = label
         path = report_dir / f"t104_smoke_{label}.parquet"
         frame.to_parquet(path, index=False)
@@ -137,7 +155,7 @@ def main(argv: list[str] | None = None) -> int:
                 "model": label,
                 "name": model_name,
                 "rows": len(frame),
-                "numerals_preserved": round(frame["numerals_preserved"].mean(), 4),
+                "numerals_identical": round(frame["numerals_identical"].mean(), 4),
                 "empty": int(frame["empty"].sum()),
                 "total_seconds": round(
                     frame.groupby(["src_lang", "tgt_lang"])["seconds_for_direction"]
@@ -165,8 +183,13 @@ def main(argv: list[str] | None = None) -> int:
         summary.to_markdown(index=False),
         "",
         f"{args.sample} sentences per direction. Per-sentence output is in "
-        f"`t104_smoke_*.parquet` for hand-checking — numeral preservation is a "
-        "cheap proxy, not a substitute for reading the translations.",
+        "`t104_smoke_*.parquet` for hand-checking.",
+        "",
+        "`numerals_identical` counts rows whose digit set is unchanged. It is a "
+        "rough signal, **not** an accuracy score: a correct translation can "
+        "legitimately change the digits, because the two numbering systems "
+        "differ. `১০০ মিলিয়ন` (100 million) → `10 करोड़` (10 crore) is correct and "
+        "counts here as a mismatch. Scale-aware comparison is T-105.",
         "",
     ]
     (report_dir / "t104_smoke.md").write_text("\n".join(lines))

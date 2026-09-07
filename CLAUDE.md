@@ -599,17 +599,28 @@ flagged and the run continues (§11); empty output is flagged, never dropped (ru
 directions; config committed; the 320M distilled variant is benchmarked as the 4 GB
 fallback and the choice is documented.
 
-**Status: code complete and tested; acceptance pending a GPU run.** The pipeline, the
-frozen config and the 9-direction smoke test are written, and 8 tests cover resume,
-failure handling, empty-output flagging and fingerprint stability without loading the
-model. What remains needs the weights downloaded:
+**Status: pipeline verified on real weights; hand-check outstanding.** All 9 directions
+translate on task 3 under both models, with no empty output.
 
-```
-python -m scripts.t104_smoke --task 2 --benchmark
-```
+| Model | 180 rows, 9 directions | Digits identical |
+|---|---|---|
+| 1B | 61.2 s | 99.4% |
+| 320M distilled | **18.4 s** | **100%** |
 
-That translates 20 real sentences per direction through both models, writes them side
-by side for hand-checking, and produces the 1B-vs-320M comparison §8 asks for.
+**The 320M is 3.3× faster and no worse on this hardware.** §3 called it a fallback; on a
+4 GB card with the 1B needing `use_cache=False`, it is the better default. Confirm on
+task 2's longer sentences before choosing — 320M has not yet been checked there.
+
+**Batch size must be respected, and long rows are why.** Task 1's Telugu split has 280
+rows over 1000 characters (max 2510). Beam 5 over 20 such rows in one `generate()` call
+OOMs the 4 GB card; chunking by `batch_size` is not optional at this VRAM.
+
+**Digit-identity is not an accuracy score.** The smoke test reports how often the digit
+set is unchanged. A correct translation can legitimately change it: `১০০ মিলিয়ন`
+(100 million) → `10 करोड़` (10 crore) is right, and counts as a mismatch. Every
+"failure" inspected so far has been of exactly this kind. **T-105 must compare scale-aware
+values, not digit strings**, or it will report correct translations as entity loss —
+which would corrupt the direction ranking in T-111.
 
 ---
 
@@ -624,6 +635,14 @@ Check per direction:
 - currency symbols preserved
 - percentages preserved
 - lakh/crore scale terms preserved
+
+**Compare values, not digit strings.** Indic and Western numbering differ, so a correct
+translation routinely changes the digits: `১০০ মিলিয়ন` (100 million) → `10 करोड़`
+(10 crore) is the same quantity written two ways. Normalise both sides to a numeric
+value with its scale word applied — 100 × 10⁶ and 10 × 10⁷ are both 10⁸ — before
+comparing. A naive digit-set comparison flags these as entity loss; T-104's smoke test
+does exactly that and every failure it reported turned out to be a correct conversion.
+Getting this wrong inflates the loss rate and corrupts T-111's ranking.
 
 **Done when:** `reports/entity_preservation.parquet` gives a per-direction rate; any
 direction below 95% is flagged; affected rows get `entity_loss` in `flags`.
