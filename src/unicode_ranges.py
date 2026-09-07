@@ -107,6 +107,21 @@ def digit_counts(text: str) -> dict[str, int]:
     return counts
 
 
+# Folding every Indic digit onto ASCII is what lets a Bengali ১০ and a Telugu
+# ౧౦ compare equal to 10. Built once from DIGIT_ZERO so the two never drift.
+ASCII_DIGIT_TABLE = {
+    zero + offset: str(offset)
+    for script, zero in DIGIT_ZERO.items()
+    if script != "ASCII"
+    for offset in range(10)
+}
+
+
+def to_ascii_digits(text: str) -> str:
+    """Rewrite Devanagari, Bengali, Telugu and Malayalam digits as ASCII."""
+    return str(text).translate(ASCII_DIGIT_TABLE)
+
+
 def foreign_scripts(text: str, lang: str) -> dict[str, int]:
     """Script-block characters that do not belong to `lang`.
 

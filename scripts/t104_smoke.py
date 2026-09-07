@@ -27,6 +27,7 @@ import time
 import pandas as pd
 
 from src.corpus_io import read_split
+from src.entities import ESCAPE_LEAK, PLACEHOLDER_LEAK
 from src.download_dataset.paths import REPO_ROOT
 from src.ids import BLOCK_NATIVE_LANG, targets_for_block
 from src.translate import (
@@ -56,15 +57,6 @@ def numerals(text: str) -> list[str]:
     """Numbers in a string, comparable across scripts and separators."""
     folded = THOUSANDS_SEPARATOR.sub("", to_ascii_digits(text))
     return sorted(re.findall(r"\d+(?:\.\d+)?", folded))
-
-
-# IndicProcessor substitutes entities for `<ID n>` placeholders and restores
-# them afterwards. The model sometimes translates the placeholder text itself
-# — `ID` becomes `আই. ডি.` in Bengali — and restoration then fails, so the real
-# content is lost. Separately, a nukta in Bengali source can emerge as a
-# literal `u09bc` escape that gets transliterated into the target script.
-PLACEHOLDER_LEAK = re.compile(r"<[^>]{1,40}>")
-ESCAPE_LEAK = re.compile(r"u09[0-9a-f]{2}|u093[0-9a-f]|യു[0-9]|ইউ[0-9]", re.IGNORECASE)
 
 
 def directions() -> list[tuple[str, str, str]]:

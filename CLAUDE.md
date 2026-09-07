@@ -359,7 +359,7 @@ src/
   corpus_io.py       ✓ all reads/writes; format, schema and label enforcement
   ids.py             ✓ key construction, block mapping, join helpers
   translate.py       ✓ IndicTrans2 wrapper, resumable batching
-  entities.py           numeral/currency preservation checks
+  entities.py        ✓ scale-aware numeral/currency checks; corruption detection
   labse_gate.py         embedding + cosine similarity + thresholding
   integrity.py          structural + script-leakage checks
   freeze.py             hashing, manifest, immutability
@@ -369,6 +369,7 @@ scripts/
   t102b_align.py     ✓ python -m scripts.t102b_align --task {n}
   t103_ingest.py     ✓ python -m scripts.t103_ingest --task {n}
   t104_smoke.py      ✓ python -m scripts.t104_smoke --task {n} [--benchmark]
+  t105_entities.py   ✓ python -m scripts.t105_entities --task {n} [--from-smoke]
                        (one thin CLI per task, named by task ID)
 data/
   base_paper/        ✓ upstream IndicFinNLP, committed; see §7.1
@@ -671,8 +672,28 @@ Each hits ~1% of rows. Both destroy content while leaving fluent-looking text, s
 neither is visible without an explicit check. **T-107 must detect both; rows carrying
 them must be flagged, not silently kept as clean.**
 
-**Entity-placeholder leakage — Bengali and Malayalam targets only (4 and 3 of 720 rows;
-0 for Hindi and Telugu).** `IndicProcessor` substitutes entities for `<ID n>`
+**Corrected in T-105: the real rate is 3.2%, not ~1%, and it affects every target
+language.** The first count used a detector covering only two of the four target
+scripts. The escape leak transliterates into whichever script is the target, so
+`u09bc` appears as `യു09ബിസി`, `ইউ09`, `यू09बीसी` or `యు09` — matching two of those
+undercounted it by more than half.
+
+| | rows | corrupted | rate |
+|---|---|---|---|
+| task 1, 320M | 180 | 18 | **10.0%** |
+| task 1, 1B | 180 | 8 | 4.4% |
+| task 2, 320M | 180 | 3 | 1.7% |
+| task 3, both | 360 | 0 | 0% |
+
+By target: hin 5%, mal 3%, tel 3%, ben 2% — not the Bengali/Malayalam-only pattern the
+first count suggested.
+
+**The 320M corrupts more than twice as often as the 1B on task 1 (10.0% vs 4.4%).**
+That is a quality difference the digit proxy in §3.5 could not see, and it argues
+against the 320M more strongly than the 3.3-point digit gap did. Revisit §3.5 before
+committing to the full T-106 run.
+
+**Entity-placeholder leakage.** `IndicProcessor` substitutes entities for `<ID n>`
 placeholders and restores them after decoding. The model sometimes *translates the
 placeholder text itself* — `ID` becomes `আই. ডি.` in Bengali, `ഐ. ഡി.` in Malayalam — so
 restoration cannot match it and the real content is lost:
@@ -732,6 +753,31 @@ of task 1's 31 differing rows.
 
 **Done when:** `reports/entity_preservation.parquet` gives a per-direction rate; any
 direction below 95% is flagged; affected rows get `entity_loss` in `flags`.
+
+**Status: built and validated against real output; awaiting corpus MT.**
+`src/entities.py` and `scripts/t105_entities.py`, 32 tests. Run it with
+`--from-smoke` until T-106 exists:
+
+```
+python -m scripts.t105_entities --task 1 --from-smoke
+```
+
+Validation mattered more than the code. Scored against T-104's real output, the first
+version reported 68–94% preservation; inspecting the flagged rows found three bugs in
+the *checker*, not the model:
+
+1. `50, 000` — postprocessing emits a space after the comma, so it parsed as 50 and 0
+   rather than 50000.
+2. The escape leak transliterates into the target script, and only two of four forms
+   were matched, so corrupted rows were scored as numeral loss.
+3. Currency compared as a literal symbol, so `₹` against `రూ` read as a loss.
+
+After fixing those, `altered` counts fell from 6–8 per direction to 0–1, and the
+remaining failures are genuine. **A checker that cries wolf is the failure mode here** —
+which is why the fixtures include seven pairs that must compare *equal*.
+
+Current reading on task 1's smoke sample: five directions below 95%, driven by genuine
+drops, one currency loss and two percent losses, with 10% of rows excluded as corrupted.
 
 ---
 
@@ -919,7 +965,9 @@ Every module in `src/` ships with tests. Minimum coverage:
 - **`ids.py`** — 4-way join returns N rows on all three blocks; missing row raises
 - **`corpus_io.py`** — round-trip preserves all four scripts, currency symbols, and
   lakh/crore expressions
-- **`entities.py`** — ≥5 positive and ≥5 negative fixtures per check
+- **`entities.py`** — ≥5 positive and ≥5 negative fixtures per check; equivalent
+  quantities across scale words and scripts must compare **equal**; corrupted rows must
+  not be reported as numeral loss
 - **`labse_gate.py`** — known-similar and known-dissimilar pairs land on the expected
   side of τ
 - **`integrity.py`** — a deliberately script-leaked fixture is caught
