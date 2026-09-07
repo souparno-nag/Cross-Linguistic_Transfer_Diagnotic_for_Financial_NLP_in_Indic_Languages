@@ -123,8 +123,8 @@ hin_Deva   ben_Beng   tel_Telu   mal_Mlym
 - **Python 3.11** exactly. Assert it at entry point; fail loudly on mismatch.
 - **Linux or WSL2.** IndicTransToolkit is not built or tested for Windows.
 - `torch>=2.5`, `transformers>=4.51`, `numpy>=2.1` — required by IndicTransToolkit.
-- Translation model: `ai4bharat/indictrans2-indic-indic-1B`
-  (fallback on 4 GB VRAM: the distilled 320M variant)
+- Translation model: **`ai4bharat/indictrans2-indic-indic-dist-320M`** — chosen in
+  T-104, see §3.5. The 1B remains available via `--fallback` but is not the default.
 - Similarity model: `sentence-transformers/LaBSE`
 
 Currently provisioned: `env/` (gitignored venv, Python 3.11.15) with `kagglehub`,
@@ -599,17 +599,46 @@ flagged and the run continues (§11); empty output is flagged, never dropped (ru
 directions; config committed; the 320M distilled variant is benchmarked as the 4 GB
 fallback and the choice is documented.
 
-**Status: pipeline verified on real weights; hand-check outstanding.** All 9 directions
-translate on task 3 under both models, with no empty output.
+**Status: NOT done. Automated criteria pass; the hand-check is outstanding.**
+
+| Criterion | State |
+|---|---|
+| Config committed | done — 320M selected, see §3.5 |
+| 320M benchmarked and the choice documented | done |
+| 20 sentences per direction translate **correctly** | **outstanding** — needs a reader of Bengali, Telugu and Malayalam |
+
+All 720 rows were checked programmatically and every numeral difference classified by
+hand, which is what surfaced §3.4's corruption modes. That establishes numbers survive;
+it does not establish the sentences mean the right thing. Until someone reads
+`reports/task_*/t104_smoke_*.parquet`, T-104 is not closed.
+
+All 9 directions translate on every task under both models, with no empty output.
 
 | Model | 180 rows, 9 directions | Digits identical |
 |---|---|---|
 | 1B | 61.2 s | 99.4% |
 | 320M distilled | **18.4 s** | **100%** |
 
-**The 320M is 3.3× faster and no worse on this hardware.** §3 called it a fallback; on a
-4 GB card with the 1B needing `use_cache=False`, it is the better default. Confirm on
-task 2's longer sentences before choosing — 320M has not yet been checked there.
+### 3.5 Model choice — 320M, decided in T-104
+
+Measured on task 1, 180 rows, the same 9 directions:
+
+| Model | Time | Digits identical | Full T-106 run |
+|---|---|---|---|
+| `indic-indic-1B` | 105.8 s | 86.1% | ~15 h |
+| **`indic-indic-dist-320M`** | **12.7 s** | 82.8% | **~2–5 h** |
+
+**8.3× slower for 3.3 points on a digit proxy**, and on task 3 the 320M was *better*
+(100% vs 99.4%). The 1B also runs at the edge of 4 GB: `ben→tel` took 80.7 s against
+2–6 s elsewhere, the OOM backoff repeatedly halving batches, so its real cost may exceed
+15 h.
+
+The digit proxy says nothing about fluency, where a distilled model usually gives up
+more than it does on numbers. That trade was accepted deliberately. Reading the
+side-by-side output in `reports/task_*/t104_smoke_*.parquet` is the outstanding check.
+
+Switching the model changes `decoding_fingerprint()`, which is intended — artefacts are
+only comparable within one fingerprint. Nothing had been generated under the old one.
 
 **A fixed batch size cannot work at 4 GB; batching must adapt.** Task 1's Telugu split
 has 280 rows over 1000 characters against a median of 117, so any batch sized for

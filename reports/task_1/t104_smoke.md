@@ -14,9 +14,9 @@ Decoding fingerprint `08e5a3dc7f258d7e`, identical across all 9 directions so dr
 }
 ```
 
-| model   | name                                        |   rows |   numerals_identical |   empty |   total_seconds |
-|:--------|:--------------------------------------------|-------:|---------------------:|--------:|----------------:|
-| 320M    | ai4bharat/indictrans2-indic-indic-dist-320M |    180 |               0.8056 |       0 |            12.7 |
+| model   | name                                 |   rows |   numerals_identical |   empty |   placeholder_leak |   escape_leak |   total_seconds |
+|:--------|:-------------------------------------|-------:|---------------------:|--------:|-------------------:|--------------:|----------------:|
+| 1B      | ai4bharat/indictrans2-indic-indic-1B |    180 |               0.8611 |       0 |                  0 |             5 |           105.8 |
 
 20 sentences per direction. Per-sentence output is in `t104_smoke_*.parquet` for hand-checking.
 

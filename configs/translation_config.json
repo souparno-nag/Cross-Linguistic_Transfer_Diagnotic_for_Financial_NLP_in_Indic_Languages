@@ -1,6 +1,6 @@
 {
-  "model": "ai4bharat/indictrans2-indic-indic-1B",
-  "fallback_model": "ai4bharat/indictrans2-indic-indic-dist-320M",
+  "model": "ai4bharat/indictrans2-indic-indic-dist-320M",
+  "fallback_model": "ai4bharat/indictrans2-indic-indic-1B",
   "revision": "main",
   "note": "Decoding is identical across all 9 directions so drift figures are comparable between them (CLAUDE.md \u00a78, T-104). Changing any value here invalidates comparisons against artefacts produced under the old fingerprint. use_cache=false is REQUIRED, not a tuning choice: IndicTrans2's remote modelling code reads past_key_values as a legacy tuple, but modern transformers passes a Cache object that is non-None yet empty on the first step, so the model's `is not None` guard passes and it crashes on .shape. See CLAUDE.md \u00a73.2. early_stopping was removed because transformers reports it as an invalid flag and ignores it; keeping it would imply a setting that is not in effect.",
   "decoding": {
@@ -27,5 +27,7 @@
     "ben": "ben_Beng",
     "tel": "tel_Telu",
     "mal": "mal_Mlym"
-  }
+  },
+  "alternative_model": "ai4bharat/indictrans2-indic-indic-1B",
+  "model_choice_note": "The 320M distilled model is the primary, not a fallback. Measured on task 1, 180 rows, 9 directions: 12.7s vs 105.8s for the 1B, an 8.3x difference, for 3.3 points on a digit-preservation proxy. On task 3 the 320M was better (100% vs 99.4%). The 1B also runs at the edge of 4GB: ben->tel needed 80.7s against 2-6s elsewhere, the OOM backoff repeatedly halving batches. Full T-106 is ~2-5 hours on the 320M against ~15 on the 1B. This deviates from CLAUDE.md \u00a73's stated model and was decided explicitly, not by default."
 }
