@@ -89,3 +89,36 @@ def test_repeated_value_is_flagged_rather_than_silently_chosen():
 
 def test_unparseable_source_number_says_so():
     assert recover_span("কিছু 10 আছে", "n/a").flags == ["span_unparseable_source"]
+
+
+def test_a_list_of_numbers_survives_losing_its_spaces():
+    """`145, 146, 150` → `145,146,150` is three rule numbers, not one number.
+
+    Translation drops the space the source used to disambiguate, and reading
+    the commas as grouping made every member of such a list unrecoverable —
+    the single biggest systematic gap in task 1's recovery.
+    """
+    text = "জি. এফ. আর নিয়ম 145,146,150 এবং 151 প্রযোজ্য হবে।"
+    for number in ("145,", "146,", "150", "151"):
+        found = recover_span(text, number, "जीएफआर नियम 145, 146, 150 और 151 लागू होंगे।")
+        assert found.recovered, f"{number} not found"
+        assert parse_number(found.matched) == parse_number(number)
+        assert text[found.start : found.end] == found.matched
+
+
+def test_the_list_fallback_does_not_break_a_thousands_separator():
+    """`50 हजार` → `50, 000` must not put the span on the leading `50`.
+
+    The digits there belong to the rescaled 50,000. A span on `50` would point
+    at the wrong characters while claiming success, which is worse than
+    reporting the number as not found.
+    """
+    found = recover_span("50, 000 টাকা অগ্রিম দেওয়া হয়েছিল।", "50", "50 हजार रुपये एडवांस दिए थे।")
+    assert not found.recovered
+    assert found.flags == ["span_not_recovered", "span_scale_shift"]
+
+
+def test_grouped_number_still_wins_over_its_own_parts():
+    """Seeking 25000 in `25,000` must match the whole, not stop at `25`."""
+    found = recover_span("মোট 25,000 টাকা", "25,000")
+    assert found.recovered and found.matched == "25,000"

@@ -853,7 +853,7 @@ outstanding.** `src/spans.py`, `src/generate.py`, `scripts/t106_generate.py`, 33
 |---|---|
 | Row-count parity, ids, labels carried through, empty flagged | enforced in `check_split`, raises rather than reporting |
 | `span_recovered` populated on every task-1 MT row | enforced; `-1` offsets and `span_not_recovered` when the number is gone |
-| All 9 directions generated, per task | `task_3` **done**; `task_2` done bar one direction; `task_1` outstanding |
+| All 9 directions generated, per task | **done for all three tasks** — 92,760 MT rows |
 
 **Task 3 is generated: all 9 directions, 4788 MT rows, no empty output.** Every
 direction's labels are identical to its source split's, and each of blocks H, B and T
@@ -922,6 +922,39 @@ A run restricted with `--block`/`--targets` used to overwrite the whole task's r
 with its own single row; that one-direction rerun left a nine-direction task reporting
 one. The report now merges by direction, and only within one decoding fingerprint —
 output from another model or decoding config replaces it rather than joining it.
+
+**Task 1 is generated: 68,358 MT rows, no empty output, every block joining 4-way.**
+About 14 GPU-hours, in line with §3.5's estimate.
+
+**Span recovery lands at 82.8%, and the 17.2% is a result rather than a defect.** Every
+unrecovered row was classified by re-checking it with T-105's scale-aware entity
+comparison, which asks a different question — did the *quantities* survive — and so can
+tell a number the model lost from a number this module merely failed to point at:
+
+| | rows | share |
+|---|---|---|
+| span recovered | 56,624 | 82.8% |
+| digits present, annotated value gone | 6,618 | 9.7% |
+| output corrupted (§3.4) | 2,560 | 3.7% |
+| no digits in the output at all | 2,234 | 3.3% |
+| same quantity, rescaled (`50 हजार` → `50,000`) | 292 | 0.4% |
+| entities preserved, span missed | **30** | **0.04%** |
+
+The last row is the one that would indict the recovery code, and it is 30 rows in
+68,358. On every one of the 56,624 recovered rows `text[start_posn:end_posn]` reproduces
+`number_indic` exactly. So **roughly one financial numeral in six does not survive
+Indic→Indic translation intact** — which is the question the project exists to answer,
+not an error to fix.
+
+Two things that reading fixed first. A **list of numbers** loses the spaces that
+disambiguated it — `145, 146, 150` → `145,146,150` — and reading those commas as
+grouping made every member unrecoverable; the commas are now re-read as separators, but
+**only when the quantity did not move**, because in `50 हजार` → `50, 000` the digits
+belong to the rescaled 50,000 and a span on the leading `50` would point at the wrong
+characters while claiming success. That recovered 255 rows. And **corruption is
+concentrated in Telugu-source directions** — 522, 633 and 552 rows against 17-30 for
+Bengali-source — which §3.4's earlier per-target figures did not show and T-111 will
+need.
 
 **A batch can stall inside `generate`, and the run gives no sign of it.** Task 2's
 `hin→tel` sat for 47 minutes on one batch of 8 ordinary sentences (81-240 characters,

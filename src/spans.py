@@ -30,6 +30,13 @@ from .unicode_ranges import to_ascii_digits
 # spanning both, which is exactly the mis-parse T-105 was built to avoid.
 NUMBER_WITH_GROUPS = re.compile(r"\d+(?:,\s?\d{2,3}(?!\d))*(?:\.\d+)?")
 
+# The same commas read the other way: every digit run on its own. A comma
+# between three-digit groups is genuinely ambiguous — `145,146,150` is a list of
+# three rule numbers, `1,400` is one number — and translation makes it worse by
+# dropping the space the source used to disambiguate (`145, 146` → `145,146`).
+# Used only as a fallback, under the guard in :func:`recover_span`.
+BARE_NUMBER = re.compile(r"\d+(?:\.\d+)?")
+
 # Only these are removed when reading a matched string as a value. Folding
 # Indic digits to ASCII is a character-for-character translation, so offsets
 # into the folded string are also offsets into the original — which is what
@@ -70,10 +77,10 @@ class Recovery:
     flags: list[str] = field(default_factory=list)
 
 
-def _candidates(translation: str) -> list[tuple[int, int, str, float]]:
+def _candidates(translation: str, pattern=NUMBER_WITH_GROUPS) -> list[tuple[int, int, str, float]]:
     folded = to_ascii_digits(translation)
     found = []
-    for match in NUMBER_WITH_GROUPS.finditer(folded):
+    for match in pattern.finditer(folded):
         value = parse_number(match.group())
         if value is not None:
             found.append((match.start(), match.end(), translation[match.start():match.end()], value))
@@ -128,10 +135,23 @@ def recover_span(translation: str, number_english: str, source_text: str = "") -
         if abs(c[3] - value) <= 1e-6 * max(1.0, abs(value))
     ]
     if not matches:
-        flags = ["span_not_recovered"]
-        if source_text and _scale_shifted(source_text, translation, value):
-            flags.append("span_scale_shift")
-        return Recovery(flags=flags)
+        rescaled = bool(source_text) and _scale_shifted(source_text, translation, value)
+        if not rescaled:
+            # Re-read the commas as list separators rather than grouping. Only
+            # when the quantity did *not* move: in `50 हजार` → `50, 000` the
+            # digits belong to the rescaled 50,000, and pointing the span at
+            # the leading `50` would be a span onto the wrong characters, which
+            # is worse than reporting the number as not found.
+            matches = [
+                c
+                for c in _candidates(translation, BARE_NUMBER)
+                if abs(c[3] - value) <= 1e-6 * max(1.0, abs(value))
+            ]
+        if not matches:
+            flags = ["span_not_recovered"]
+            if rescaled:
+                flags.append("span_scale_shift")
+            return Recovery(flags=flags)
 
     start, end, matched, _ = matches[0]
     flags = ["span_ambiguous"] if len(matches) > 1 else []

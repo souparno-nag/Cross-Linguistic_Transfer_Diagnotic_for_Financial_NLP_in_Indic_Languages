@@ -1,0 +1,131 @@
+{
+  "config": {
+    "task": 1,
+    "model": "ai4bharat/indictrans2-indic-indic-1B",
+    "decoding_fingerprint": "08e5a3dc7f258d7e",
+    "device": "cuda"
+  },
+  "config_hash": "9def226a6911c4c8",
+  "batch_size": 8,
+  "batch_timeout": 600,
+  "directions": [
+    {
+      "rows": 6130,
+      "unique_source_texts": 3412,
+      "empty": 0,
+      "span_recovered": 4970,
+      "span_recovery_rate": 0.8108,
+      "span_scale_shift": 21,
+      "span_ambiguous": 206,
+      "block": "B",
+      "src_lang": "ben",
+      "tgt_lang": "hin",
+      "seconds": 0.0
+    },
+    {
+      "rows": 6130,
+      "unique_source_texts": 3412,
+      "empty": 0,
+      "span_recovered": 5069,
+      "span_recovery_rate": 0.8269,
+      "span_scale_shift": 24,
+      "span_ambiguous": 193,
+      "block": "B",
+      "src_lang": "ben",
+      "tgt_lang": "tel",
+      "seconds": 0.0
+    },
+    {
+      "rows": 6130,
+      "unique_source_texts": 3412,
+      "empty": 0,
+      "span_recovered": 4679,
+      "span_recovery_rate": 0.7633,
+      "span_scale_shift": 34,
+      "span_ambiguous": 187,
+      "block": "B",
+      "src_lang": "ben",
+      "tgt_lang": "mal",
+      "seconds": 0.0
+    },
+    {
+      "rows": 10640,
+      "unique_source_texts": 6357,
+      "empty": 0,
+      "span_recovered": 9010,
+      "span_recovery_rate": 0.8468,
+      "span_scale_shift": 32,
+      "span_ambiguous": 460,
+      "block": "H",
+      "src_lang": "hin",
+      "tgt_lang": "ben",
+      "seconds": 0.0
+    },
+    {
+      "rows": 10640,
+      "unique_source_texts": 6357,
+      "empty": 0,
+      "span_recovered": 9351,
+      "span_recovery_rate": 0.8789,
+      "span_scale_shift": 48,
+      "span_ambiguous": 465,
+      "block": "H",
+      "src_lang": "hin",
+      "tgt_lang": "tel",
+      "seconds": 0.0
+    },
+    {
+      "rows": 10640,
+      "unique_source_texts": 6357,
+      "empty": 0,
+      "span_recovered": 8799,
+      "span_recovery_rate": 0.827,
+      "span_scale_shift": 59,
+      "span_ambiguous": 435,
+      "block": "H",
+      "src_lang": "hin",
+      "tgt_lang": "mal",
+      "seconds": 0.0
+    },
+    {
+      "rows": 6016,
+      "unique_source_texts": 3698,
+      "empty": 0,
+      "span_recovered": 5004,
+      "span_recovery_rate": 0.8318,
+      "span_scale_shift": 37,
+      "span_ambiguous": 208,
+      "block": "T",
+      "src_lang": "tel",
+      "tgt_lang": "hin",
+      "seconds": 0.0
+    },
+    {
+      "rows": 6016,
+      "unique_source_texts": 3698,
+      "empty": 0,
+      "span_recovered": 4875,
+      "span_recovery_rate": 0.8103,
+      "span_scale_shift": 14,
+      "span_ambiguous": 218,
+      "block": "T",
+      "src_lang": "tel",
+      "tgt_lang": "ben",
+      "seconds": 0.0
+    },
+    {
+      "rows": 6016,
+      "unique_source_texts": 3698,
+      "empty": 0,
+      "span_recovered": 4867,
+      "span_recovery_rate": 0.809,
+      "span_scale_shift": 30,
+      "span_ambiguous": 194,
+      "block": "T",
+      "src_lang": "tel",
+      "tgt_lang": "mal",
+      "seconds": 0.0
+    }
+  ],
+  "failed": []
+}
