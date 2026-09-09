@@ -1,0 +1,266 @@
+{
+  "task": 2,
+  "structure": {
+    "H": {
+      "languages": [
+        "ben",
+        "hin",
+        "mal",
+        "tel"
+      ],
+      "expected_rows": 2238,
+      "joined_rows": 2238,
+      "four_way": true,
+      "missing_from": {}
+    },
+    "B": {
+      "languages": [
+        "ben",
+        "hin",
+        "mal",
+        "tel"
+      ],
+      "expected_rows": 2228,
+      "joined_rows": 2228,
+      "four_way": true,
+      "missing_from": {}
+    },
+    "T": {
+      "languages": [
+        "ben",
+        "hin",
+        "mal",
+        "tel"
+      ],
+      "expected_rows": 2072,
+      "joined_rows": 2072,
+      "four_way": true,
+      "missing_from": {}
+    }
+  },
+  "natives": {
+    "H/hin": {
+      "rows": 2238,
+      "script_leakage": [],
+      "encoding_corruption": [],
+      "not_nfc": 0
+    },
+    "B/ben": {
+      "rows": 2228,
+      "script_leakage": [],
+      "encoding_corruption": [],
+      "not_nfc": 0
+    },
+    "T/tel": {
+      "rows": 2072,
+      "script_leakage": [],
+      "encoding_corruption": [],
+      "not_nfc": 0
+    }
+  },
+  "directions": [
+    {
+      "block": "H",
+      "src_lang": "hin",
+      "tgt_lang": "ben",
+      "rows": 2238,
+      "median_length_ratio": 0.9676,
+      "script_leakage": 0,
+      "placeholder_leak": 7,
+      "escape_leak": 0,
+      "encoding_corruption": 0,
+      "truncation_suspect": 0,
+      "label_drift": 0
+    },
+    {
+      "block": "H",
+      "src_lang": "hin",
+      "tgt_lang": "tel",
+      "rows": 2238,
+      "median_length_ratio": 1.0039,
+      "script_leakage": 0,
+      "placeholder_leak": 0,
+      "escape_leak": 1,
+      "encoding_corruption": 0,
+      "truncation_suspect": 0,
+      "label_drift": 0
+    },
+    {
+      "block": "H",
+      "src_lang": "hin",
+      "tgt_lang": "mal",
+      "rows": 2238,
+      "median_length_ratio": 1.1118,
+      "script_leakage": 0,
+      "placeholder_leak": 2,
+      "escape_leak": 0,
+      "encoding_corruption": 0,
+      "truncation_suspect": 0,
+      "label_drift": 0
+    },
+    {
+      "block": "B",
+      "src_lang": "ben",
+      "tgt_lang": "hin",
+      "rows": 2228,
+      "median_length_ratio": 1.0112,
+      "script_leakage": 1,
+      "placeholder_leak": 0,
+      "escape_leak": 0,
+      "encoding_corruption": 0,
+      "truncation_suspect": 0,
+      "label_drift": 0
+    },
+    {
+      "block": "B",
+      "src_lang": "ben",
+      "tgt_lang": "tel",
+      "rows": 2228,
+      "median_length_ratio": 1.0157,
+      "script_leakage": 1,
+      "placeholder_leak": 0,
+      "escape_leak": 0,
+      "encoding_corruption": 0,
+      "truncation_suspect": 1,
+      "label_drift": 0
+    },
+    {
+      "block": "B",
+      "src_lang": "ben",
+      "tgt_lang": "mal",
+      "rows": 2228,
+      "median_length_ratio": 1.1197,
+      "script_leakage": 1,
+      "placeholder_leak": 2,
+      "escape_leak": 0,
+      "encoding_corruption": 0,
+      "truncation_suspect": 1,
+      "label_drift": 0
+    },
+    {
+      "block": "T",
+      "src_lang": "tel",
+      "tgt_lang": "hin",
+      "rows": 2072,
+      "median_length_ratio": 0.9842,
+      "script_leakage": 0,
+      "placeholder_leak": 0,
+      "escape_leak": 0,
+      "encoding_corruption": 0,
+      "truncation_suspect": 0,
+      "label_drift": 0
+    },
+    {
+      "block": "T",
+      "src_lang": "tel",
+      "tgt_lang": "ben",
+      "rows": 2072,
+      "median_length_ratio": 0.9578,
+      "script_leakage": 0,
+      "placeholder_leak": 5,
+      "escape_leak": 0,
+      "encoding_corruption": 0,
+      "truncation_suspect": 0,
+      "label_drift": 0
+    },
+    {
+      "block": "T",
+      "src_lang": "tel",
+      "tgt_lang": "mal",
+      "rows": 2072,
+      "median_length_ratio": 1.0965,
+      "script_leakage": 0,
+      "placeholder_leak": 2,
+      "escape_leak": 0,
+      "encoding_corruption": 0,
+      "truncation_suspect": 0,
+      "label_drift": 0
+    }
+  ],
+  "findings_total": {
+    "script_leakage": 3,
+    "placeholder_leak": 18,
+    "escape_leak": 1,
+    "encoding_corruption": 0,
+    "truncation_suspect": 2
+  },
+  "blocking": [],
+  "green": true,
+  "config_hash": "589880c2c96b2305",
+  "examples": {
+    "script_leakage": [
+      {
+        "item_id": "t2_B_b0d19b096b8e",
+        "direction": "ben->hin",
+        "length_ratio": 1.058,
+        "text": "इसके अलावा, जे. आर. ই.-এর की ओर से प्रधानमंत्री से पर्यावरण प्रभाव को कम करने में मदद करने के लिए कंपनियों को प्रस्ताव देने का अनुरोध किया गया है।"
+      },
+      {
+        "item_id": "t2_B_b0d19b096b8e",
+        "direction": "ben->tel",
+        "length_ratio": 0.95,
+        "text": "అంతేకాకుండా, పర్యావరణ ప్రభావాన్ని తగ్గించడంలో కంపెనీలకు సహాయపడటానికి ప్రతిపాదనలు చేయమని ప్రధాన మంత్రి JR ই.-এর తరపున అభ్యర్థించారు."
+      },
+      {
+        "item_id": "t2_B_b0d19b096b8e",
+        "direction": "ben->mal",
+        "length_ratio": 1.151,
+        "text": "കൂടാതെ, പാരിസ്ഥിതിക ആഘാതം കുറയ്ക്കാൻ സഹായിക്കുന്നതിന് കമ്പനികൾക്ക് നിർദ്ദേശങ്ങൾ നൽകണമെന്ന് ജെആർ ই.-এর നൽകുന്ന അഭ്യർത്ഥനയും പ്രധാനമന്ത്രിയോട് അഭ്യർത്ഥിക്കുന്നു."
+      }
+    ],
+    "placeholder_leak": [
+      {
+        "item_id": "t2_96df17e4582d",
+        "direction": "hin->ben",
+        "length_ratio": 0.949,
+        "text": "প্রধানত এ. ডি. এফ এবং এ. কিউ ইন্ডাস্ট্রিয়াল কর্মীদের দ্বারা পরিচালিত ঘন্টা অন্তর্ভুক্ত করার পরে বছরের মধ্যে নির্বাহী ব্যতীত স্বাভাবিক এবং অতিরিক্ত সময়ের ঘন্টা"
+      },
+      {
+        "item_id": "t2_d405c81c6e21",
+        "direction": "hin->ben",
+        "length_ratio": 1.094,
+        "text": "এর মধ্যে রয়েছে কাঁচামাল উত্তোলন এবং গ্রুপ পি. এস. এ দ্বারা তাদের যানবাহনের জন্য ক্রয় করা যন্ত্রাংশের উৎপাদন (মোট জি. এইচ. জি নির্গমনের <আই. ডি. 1>%), গ্রুপের "
+      },
+      {
+        "item_id": "t2_baacc65ee9c7",
+        "direction": "hin->ben",
+        "length_ratio": 0.996,
+        "text": "2019 সাল থেকে গ্রুপ পি. এস. এ ফ্রান্সের ডিক্রি (নং <আই. ডি. 1>) অনুসারে ফ্রান্সে তাদের অনুমোদিত মেরামতকারীদের জন্য পুনরায় ব্যবহারের তালিকা উপলব্ধ করেছে যার জন্"
+      },
+      {
+        "item_id": "t2_5929fcd8f0cd",
+        "direction": "hin->ben",
+        "length_ratio": 0.988,
+        "text": "প্রধান সূচকগুলির কার্বন পদচিহ্ন পরিবর্তনের প্রাথমিক বিশ্লেষণে ই. ভি. আই. সি-র পরিবর্তনের কারণে 2019 থেকে 2020 সালের মধ্যে <আই. ডি. 1>-এর পতন লক্ষ্য করা গেছে।"
+      },
+      {
+        "item_id": "t2_dfa72a96b798",
+        "direction": "hin->ben",
+        "length_ratio": 1.122,
+        "text": "<আই. ডি. 1> এবং <আই. ডি. 1> এ-তে আপনার নির্গমন কর্মক্ষমতা কি স্থান-ভিত্তিক স্কোপ 2 নির্গমন তথ্য বা বাজার-ভিত্তিক স্কোপ 2 নির্গমন তথ্যের উপর ভিত্তি করে গণনা করা "
+      }
+    ],
+    "escape_leak": [
+      {
+        "item_id": "t2_H_cb81e8a7389f",
+        "direction": "hin->tel",
+        "length_ratio": 1.0,
+        "text": "కంపెనీ 2015 నుండి RE100 లో సభ్యురాలు మరియు ఇటీవల EV100 మరియు100 వంటి అదనపు కార్యక్రమాలలో పాల్గొంది, రవాణా విద్యుదీకరించడానికి మరియు స్మార్ట్ ఇంధన వినియోగాన్ని అ"
+      }
+    ],
+    "truncation_suspect": [
+      {
+        "item_id": "t2_B_30ce57ac4188",
+        "direction": "ben->tel",
+        "length_ratio": 0.418,
+        "text": "అందువల్ల, వాతావరణ మార్పులను ఎదుర్కోవడంలో భారతదేశం అంతర్జాతీయ సవాలును స్వీకరించింది."
+      },
+      {
+        "item_id": "t2_B_814abf2ef0c8",
+        "direction": "ben->mal",
+        "length_ratio": 0.485,
+        "text": "2015 മുതൽ കമ്പനി ആർഇ 100 അംഗമാണ്, അടുത്തിടെ അധിക സംരംഭങ്ങളായ ഇവി 100, ഇപി 100 എന്നിവയിൽ ചേർന്നു."
+      }
+    ]
+  }
+}

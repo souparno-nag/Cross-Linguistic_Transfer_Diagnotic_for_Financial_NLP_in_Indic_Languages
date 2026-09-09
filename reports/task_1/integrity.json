@@ -1,0 +1,320 @@
+{
+  "task": 1,
+  "structure": {
+    "H": {
+      "languages": [
+        "ben",
+        "hin",
+        "mal",
+        "tel"
+      ],
+      "expected_rows": 10640,
+      "joined_rows": 10640,
+      "four_way": true,
+      "missing_from": {}
+    },
+    "B": {
+      "languages": [
+        "ben",
+        "hin",
+        "mal",
+        "tel"
+      ],
+      "expected_rows": 6130,
+      "joined_rows": 6130,
+      "four_way": true,
+      "missing_from": {}
+    },
+    "T": {
+      "languages": [
+        "ben",
+        "hin",
+        "mal",
+        "tel"
+      ],
+      "expected_rows": 6016,
+      "joined_rows": 6016,
+      "four_way": true,
+      "missing_from": {}
+    }
+  },
+  "natives": {
+    "H/hin": {
+      "rows": 10640,
+      "script_leakage": [],
+      "encoding_corruption": [],
+      "not_nfc": 672
+    },
+    "B/ben": {
+      "rows": 6130,
+      "script_leakage": [],
+      "encoding_corruption": [],
+      "not_nfc": 876
+    },
+    "T/tel": {
+      "rows": 6016,
+      "script_leakage": [],
+      "encoding_corruption": [],
+      "not_nfc": 12
+    }
+  },
+  "directions": [
+    {
+      "block": "H",
+      "src_lang": "hin",
+      "tgt_lang": "ben",
+      "rows": 10640,
+      "median_length_ratio": 0.9603,
+      "script_leakage": 0,
+      "placeholder_leak": 564,
+      "escape_leak": 20,
+      "encoding_corruption": 0,
+      "truncation_suspect": 19,
+      "label_drift": 0
+    },
+    {
+      "block": "H",
+      "src_lang": "hin",
+      "tgt_lang": "tel",
+      "rows": 10640,
+      "median_length_ratio": 0.9922,
+      "script_leakage": 0,
+      "placeholder_leak": 139,
+      "escape_leak": 59,
+      "encoding_corruption": 0,
+      "truncation_suspect": 100,
+      "label_drift": 0
+    },
+    {
+      "block": "H",
+      "src_lang": "hin",
+      "tgt_lang": "mal",
+      "rows": 10640,
+      "median_length_ratio": 1.0417,
+      "script_leakage": 0,
+      "placeholder_leak": 254,
+      "escape_leak": 27,
+      "encoding_corruption": 0,
+      "truncation_suspect": 58,
+      "label_drift": 0
+    },
+    {
+      "block": "B",
+      "src_lang": "ben",
+      "tgt_lang": "hin",
+      "rows": 6130,
+      "median_length_ratio": 1.0,
+      "script_leakage": 51,
+      "placeholder_leak": 29,
+      "escape_leak": 181,
+      "encoding_corruption": 0,
+      "truncation_suspect": 11,
+      "label_drift": 0
+    },
+    {
+      "block": "B",
+      "src_lang": "ben",
+      "tgt_lang": "tel",
+      "rows": 6130,
+      "median_length_ratio": 1.0285,
+      "script_leakage": 49,
+      "placeholder_leak": 20,
+      "escape_leak": 239,
+      "encoding_corruption": 0,
+      "truncation_suspect": 55,
+      "label_drift": 0
+    },
+    {
+      "block": "B",
+      "src_lang": "ben",
+      "tgt_lang": "mal",
+      "rows": 6130,
+      "median_length_ratio": 1.0736,
+      "script_leakage": 24,
+      "placeholder_leak": 263,
+      "escape_leak": 187,
+      "encoding_corruption": 0,
+      "truncation_suspect": 30,
+      "label_drift": 0
+    },
+    {
+      "block": "T",
+      "src_lang": "tel",
+      "tgt_lang": "hin",
+      "rows": 6016,
+      "median_length_ratio": 0.9427,
+      "script_leakage": 126,
+      "placeholder_leak": 678,
+      "escape_leak": 15,
+      "encoding_corruption": 0,
+      "truncation_suspect": 236,
+      "label_drift": 0
+    },
+    {
+      "block": "T",
+      "src_lang": "tel",
+      "tgt_lang": "ben",
+      "rows": 6016,
+      "median_length_ratio": 0.931,
+      "script_leakage": 84,
+      "placeholder_leak": 821,
+      "escape_leak": 0,
+      "encoding_corruption": 0,
+      "truncation_suspect": 283,
+      "label_drift": 0
+    },
+    {
+      "block": "T",
+      "src_lang": "tel",
+      "tgt_lang": "mal",
+      "rows": 6016,
+      "median_length_ratio": 1.0,
+      "script_leakage": 87,
+      "placeholder_leak": 756,
+      "escape_leak": 6,
+      "encoding_corruption": 0,
+      "truncation_suspect": 349,
+      "label_drift": 0
+    }
+  ],
+  "findings_total": {
+    "script_leakage": 421,
+    "placeholder_leak": 3524,
+    "escape_leak": 734,
+    "encoding_corruption": 0,
+    "truncation_suspect": 1141
+  },
+  "blocking": [],
+  "green": true,
+  "config_hash": "dd178e1dbfa9c08f",
+  "examples": {
+    "script_leakage": [
+      {
+        "item_id": "t1_B_00fcd600458f",
+        "direction": "ben->hin",
+        "length_ratio": 0.955,
+        "text": "राज्य सरकार 160 और नए আই.সি.ডি.এস परियोजनाओं पर काम कर रही है।"
+      },
+      {
+        "item_id": "t1_B_defcb8f261f7",
+        "direction": "ben->hin",
+        "length_ratio": 0.767,
+        "text": "अकेले इन আই.টি पार्कों से 20,000 नई नौकरियां पैदा होंगी"
+      },
+      {
+        "item_id": "t1_B_5626f450bbe5",
+        "direction": "ben->hin",
+        "length_ratio": 1.133,
+        "text": "यह विकास दर देश और विदेश के अर्थशास्त्रियों के अनुसार 1% से 3.5%-এ तक कम हो सकती है।"
+      },
+      {
+        "item_id": "t1_B_2491db4d6322",
+        "direction": "ben->hin",
+        "length_ratio": 1.478,
+        "text": "तीसरे यू09बीसी विकल्प यू09बीसी के सर्वेक्षण में (2005-06), चौथे विकल्प यू09बीसी (2005-16) में 41.6 प्रतिशत के साथ, यू09बीसी ने 23.4শতাংশ ग्रोथ ड्रिंक्स यू09बीसी"
+      },
+      {
+        "item_id": "t1_B_9caedfa5bb63",
+        "direction": "ben->hin",
+        "length_ratio": 0.938,
+        "text": "सरकारी अस्पतालों में कोविड बिस्तर जो 1.04.2020-তে 3,280 थे, 870 प्रतिशत बढ़कर 32,081 हो गए"
+      }
+    ],
+    "placeholder_leak": [
+      {
+        "item_id": "t1_H_163df0f42b7f",
+        "direction": "hin->ben",
+        "length_ratio": 1.703,
+        "text": "সি. আই. ও <আই. ডি. 1> সি. ও. 70 কোটি <আই. ডি. 2> সি. ও. 93সি -"
+      },
+      {
+        "item_id": "t1_H_59c476b657f6",
+        "direction": "hin->ben",
+        "length_ratio": 1.703,
+        "text": "সি. আই. ও <আই. ডি. 1> সি. ও. 70 কোটি <আই. ডি. 2> সি. ও. 93সি -"
+      },
+      {
+        "item_id": "t1_H_61e5b5fb6851",
+        "direction": "hin->ben",
+        "length_ratio": 1.222,
+        "text": "বর্তমানে ই. আই. এইচ-এ আই. টি. সি-র শেয়ারের শতাংশ হল <আই. ডি. 1>।"
+      },
+      {
+        "item_id": "t1_H_7595d4816876",
+        "direction": "hin->ben",
+        "length_ratio": 1.093,
+        "text": "<আই. ডি. 2>-এ কোম্পানির নিট লোকসান ছিল 1,50,000 কোটি টাকা।"
+      },
+      {
+        "item_id": "t1_H_f49d4b2a4336",
+        "direction": "hin->ben",
+        "length_ratio": 1.167,
+        "text": "<আই. ডি. 2>-এর সময় আমদানির বিল ছিল <আই. ডি. 1> কোটি> ইউ093সি।"
+      }
+    ],
+    "escape_leak": [
+      {
+        "item_id": "t1_H_5d1127512837",
+        "direction": "hin->ben",
+        "length_ratio": 1.292,
+        "text": "শুধুমাত্র ভারতে এর 40 কোটিরও বেশি ইউ093সি ব্যবহারকারী রয়েছে।"
+      },
+      {
+        "item_id": "t1_H_f49d4b2a4336",
+        "direction": "hin->ben",
+        "length_ratio": 1.167,
+        "text": "<আই. ডি. 2>-এর সময় আমদানির বিল ছিল <আই. ডি. 1> কোটি> ইউ093সি।"
+      },
+      {
+        "item_id": "t1_H_96cb439760f7",
+        "direction": "hin->ben",
+        "length_ratio": 1.191,
+        "text": "দাবি পরিত্যাগঃ নিউজ u093C18 হিন্দি রিলায়েন্স ইন্ডাস্ট্রিজের একটি সংস্থা নেটওয়ার্ক 18 মিডিয়া অ্যান্ড ইনভেস্টমেন্ট লিমিটেডের অংশ।"
+      },
+      {
+        "item_id": "t1_H_ecb1bb3d3e47",
+        "direction": "hin->ben",
+        "length_ratio": 0.811,
+        "text": "এছাড়াও, গ্রাহকরা অ্যামাজনে রিয়েলমি ইউ1-এর উপর এক হাজার টাকার অতিরিক্ত ছাড় পেতে পারবেন।"
+      },
+      {
+        "item_id": "t1_H_1eb3f982cf3b",
+        "direction": "hin->ben",
+        "length_ratio": 0.811,
+        "text": "এছাড়াও, গ্রাহকরা অ্যামাজনে রিয়েলমি ইউ1-এর উপর এক হাজার টাকার অতিরিক্ত ছাড় পেতে পারবেন।"
+      }
+    ],
+    "truncation_suspect": [
+      {
+        "item_id": "t1_H_c28bce1401f1",
+        "direction": "hin->ben",
+        "length_ratio": 0.4,
+        "text": "2013-র 16ই মে মার্কিন ডলারের বিপরীতে রুপির বিনিময় হার ছিল।"
+      },
+      {
+        "item_id": "t1_H_f7e7daa7fbfc",
+        "direction": "hin->ben",
+        "length_ratio": 0.4,
+        "text": "2013-র 16ই মে মার্কিন ডলারের বিপরীতে রুপির বিনিময় হার ছিল।"
+      },
+      {
+        "item_id": "t1_H_233845740e48",
+        "direction": "hin->ben",
+        "length_ratio": 0.469,
+        "text": "1) (2) (3) (ক) (খ) (আমদানি করা পণ্যের জন্য) (রপ্তানি পণ্যের জন্য) 1. জাপানি ইয়েন 72.10 64.15 2. কোরিয়ান ভন 6.55 6.15"
+      },
+      {
+        "item_id": "t1_H_8c74c108ee6e",
+        "direction": "hin->ben",
+        "length_ratio": 0.469,
+        "text": "1) (2) (3) (ক) (খ) (আমদানি করা পণ্যের জন্য) (রপ্তানি পণ্যের জন্য) 1. জাপানি ইয়েন 72.10 64.15 2. কোরিয়ান ভন 6.55 6.15"
+      },
+      {
+        "item_id": "t1_H_0f29b5863fa5",
+        "direction": "hin->ben",
+        "length_ratio": 0.469,
+        "text": "1) (2) (3) (ক) (খ) (আমদানি করা পণ্যের জন্য) (রপ্তানি পণ্যের জন্য) 1. জাপানি ইয়েন 72.10 64.15 2. কোরিয়ান ভন 6.55 6.15"
+      }
+    ]
+  }
+}

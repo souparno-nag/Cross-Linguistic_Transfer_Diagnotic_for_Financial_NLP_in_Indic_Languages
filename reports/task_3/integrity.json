@@ -1,0 +1,258 @@
+{
+  "task": 3,
+  "structure": {
+    "H": {
+      "languages": [
+        "ben",
+        "hin",
+        "mal",
+        "tel"
+      ],
+      "expected_rows": 532,
+      "joined_rows": 532,
+      "four_way": true,
+      "missing_from": {}
+    },
+    "B": {
+      "languages": [
+        "ben",
+        "hin",
+        "mal",
+        "tel"
+      ],
+      "expected_rows": 532,
+      "joined_rows": 532,
+      "four_way": true,
+      "missing_from": {}
+    },
+    "T": {
+      "languages": [
+        "ben",
+        "hin",
+        "mal",
+        "tel"
+      ],
+      "expected_rows": 532,
+      "joined_rows": 532,
+      "four_way": true,
+      "missing_from": {}
+    }
+  },
+  "natives": {
+    "H/hin": {
+      "rows": 532,
+      "script_leakage": [],
+      "encoding_corruption": [],
+      "not_nfc": 5
+    },
+    "B/ben": {
+      "rows": 532,
+      "script_leakage": [],
+      "encoding_corruption": [],
+      "not_nfc": 0
+    },
+    "T/tel": {
+      "rows": 532,
+      "script_leakage": [],
+      "encoding_corruption": [],
+      "not_nfc": 0
+    }
+  },
+  "directions": [
+    {
+      "block": "H",
+      "src_lang": "hin",
+      "tgt_lang": "ben",
+      "rows": 532,
+      "median_length_ratio": 1.035,
+      "script_leakage": 0,
+      "placeholder_leak": 1,
+      "escape_leak": 1,
+      "encoding_corruption": 0,
+      "truncation_suspect": 0,
+      "label_drift": 0
+    },
+    {
+      "block": "H",
+      "src_lang": "hin",
+      "tgt_lang": "tel",
+      "rows": 532,
+      "median_length_ratio": 1.0609,
+      "script_leakage": 0,
+      "placeholder_leak": 0,
+      "escape_leak": 0,
+      "encoding_corruption": 0,
+      "truncation_suspect": 0,
+      "label_drift": 0
+    },
+    {
+      "block": "H",
+      "src_lang": "hin",
+      "tgt_lang": "mal",
+      "rows": 532,
+      "median_length_ratio": 1.1043,
+      "script_leakage": 0,
+      "placeholder_leak": 1,
+      "escape_leak": 0,
+      "encoding_corruption": 0,
+      "truncation_suspect": 0,
+      "label_drift": 0
+    },
+    {
+      "block": "B",
+      "src_lang": "ben",
+      "tgt_lang": "hin",
+      "rows": 532,
+      "median_length_ratio": 1.0,
+      "script_leakage": 1,
+      "placeholder_leak": 0,
+      "escape_leak": 0,
+      "encoding_corruption": 0,
+      "truncation_suspect": 0,
+      "label_drift": 0
+    },
+    {
+      "block": "B",
+      "src_lang": "ben",
+      "tgt_lang": "tel",
+      "rows": 532,
+      "median_length_ratio": 1.039,
+      "script_leakage": 1,
+      "placeholder_leak": 0,
+      "escape_leak": 0,
+      "encoding_corruption": 0,
+      "truncation_suspect": 0,
+      "label_drift": 0
+    },
+    {
+      "block": "B",
+      "src_lang": "ben",
+      "tgt_lang": "mal",
+      "rows": 532,
+      "median_length_ratio": 1.0867,
+      "script_leakage": 1,
+      "placeholder_leak": 0,
+      "escape_leak": 0,
+      "encoding_corruption": 0,
+      "truncation_suspect": 0,
+      "label_drift": 0
+    },
+    {
+      "block": "T",
+      "src_lang": "tel",
+      "tgt_lang": "hin",
+      "rows": 532,
+      "median_length_ratio": 0.9444,
+      "script_leakage": 5,
+      "placeholder_leak": 0,
+      "escape_leak": 0,
+      "encoding_corruption": 0,
+      "truncation_suspect": 0,
+      "label_drift": 0
+    },
+    {
+      "block": "T",
+      "src_lang": "tel",
+      "tgt_lang": "ben",
+      "rows": 532,
+      "median_length_ratio": 0.9623,
+      "script_leakage": 6,
+      "placeholder_leak": 1,
+      "escape_leak": 0,
+      "encoding_corruption": 0,
+      "truncation_suspect": 0,
+      "label_drift": 0
+    },
+    {
+      "block": "T",
+      "src_lang": "tel",
+      "tgt_lang": "mal",
+      "rows": 532,
+      "median_length_ratio": 1.0241,
+      "script_leakage": 3,
+      "placeholder_leak": 1,
+      "escape_leak": 0,
+      "encoding_corruption": 0,
+      "truncation_suspect": 0,
+      "label_drift": 0
+    }
+  ],
+  "findings_total": {
+    "script_leakage": 17,
+    "placeholder_leak": 4,
+    "escape_leak": 1,
+    "encoding_corruption": 0,
+    "truncation_suspect": 0
+  },
+  "blocking": [],
+  "green": true,
+  "config_hash": "76576a77d62cea1c",
+  "examples": {
+    "script_leakage": [
+      {
+        "item_id": "t3_d0409d248b8b",
+        "direction": "ben->hin",
+        "length_ratio": 1.058,
+        "text": "अमेज़न ने 100 मिलियन लोगों को पानी तक पहुँच प्रदान करने के लिए मैट डैमन के ওয়াটার.অর্গের के साथ साझेदारी की"
+      },
+      {
+        "item_id": "t3_d0409d248b8b",
+        "direction": "ben->tel",
+        "length_ratio": 1.058,
+        "text": "100 మిలియన్ల మందికి నీటిని అందించడానికి అమెజాన్ మాట్ డామన్ యొక్క ওয়াটার.অর্গের తో భాగస్వామ్యం కుదుర్చుకుంది"
+      },
+      {
+        "item_id": "t3_d0409d248b8b",
+        "direction": "ben->mal",
+        "length_ratio": 0.932,
+        "text": "100 ദശലക്ഷം ആളുകൾക്ക് വെള്ളം നൽകുന്നതിന് ആമസോൺ മാറ്റ് ഡാമന്റെ ওয়াটার.অর্গের-മായി പങ്കാളികളായി."
+      },
+      {
+        "item_id": "t3_d968ab920eea",
+        "direction": "tel->hin",
+        "length_ratio": 0.929,
+        "text": "యు.ఎస్. DoE ने सौर ऊर्जा की लागत में बड़ी कटौती का लक्ष्य रखा है"
+      },
+      {
+        "item_id": "t3_d0409d248b8b",
+        "direction": "tel->hin",
+        "length_ratio": 1.126,
+        "text": "अमेज़ॅन ने 100 मिलियन लोगों को पानी तक पहुंच प्रदान करने के लिए मैट डेमन వాటర్.ఆర్గ్‌తో के साथ भागीदारी की"
+      }
+    ],
+    "placeholder_leak": [
+      {
+        "item_id": "t3_371368d3a2b8",
+        "direction": "hin->ben",
+        "length_ratio": 1.032,
+        "text": "মিলিকম (টি. আই. জি. ও) লাতিন আমেরিকার শিক্ষকদের ডিজিটাল দক্ষতার জন্য নতুন ডিজিটাল \"<আই. ডি. 2> <আই. ডি. 1> প্ল্যাটফর্ম চালু করেছে"
+      },
+      {
+        "item_id": "t3_755f193112f5",
+        "direction": "hin->mal",
+        "length_ratio": 1.191,
+        "text": "അഡെൽമാൻ ഇ. എസ്. ജിയുടെ തലവന്മാരെ നിയമിച്ചു <ഐ. ഡി. 1>. കൂടാതെ ഇ. എം. ഇ. എയ്ക്കും"
+      },
+      {
+        "item_id": "t3_d968ab920eea",
+        "direction": "tel->ben",
+        "length_ratio": 0.986,
+        "text": "<আই. ডি. 1>. ডি. ও. ই সৌরশক্তির খরচ ব্যাপকভাবে কমানোর লক্ষ্য নিয়েছে"
+      },
+      {
+        "item_id": "t3_755f193112f5",
+        "direction": "tel->mal",
+        "length_ratio": 1.108,
+        "text": "എഡെൽമാൻ ഇ. എസ്. ജിയുടെ തലവന്മാരെ നിയമിക്കുന്നു <ഐ. ഡി. 1> EMEA-യ്ക്കായി"
+      }
+    ],
+    "escape_leak": [
+      {
+        "item_id": "t3_d6c45574e37f",
+        "direction": "hin->ben",
+        "length_ratio": 0.938,
+        "text": "গ্রাহক জলবায়ু পরিবর্তন কৌশলের নির্ভরযোগ্যতা মূল্যায়নের জন্য মিজুহো ডিইউ093সি চালু করেছে"
+      }
+    ]
+  }
+}

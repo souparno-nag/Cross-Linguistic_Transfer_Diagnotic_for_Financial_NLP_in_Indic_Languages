@@ -363,7 +363,7 @@ src/
   spans.py           ✓ task-1 numeral re-location in MT output (T-106)
   generate.py        ✓ native split + translations -> §6 MT rows (T-106)
   labse_gate.py         embedding + cosine similarity + thresholding
-  integrity.py          structural + script-leakage checks
+  integrity.py       ✓ structural + script-leakage checks (T-107)
   freeze.py             hashing, manifest, immutability
 scripts/
   __init__.py        ✓
@@ -373,6 +373,7 @@ scripts/
   t104_smoke.py      ✓ python -m scripts.t104_smoke --task {n} [--benchmark]
   t105_entities.py   ✓ python -m scripts.t105_entities --task {n} [--from-smoke]
   t106_generate.py   ✓ python -m scripts.t106_generate --task {n} [--dry-run]
+  t107_integrity.py  ✓ python -m scripts.t107_integrity --task {n} [--write-flags]
                        (one thin CLI per task, named by task ID)
 data/
   base_paper/        ✓ upstream IndicFinNLP, committed; see §7.1
@@ -722,7 +723,11 @@ MT   পি. আই. বি হিন্দি (<আই. ডি. 1>) জুল�
 
 It also swallows numeric ranges: a source reading `6-555 टन` emerges as `<আই. ডি. 1> টন`.
 
-**Escape leakage — caused by nukta characters, Bengali source only.** A nukta
+**Escape leakage — caused by nukta characters, mostly but not only Bengali source.**
+T-107 counted it across the full corpus: 607 of task 1's 734 leaks come from Bengali
+source, but Hindi source produces 106 and Telugu source 21, so "Bengali only" was an
+artefact of the 180-row sample. The mechanism below is unchanged — Devanagari and
+Telugu have their own nukta-bearing characters. A nukta
 (`ড়` `য়`, U+09BC) in the source can emerge as the literal escape `u09bc`, transliterated
 into the target script. This is not a guess: **all 8 affected rows have a nukta in the
 source and no non-nukta row leaked**, a 3.4% rate among nukta-bearing sources.
@@ -1016,6 +1021,69 @@ them without an explicit check. Flag them; per rule 1 the rows stay.
 **Done when:** `reports/integrity.json` is all green, or every failure is enumerated
 with row IDs.
 
+**Status: DONE for all three tasks. All green — no blocking failure anywhere.**
+`src/integrity.py`, `scripts/t107_integrity.py`, 15 tests. 13 s on task 1, no GPU.
+Reports go to `reports/task_{n}/integrity.json`, one directory per task like every
+other artefact (§5), not the single shared path named above.
+
+The checks are in two tiers, and keeping them apart is the design:
+
+- **Blocking** — a block that stops joining 4-way, an MT label that drifted from its
+  source, a replacement character in native text. These mean the corpus is making a
+  false claim about a row, so they fail the run. **Zero across all three tasks**: every
+  block joins 4-way (10640/6130/6016, 2238/2228/2072, 532/532/532) and no label drifted.
+- **Findings** — script leakage, the two §3.4 corruption modes, suspiciously short
+  output. These measure the *translation*, not the corpus, so §4 rule 1 keeps their rows
+  and they do not fail the run. `--strict` fails on them if a caller wants that.
+
+| Finding | task 1 | task 2 | task 3 |
+|---|---|---|---|
+| `placeholder_leak` | 3524 | 18 | 4 |
+| `truncation_suspect` | 1141 | 2 | 0 |
+| `escape_leak` | 734 | 1 | 1 |
+| `script_leakage` | 421 | 3 | 17 |
+| `encoding_corruption` | 0 | 0 | 0 |
+
+Task 1 is an order of magnitude worse than the other two on every mode, which fits: it
+is the only task whose text is dense with numerals, entity placeholders and nukta
+characters. Two concentrations matter for T-111 — placeholder leakage is worst from
+Telugu source (678/821/756 rows) and from Hindi into Bengali (564), while escape
+leakage is worst from Bengali source (181/239/187), as §3.4 predicts.
+
+**Script leakage is usually an untranslated fragment, not encoding damage.** Nearly
+every flagged row is a brand or domain name left in the source script —
+`ওয়াটার.অর্গ` sitting inside a Hindi, Telugu or Malayalam sentence. T-114 should write
+it up as a translation failure, not a corruption one.
+
+Three thresholds are judgements rather than facts, so they are stated:
+
+1. **Truncation is judged per direction**, at 0.5x that direction's own median length
+   ratio. A fixed global ratio cannot work — Malayalam output runs ~10% longer than its
+   Hindi source where Bengali runs ~4% shorter, so a global band reads normal Bengali
+   output as truncated. The measured band flags 1.7% of task 1 and essentially nothing
+   in tasks 2 and 3, and the flagged rows are visibly truncated.
+2. **A placeholder or escape leak is only a leak when the source is clean.** Matching
+   the output alone would report a source that genuinely contains angle brackets as
+   corrupted for carrying its own content through. No source row here does, but a
+   checker that cries wolf is the failure mode (T-105).
+3. **NFC is reported, never failed** (rule 9). Task 1's natives are 672/876/12 rows
+   non-NFC and must stay that way: normalising breaks 880 spans.
+
+`--write-flags` writes the flags into the corpus, idempotently: this module's flags are
+stripped before being re-derived, so a re-run after a fix leaves no stale flag and
+running twice equals running once. Verified by running twice and comparing every flag
+list. Corpus-wide after T-107:
+
+```
+span_not_recovered 11734   unaligned 3693   placeholder_leak 3546
+span_ambiguous 2566   truncation_suspect 1143   escape_leak 736
+script_leakage 441   span_scale_shift 299
+```
+
+Row-level detail goes to `reports/task_{n}/integrity_rows.parquet` rather than into the
+JSON: §8 asks for failures enumerated by row id, and task 1 flags 4912 rows, which is
+data and belongs in Parquet (§5).
+
 ---
 
 ### T-108 — LaBSE gate over 100% of MT pairs
@@ -1152,7 +1220,9 @@ Every module in `src/` ships with tests. Minimum coverage:
   not be reported as numeral loss
 - **`labse_gate.py`** — known-similar and known-dissimilar pairs land on the expected
   side of τ
-- **`integrity.py`** — a deliberately script-leaked fixture is caught
+- **`integrity.py`** — a deliberately script-leaked fixture is caught; the danda is
+  not leakage; a leak counts only when the source is clean; flags written twice equal
+  flags written once
 - **`align.py`** — ids are key-derived and stable; every item appears once per
   language; conflicting labels are caught; an independently-sourced task is refused
 - **`spans.py`** — a recovered span's offsets slice the number out of the
