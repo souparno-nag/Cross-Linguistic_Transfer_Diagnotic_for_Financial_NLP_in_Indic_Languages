@@ -2,20 +2,25 @@
 # T-206 runs this at seeds 0/1/2 by overriding `seed`.
 # Note: exponents must be written 2.0e-5, not 2e-5 — PyYAML parses the latter
 # as a string (load_run_config coerces it anyway, but keep the files clean).
+#
+# Budget raised for T-207: the first run landed 0.825 vs IndicFinNLP's published
+# 0.86, and two of three seeds early-stopped by epoch 6-9 at patience 3. Longer
+# schedule, looser patience, and max_len 192 so the longer sentences (median
+# ~148 chars) are not truncated.
 
 encoder: indicbert-v2
 task: 2
 lang: hin
 origin: native
 
-max_len: 128
+max_len: 192
 batch_size: 16
 grad_accum: 1
 lr: 2.0e-5
 weight_decay: 0.01
-epochs: 10
+epochs: 20
 warmup_ratio: 0.1
-patience: 3
+patience: 5
 seed: 0
 fp16: true
 

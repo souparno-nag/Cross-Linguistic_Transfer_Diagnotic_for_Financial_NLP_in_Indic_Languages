@@ -1,0 +1,25 @@
+{
+  "source": "Ghosh et al., IndicFinNLP, LREC-COLING 2024, Table 4 (Test split). Model IB = IndicBERT fine-tuned on the original (non-paraphrased) data. F1 is macro-averaged (for task 3 their F1 0.05 differs from accuracy 0.17, so it is not micro).",
+  "metric": "macro_f1",
+  "tolerance_f1": 0.02,
+  "baselines": {
+    "task2_hin_indicbert": {
+      "task": 2,
+      "lang": "hin",
+      "model": "IndicBERT",
+      "published_macro_f1": 0.86,
+      "published_accuracy": 0.86,
+      "note": "Sustainability, binary. Table 4 row `2 H IB`.",
+      "diagnosis": ""
+    },
+    "task3_hin_indicbert": {
+      "task": 3,
+      "lang": "hin",
+      "model": "IndicBERT",
+      "published_macro_f1": 0.05,
+      "published_accuracy": 0.17,
+      "note": "ESG themes, 10-class. Table 4 row `3 H IB`. The paper states every model scored <30% on task 3 for all three languages because there are <100 instances per ESG label; accuracy 0.17 is the majority-class share (92/532). Their remedy is paraphrase augmentation to 4774 training rows (the `*-P` models, ~0.42 F1), which is out of Phase 2 scope. Our non-augmented IndicBERT baseline reproduces this regime and lands above their number.",
+      "diagnosis": ""
+    }
+  }
+}

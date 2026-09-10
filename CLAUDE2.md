@@ -277,11 +277,28 @@ since the `run_config.json` sidecar is written before training and a failed re-r
 makes it lie).
 
 ### T-207 — Baseline validation gate ⚠️
+`src/baseline_gate.py`, `scripts/t207_gate.py`, `configs/published_baselines.json`
 
 Compare the Hindi in-language macro-F1 to IndicFinNLP's published monolingual baseline.
 **Done:** within ±2 F1, or a written diagnosis of the gap.
-**Nothing in Phase 3 starts until this passes.** A gap here usually means tokenization
-or label-mapping error, not a modelling problem.
+**Nothing in Phase 3 starts until this passes.**
+
+Published numbers are from Ghosh et al. Table 4 (Test), model `IB` = IndicBERT on the
+original (non-paraphrased) data, macro-F1: **task 2 Hindi 0.86**, **task 3 Hindi 0.05**
+(they report every model < 30 % on task 3 for all languages — < 100 instances per ESG
+label). `python -m scripts.t207_gate` reads `reports/baselines.parquet`, compares each
+config to its entry in `configs/published_baselines.json` (±0.02 tolerance), writes
+`reports/baseline_gate.md`, and exits non-zero unless every config is within tolerance,
+above, or carries a non-empty `diagnosis`.
+
+**Status:**
+
+| config | ours | published | verdict |
+|---|---|---|---|
+| `task3_hin_indicbert` | 0.153 ± 0.025 | 0.05 | **PASS — above.** The paper's `<100 per label` regime; their remedy (paraphrase augmentation to 4774 rows) is out of Phase 2 scope. |
+| `task2_hin_indicbert` | 0.825 ± 0.024 | 0.86 | **FAIL — 3.5 F1 short.** Two of three seeds early-stopped by epoch 6–9 at `patience 3`; best single seed reached 0.851. Config raised (`max_len 192`, `epochs 20`, `patience 5`) and awaiting a task-2 re-run of T-206. If it still lands short, a written diagnosis goes in `published_baselines.json`. |
+
+The gate currently **FAILS** on task 2 until that re-run.
 
 ### T-208 — Checkpoint versioning
 
