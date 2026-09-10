@@ -209,6 +209,56 @@ def reference_scores(embedder, task: int, progress=print) -> pd.DataFrame:
     )
 
 
+def human_cross_scores(embedder, task: int, progress=print) -> pd.DataFrame:
+    """Cosine between two *human* versions of the same item, across languages.
+
+    This is the anchor T-110 needs. `labse_sim` compares an MT output with its
+    source across languages; the only honest way to read a number like 0.86 is
+    against what a **human** translation of the same content scores on exactly
+    the same measure. Tasks 2 and 3 supply that for free: their native splits
+    are human translations of one another (§2.1), so the cosine between the
+    Hindi and Bengali natives of one item is a known-good pair scored the same
+    way as an MT pair.
+
+    Empty for task 1, whose natives are independently sourced — there is no
+    known-good pair to compare against, and T-110 has to say so rather than
+    borrowing another task's ceiling.
+    """
+    langs = sorted(BLOCK_NATIVE_LANG.values())
+    rows = []
+    for i, left in enumerate(langs):
+        for right in langs[i + 1 :]:
+            left_block = {v: k for k, v in BLOCK_NATIVE_LANG.items()}[left]
+            right_block = {v: k for k, v in BLOCK_NATIVE_LANG.items()}[right]
+            left_frame = read_split(task, left_block, left)
+            right_frame = read_split(task, right_block, right)
+            shared = sorted(set(left_frame["item_id"]) & set(right_frame["item_id"]))
+            if not shared:
+                continue
+            progress(f"human {left} vs human {right}: {len(shared)} items")
+            left_vectors = embed_split(embedder, task, left_block, left, progress)
+            right_vectors = embed_split(embedder, task, right_block, right, progress)
+            left_index = {item: i for i, item in enumerate(left_frame["item_id"])}
+            right_index = {item: i for i, item in enumerate(right_frame["item_id"])}
+            scores = cosine(
+                left_vectors[[left_index[i] for i in shared]],
+                right_vectors[[right_index[i] for i in shared]],
+            )
+            rows.append(
+                pd.DataFrame(
+                    {
+                        "item_id": shared,
+                        "lang_a": left,
+                        "lang_b": right,
+                        "human_sim": scores.astype(float),
+                    }
+                )
+            )
+    return pd.concat(rows, ignore_index=True) if rows else pd.DataFrame(
+        columns=["item_id", "lang_a", "lang_b", "human_sim"]
+    )
+
+
 def apply_scores(task: int, scores: pd.DataFrame) -> dict:
     """Write `labse_sim` into the MT splits (§6, §8).
 

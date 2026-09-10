@@ -1,0 +1,10 @@
+{
+  "task": 3,
+  "model": "sentence-transformers/LaBSE",
+  "fingerprint": "c591c46c0e26f536",
+  "tau": 0.82,
+  "device": "cached embeddings",
+  "pairs": 4788,
+  "reference_pairs": 3192,
+  "run_at": "2026-09-10T05:20:52+00:00"
+}

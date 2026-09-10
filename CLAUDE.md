@@ -347,6 +347,8 @@ env/                 ✓ venv, Python 3.11.15 (gitignored)
 configs/
   labels.json        ✓ canonical labels per task; task_1 is null (no labels)
   translation_config.json ✓ frozen decoding, identical for all 9 directions
+  verification_config.json ✓ LaBSE model, τ, batch size (T-108-T-110)
+  eval_conditions.json ✓ the condition matrix, one entry per task (T-113)
                        paths.json still to come
 src/
   __init__.py        ✓
@@ -362,9 +364,10 @@ src/
   entities.py        ✓ scale-aware numeral/currency checks; corruption detection
   spans.py           ✓ task-1 numeral re-location in MT output (T-106)
   generate.py        ✓ native split + translations -> §6 MT rows (T-106)
-  labse_gate.py         embedding + cosine similarity + thresholding
+  labse_gate.py      ✓ embedding + cosine similarity + thresholding (T-108)
   integrity.py       ✓ structural + script-leakage checks (T-107)
-  freeze.py             hashing, manifest, immutability
+  conditions.py      ✓ evaluation-condition matrix + validator (T-113)
+  freeze.py          ✓ hashing, manifest, immutability (T-112)
 scripts/
   __init__.py        ✓
   t102_audit.py      ✓ python -m scripts.t102_audit --task {n} [--independence]
@@ -374,6 +377,12 @@ scripts/
   t105_entities.py   ✓ python -m scripts.t105_entities --task {n} [--from-smoke]
   t106_generate.py   ✓ python -m scripts.t106_generate --task {n} [--dry-run]
   t107_integrity.py  ✓ python -m scripts.t107_integrity --task {n} [--write-flags]
+  t108_labse.py      ✓ python -m scripts.t108_labse --task {n} [--scores-only]
+  t109_drift.py      ✓ python -m scripts.t109_drift --task {n} [--write-flags]
+  t110_calibrate.py  ✓ python -m scripts.t110_calibrate --task {n}
+  t111_ranking.py    ✓ python -m scripts.t111_ranking --task {n}
+  t112_freeze.py     ✓ python -m scripts.t112_freeze --task {n} [--verify]
+  t113_conditions.py ✓ python -m scripts.t113_conditions --task {n}
                        (one thin CLI per task, named by task ID)
 data/
   base_paper/        ✓ upstream IndicFinNLP, committed; see §7.1
@@ -1096,6 +1105,39 @@ directions, **every pair, nothing sampled**. Cache embeddings as `.npy`. Runs on
 **Done when:** `data/verification/task_{n}/labse_scores.parquet` has a score for every MT row;
 `labse_sim` is populated in the corpus.
 
+**Status: built; run on task 3 only.** `src/labse_gate.py`, `scripts/t108_labse.py`,
+`configs/verification_config.json`, 7 tests including §10's fixture on the real model.
+
+Embeddings are L2-normalised at encode time, so cosine is a dot product and nothing
+downstream has to remember to normalise. They cache per split under
+`data/verification/task_{n}/emb/`, keyed by **row count as well as path** — a split
+regenerated with a different number of rows must not silently reuse vectors belonging
+to different sentences, which would attach every score to the wrong pair while looking
+healthy. `--scores-only` recomputes from that cache and loads no model.
+
+**A second similarity is computed, and it is what makes T-110 possible.** For tasks 2
+and 3 the native split in the target language is a *human* translation of the same item
+(§2.1), so MT can be scored against it directly — same language, same item, same script.
+Task 1 has no reference in any direction, and no Malayalam target has one anywhere; the
+run says so rather than implying one standard was applied throughout.
+
+Task 3, on CPU, 2 minutes for 6384 sentences:
+
+| direction | median | below τ=0.82 |
+|---|---|---|
+| hin→mal | 0.859 | **29.7%** |
+| tel→mal | 0.861 | **26.1%** |
+| ben→mal | 0.870 | **21.2%** |
+| tel→ben | 0.881 | 16.2% |
+| ben→tel | 0.889 | 12.4% |
+| tel→hin | 0.891 | 10.2% |
+| hin→tel | 0.903 | 8.5% |
+| ben→hin | 0.898 | 7.7% |
+| hin→ben | 0.908 | 7.1% |
+
+Every Malayalam target breaks §8's 20% rule, which is T-110's cue that the threshold —
+not the translation — is what needs examining.
+
 ---
 
 ### T-109 — Per-direction drift report
@@ -1106,6 +1148,15 @@ class.
 
 **Done when:** `reports/drift_by_direction.md` exists; below-τ rows carry
 `translation_drift` in `flags` and **remain in the corpus**.
+
+**Status: built; run on task 3.** `scripts/t109_drift.py`, CPU only, reports to
+`reports/task_{n}/drift_by_direction.{md,parquet}` and `drift_by_class.parquet`.
+
+Task 1 has no gold class, so its second breakdown is by `span_recovered` instead:
+whether the annotated numeral survived is that task's equivalent of a class, and it is
+the axis T-111 needs. Below-τ rows are flagged `translation_drift` and kept (rule 1);
+the flag is stripped and re-derived on each run, so re-running after a τ change leaves
+no stale flags.
 
 ---
 
@@ -1122,6 +1173,39 @@ threshold is measuring the wrong thing — report that rather than defending 0.8
 **Done when:** τ is confirmed with evidence or revised with written rationale;
 inspection notes committed.
 
+**Status: built; run on task 3, and the evidence says τ=0.82 is wrong.**
+
+The calibration works by putting three things on one page. What MT scores; what a
+**human** translation of the same item scores *on the same measure* (§2.1 — the native
+splits are human translations of each other, so the cosine between two of them is a
+known-good pair); and what MT scores against a human translation in the same language.
+
+On task 3:
+
+| | median | 5th pct | below τ=0.82 |
+|---|---|---|---|
+| human ben-hin | 0.876 | 0.748 | 21.2% |
+| human ben-tel | 0.851 | 0.708 | 32.5% |
+| human hin-tel | 0.884 | 0.749 | 16.5% |
+| **all human pairs** | | | **23.4%** |
+
+**τ=0.82 rejects 23.4% of human translations.** A threshold that calls one human
+translation in four a failure is not measuring translation quality, and three
+directions also break §8's 20% rule. The script therefore reports a revised
+**τ = 0.73** — the value that passes 95% of known-good human pairs — with the rationale
+written into `reports/task_{n}/tau_calibration.{md,json}`.
+
+**The more uncomfortable finding: MT scores *higher* than human translation on this
+measure.** hin→ben MT medians 0.908 against 0.876 for the human ben-hin pair, and the
+same ordering holds for every pair. LaBSE cosine rewards literalness, and MT is more
+literal than a human translator who paraphrases. So `labse_sim` is a usable *relative*
+ranking of directions and a poor *absolute* quality score — T-111 and T-114 must both
+say so.
+
+**τ is not changed in the config yet.** Task 2 has human anchors too and should be
+folded in before the number is frozen, and task 1 has none at all — its τ stays
+inherited whatever the others say, which the report states rather than hiding.
+
 ---
 
 ### T-111 — Comparative MT-quality ranking
@@ -1135,6 +1219,24 @@ symmetric?
 
 **Done when:** `reports/direction_ranking.md` ranks all 9 with supporting numbers.
 
+**Status: built; run on task 3.** `scripts/t111_ranking.py`, CPU only.
+
+Ranked by the **mean of each measure's rank**, not by a weighted sum. A drift rate and
+a numeral-preservation rate are not on one scale, and inventing weights between them
+would manufacture precision the data does not support; rank averaging says only "worse
+on more measures". Inputs are deliberately different in kind because each sees what the
+others cannot — LaBSE drift sees meaning loss but not which numeral moved, T-105 sees
+numerals but not fluency, T-107 sees corruption that leaves fluent text behind.
+
+Task 3's answers to §8's three questions:
+
+- **Is Hi→Ml worse than Bn→Ml?** Yes — 29.7% drift against 21.2%, ranks 9 and 6 of 9.
+- **Are Dravidian-source directions worse?** Yes, but mildly: 17.5% mean drift from
+  Dravidian source against 14.4% from Indo-Aryan.
+- **Is the Indo-Aryan↔Dravidian penalty symmetric?** **No.** Crossing *into* Dravidian
+  drifts on 18.0% of rows; crossing back into Indo-Aryan on 13.2% — a 4.8-point gap in
+  the same language pairs. The cost is in the direction of travel, not the pairing.
+
 ---
 
 ### T-112 — Freeze corpus v1.0
@@ -1146,6 +1248,20 @@ its own checks pass; the manifest covers whatever is present.
 
 **Done when:** the manifest verifies; a tamper test (modify one file, re-verify) fails
 as expected.
+
+**Status: built, not yet run on real data.** `src/freeze.py`, `scripts/t112_freeze.py`,
+7 tests including §8's tamper test and its two siblings — a *deleted* file and an
+*unexpected* extra file both fail verification too, since a release with a file nobody
+recorded is as compromised as one with a changed file.
+
+The manifest records the fingerprints as well as the hashes. A hash says the bytes did
+not change; the fingerprints say what produced them — translation model, decoding
+fingerprint, similarity model, τ — and artefacts are only comparable within one of
+those. Re-freezing a task is refused (rule 5); `--force` exists only for a freeze that
+was never released.
+
+**Do not freeze until τ is settled.** `labse_sim` is baked into the splits, so freezing
+now would seal a value T-110 is in the middle of revising.
 
 ---
 
@@ -1165,6 +1281,35 @@ contamination is a live risk and must be ruled out by construction.
 
 **Done when:** the matrix is explicit and a validator confirms no split appears as both
 training source and evaluation target within one condition.
+
+**Status: DONE for all three tasks.** `src/conditions.py`, `scripts/t113_conditions.py`,
+`configs/eval_conditions.json`, 9 tests. All three matrices validate.
+
+**The split-level check §8 asks for is not sufficient, and following it alone would
+have produced a broken matrix.** Tasks 2 and 3 hold the same items in every language
+(§2.2), so "train on `task_2/H/hin`, evaluate on `task_2/H/ben`" passes a name-based
+check while evaluating the model on its own training sentences in another script. Two
+protections are therefore enforced:
+
+1. **Split-level** — no split is both training source and evaluation target.
+2. **Item-level** — training and evaluation item sets are disjoint. Items are
+   partitioned by a **seeded hash of `item_id`**, not by position: hashing makes the
+   partition a property of the item, so every language agrees on it without
+   coordinating, and it survives any upstream reordering for the same reason `item_id`
+   is content-derived (§6). Measured 50.1% / 48.5% train share on tasks 2 and 3.
+
+**Evaluation prefers native text over MT.** Hindi, Bengali and Telugu each have a native
+split, so a transfer cell evaluates on human-written text and a failure is a *transfer*
+failure. Evaluate on MT and transfer failure is confounded with translation failure —
+the exact confound this corpus exists to separate. Malayalam has no native split
+anywhere, so its evaluation data is always MT, and the matrix takes it from a block
+**other** than the one just trained on, recording `eval_provenance` so the compromise is
+declared rather than buried.
+
+Task 1 needs no partition — its blocks hold genuinely different sentences, so it is the
+one task where zero-shot transfer can be measured without carving the data up. But its
+cells still evaluate cross-block: block H's Bengali is block H's Hindi translated, so
+training and evaluating inside one block would be the same mistake in a different form.
 
 ---
 

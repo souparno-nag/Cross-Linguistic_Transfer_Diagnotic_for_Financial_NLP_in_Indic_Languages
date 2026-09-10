@@ -1,0 +1,467 @@
+{
+  "task_1": {
+    "task": 1,
+    "seed": 20260903,
+    "partitioned": false,
+    "train_share": 0.5,
+    "languages": [
+      "hin",
+      "ben",
+      "tel",
+      "mal"
+    ],
+    "conditions": [
+      {
+        "name": "transfer_hin_to_ben",
+        "kind": "transfer",
+        "quadrant": "Indo-Aryan->Indo-Aryan",
+        "train": "task_1/H/hin",
+        "eval": "task_1/B/ben",
+        "eval_provenance": "native",
+        "train_items": "all",
+        "eval_items": "all",
+        "note": "human-written evaluation text, so a failure is transfer failure and not translation failure. Task 1's blocks hold different sentences (§2.2), so the two splits share no items and no partition is needed"
+      },
+      {
+        "name": "transfer_hin_to_tel",
+        "kind": "transfer",
+        "quadrant": "Indo-Aryan->Dravidian",
+        "train": "task_1/H/hin",
+        "eval": "task_1/T/tel",
+        "eval_provenance": "native",
+        "train_items": "all",
+        "eval_items": "all",
+        "note": "human-written evaluation text, so a failure is transfer failure and not translation failure. Task 1's blocks hold different sentences (§2.2), so the two splits share no items and no partition is needed"
+      },
+      {
+        "name": "transfer_hin_to_mal",
+        "kind": "transfer",
+        "quadrant": "Indo-Aryan->Dravidian",
+        "train": "task_1/H/hin",
+        "eval": "task_1/B/mal",
+        "eval_provenance": "ben",
+        "train_items": "all",
+        "eval_items": "all",
+        "note": "no native mal exists (§2), so evaluation uses MT from block B rather than from the block just trained on. Task 1's blocks hold different sentences (§2.2), so the two splits share no items and no partition is needed"
+      },
+      {
+        "name": "transfer_ben_to_hin",
+        "kind": "transfer",
+        "quadrant": "Indo-Aryan->Indo-Aryan",
+        "train": "task_1/B/ben",
+        "eval": "task_1/H/hin",
+        "eval_provenance": "native",
+        "train_items": "all",
+        "eval_items": "all",
+        "note": "human-written evaluation text, so a failure is transfer failure and not translation failure. Task 1's blocks hold different sentences (§2.2), so the two splits share no items and no partition is needed"
+      },
+      {
+        "name": "transfer_ben_to_tel",
+        "kind": "transfer",
+        "quadrant": "Indo-Aryan->Dravidian",
+        "train": "task_1/B/ben",
+        "eval": "task_1/T/tel",
+        "eval_provenance": "native",
+        "train_items": "all",
+        "eval_items": "all",
+        "note": "human-written evaluation text, so a failure is transfer failure and not translation failure. Task 1's blocks hold different sentences (§2.2), so the two splits share no items and no partition is needed"
+      },
+      {
+        "name": "transfer_ben_to_mal",
+        "kind": "transfer",
+        "quadrant": "Indo-Aryan->Dravidian",
+        "train": "task_1/B/ben",
+        "eval": "task_1/H/mal",
+        "eval_provenance": "hin",
+        "train_items": "all",
+        "eval_items": "all",
+        "note": "no native mal exists (§2), so evaluation uses MT from block H rather than from the block just trained on. Task 1's blocks hold different sentences (§2.2), so the two splits share no items and no partition is needed"
+      },
+      {
+        "name": "transfer_tel_to_hin",
+        "kind": "transfer",
+        "quadrant": "Dravidian->Indo-Aryan",
+        "train": "task_1/T/tel",
+        "eval": "task_1/H/hin",
+        "eval_provenance": "native",
+        "train_items": "all",
+        "eval_items": "all",
+        "note": "human-written evaluation text, so a failure is transfer failure and not translation failure. Task 1's blocks hold different sentences (§2.2), so the two splits share no items and no partition is needed"
+      },
+      {
+        "name": "transfer_tel_to_ben",
+        "kind": "transfer",
+        "quadrant": "Dravidian->Indo-Aryan",
+        "train": "task_1/T/tel",
+        "eval": "task_1/B/ben",
+        "eval_provenance": "native",
+        "train_items": "all",
+        "eval_items": "all",
+        "note": "human-written evaluation text, so a failure is transfer failure and not translation failure. Task 1's blocks hold different sentences (§2.2), so the two splits share no items and no partition is needed"
+      },
+      {
+        "name": "transfer_tel_to_mal",
+        "kind": "transfer",
+        "quadrant": "Dravidian->Dravidian",
+        "train": "task_1/T/tel",
+        "eval": "task_1/B/mal",
+        "eval_provenance": "ben",
+        "train_items": "all",
+        "eval_items": "all",
+        "note": "no native mal exists (§2), so evaluation uses MT from block B rather than from the block just trained on. Task 1's blocks hold different sentences (§2.2), so the two splits share no items and no partition is needed"
+      },
+      {
+        "name": "translationese_hin",
+        "kind": "translationese",
+        "quadrant": null,
+        "train": null,
+        "eval": [
+          "task_1/H/hin",
+          "task_1/B/hin",
+          "task_1/T/hin"
+        ],
+        "train_items": null,
+        "eval_items": "all",
+        "note": "Three versions of hin: one written by people, two machine translated from the other two languages. Same language, same labels, differing only in provenance."
+      },
+      {
+        "name": "translationese_ben",
+        "kind": "translationese",
+        "quadrant": null,
+        "train": null,
+        "eval": [
+          "task_1/B/ben",
+          "task_1/H/ben",
+          "task_1/T/ben"
+        ],
+        "train_items": null,
+        "eval_items": "all",
+        "note": "Three versions of ben: one written by people, two machine translated from the other two languages. Same language, same labels, differing only in provenance."
+      },
+      {
+        "name": "translationese_tel",
+        "kind": "translationese",
+        "quadrant": null,
+        "train": null,
+        "eval": [
+          "task_1/T/tel",
+          "task_1/H/tel",
+          "task_1/B/tel"
+        ],
+        "train_items": null,
+        "eval_items": "all",
+        "note": "Three versions of tel: one written by people, two machine translated from the other two languages. Same language, same labels, differing only in provenance."
+      }
+    ]
+  },
+  "task_2": {
+    "task": 2,
+    "seed": 20260903,
+    "partitioned": true,
+    "train_share": 0.5,
+    "languages": [
+      "hin",
+      "ben",
+      "tel",
+      "mal"
+    ],
+    "conditions": [
+      {
+        "name": "transfer_hin_to_ben",
+        "kind": "transfer",
+        "quadrant": "Indo-Aryan->Indo-Aryan",
+        "train": "task_2/H/hin",
+        "eval": "task_2/B/ben",
+        "eval_provenance": "native",
+        "train_items": "partition:train",
+        "eval_items": "partition:eval",
+        "note": "human-written evaluation text, so a failure is transfer failure and not translation failure. Every split of this task holds the same items (§2.2), so the seeded item partition is what keeps training and evaluation disjoint"
+      },
+      {
+        "name": "transfer_hin_to_tel",
+        "kind": "transfer",
+        "quadrant": "Indo-Aryan->Dravidian",
+        "train": "task_2/H/hin",
+        "eval": "task_2/T/tel",
+        "eval_provenance": "native",
+        "train_items": "partition:train",
+        "eval_items": "partition:eval",
+        "note": "human-written evaluation text, so a failure is transfer failure and not translation failure. Every split of this task holds the same items (§2.2), so the seeded item partition is what keeps training and evaluation disjoint"
+      },
+      {
+        "name": "transfer_hin_to_mal",
+        "kind": "transfer",
+        "quadrant": "Indo-Aryan->Dravidian",
+        "train": "task_2/H/hin",
+        "eval": "task_2/B/mal",
+        "eval_provenance": "ben",
+        "train_items": "partition:train",
+        "eval_items": "partition:eval",
+        "note": "no native mal exists (§2), so evaluation uses MT from block B rather than from the block just trained on. Every split of this task holds the same items (§2.2), so the seeded item partition is what keeps training and evaluation disjoint"
+      },
+      {
+        "name": "transfer_ben_to_hin",
+        "kind": "transfer",
+        "quadrant": "Indo-Aryan->Indo-Aryan",
+        "train": "task_2/B/ben",
+        "eval": "task_2/H/hin",
+        "eval_provenance": "native",
+        "train_items": "partition:train",
+        "eval_items": "partition:eval",
+        "note": "human-written evaluation text, so a failure is transfer failure and not translation failure. Every split of this task holds the same items (§2.2), so the seeded item partition is what keeps training and evaluation disjoint"
+      },
+      {
+        "name": "transfer_ben_to_tel",
+        "kind": "transfer",
+        "quadrant": "Indo-Aryan->Dravidian",
+        "train": "task_2/B/ben",
+        "eval": "task_2/T/tel",
+        "eval_provenance": "native",
+        "train_items": "partition:train",
+        "eval_items": "partition:eval",
+        "note": "human-written evaluation text, so a failure is transfer failure and not translation failure. Every split of this task holds the same items (§2.2), so the seeded item partition is what keeps training and evaluation disjoint"
+      },
+      {
+        "name": "transfer_ben_to_mal",
+        "kind": "transfer",
+        "quadrant": "Indo-Aryan->Dravidian",
+        "train": "task_2/B/ben",
+        "eval": "task_2/H/mal",
+        "eval_provenance": "hin",
+        "train_items": "partition:train",
+        "eval_items": "partition:eval",
+        "note": "no native mal exists (§2), so evaluation uses MT from block H rather than from the block just trained on. Every split of this task holds the same items (§2.2), so the seeded item partition is what keeps training and evaluation disjoint"
+      },
+      {
+        "name": "transfer_tel_to_hin",
+        "kind": "transfer",
+        "quadrant": "Dravidian->Indo-Aryan",
+        "train": "task_2/T/tel",
+        "eval": "task_2/H/hin",
+        "eval_provenance": "native",
+        "train_items": "partition:train",
+        "eval_items": "partition:eval",
+        "note": "human-written evaluation text, so a failure is transfer failure and not translation failure. Every split of this task holds the same items (§2.2), so the seeded item partition is what keeps training and evaluation disjoint"
+      },
+      {
+        "name": "transfer_tel_to_ben",
+        "kind": "transfer",
+        "quadrant": "Dravidian->Indo-Aryan",
+        "train": "task_2/T/tel",
+        "eval": "task_2/B/ben",
+        "eval_provenance": "native",
+        "train_items": "partition:train",
+        "eval_items": "partition:eval",
+        "note": "human-written evaluation text, so a failure is transfer failure and not translation failure. Every split of this task holds the same items (§2.2), so the seeded item partition is what keeps training and evaluation disjoint"
+      },
+      {
+        "name": "transfer_tel_to_mal",
+        "kind": "transfer",
+        "quadrant": "Dravidian->Dravidian",
+        "train": "task_2/T/tel",
+        "eval": "task_2/B/mal",
+        "eval_provenance": "ben",
+        "train_items": "partition:train",
+        "eval_items": "partition:eval",
+        "note": "no native mal exists (§2), so evaluation uses MT from block B rather than from the block just trained on. Every split of this task holds the same items (§2.2), so the seeded item partition is what keeps training and evaluation disjoint"
+      },
+      {
+        "name": "translationese_hin",
+        "kind": "translationese",
+        "quadrant": null,
+        "train": null,
+        "eval": [
+          "task_2/H/hin",
+          "task_2/B/hin",
+          "task_2/T/hin"
+        ],
+        "train_items": null,
+        "eval_items": "all",
+        "note": "Three versions of hin: one written by people, two machine translated from the other two languages. Same language, same labels, differing only in provenance."
+      },
+      {
+        "name": "translationese_ben",
+        "kind": "translationese",
+        "quadrant": null,
+        "train": null,
+        "eval": [
+          "task_2/B/ben",
+          "task_2/H/ben",
+          "task_2/T/ben"
+        ],
+        "train_items": null,
+        "eval_items": "all",
+        "note": "Three versions of ben: one written by people, two machine translated from the other two languages. Same language, same labels, differing only in provenance."
+      },
+      {
+        "name": "translationese_tel",
+        "kind": "translationese",
+        "quadrant": null,
+        "train": null,
+        "eval": [
+          "task_2/T/tel",
+          "task_2/H/tel",
+          "task_2/B/tel"
+        ],
+        "train_items": null,
+        "eval_items": "all",
+        "note": "Three versions of tel: one written by people, two machine translated from the other two languages. Same language, same labels, differing only in provenance."
+      }
+    ]
+  },
+  "task_3": {
+    "task": 3,
+    "seed": 20260903,
+    "partitioned": true,
+    "train_share": 0.5,
+    "languages": [
+      "hin",
+      "ben",
+      "tel",
+      "mal"
+    ],
+    "conditions": [
+      {
+        "name": "transfer_hin_to_ben",
+        "kind": "transfer",
+        "quadrant": "Indo-Aryan->Indo-Aryan",
+        "train": "task_3/H/hin",
+        "eval": "task_3/B/ben",
+        "eval_provenance": "native",
+        "train_items": "partition:train",
+        "eval_items": "partition:eval",
+        "note": "human-written evaluation text, so a failure is transfer failure and not translation failure. Every split of this task holds the same items (§2.2), so the seeded item partition is what keeps training and evaluation disjoint"
+      },
+      {
+        "name": "transfer_hin_to_tel",
+        "kind": "transfer",
+        "quadrant": "Indo-Aryan->Dravidian",
+        "train": "task_3/H/hin",
+        "eval": "task_3/T/tel",
+        "eval_provenance": "native",
+        "train_items": "partition:train",
+        "eval_items": "partition:eval",
+        "note": "human-written evaluation text, so a failure is transfer failure and not translation failure. Every split of this task holds the same items (§2.2), so the seeded item partition is what keeps training and evaluation disjoint"
+      },
+      {
+        "name": "transfer_hin_to_mal",
+        "kind": "transfer",
+        "quadrant": "Indo-Aryan->Dravidian",
+        "train": "task_3/H/hin",
+        "eval": "task_3/B/mal",
+        "eval_provenance": "ben",
+        "train_items": "partition:train",
+        "eval_items": "partition:eval",
+        "note": "no native mal exists (§2), so evaluation uses MT from block B rather than from the block just trained on. Every split of this task holds the same items (§2.2), so the seeded item partition is what keeps training and evaluation disjoint"
+      },
+      {
+        "name": "transfer_ben_to_hin",
+        "kind": "transfer",
+        "quadrant": "Indo-Aryan->Indo-Aryan",
+        "train": "task_3/B/ben",
+        "eval": "task_3/H/hin",
+        "eval_provenance": "native",
+        "train_items": "partition:train",
+        "eval_items": "partition:eval",
+        "note": "human-written evaluation text, so a failure is transfer failure and not translation failure. Every split of this task holds the same items (§2.2), so the seeded item partition is what keeps training and evaluation disjoint"
+      },
+      {
+        "name": "transfer_ben_to_tel",
+        "kind": "transfer",
+        "quadrant": "Indo-Aryan->Dravidian",
+        "train": "task_3/B/ben",
+        "eval": "task_3/T/tel",
+        "eval_provenance": "native",
+        "train_items": "partition:train",
+        "eval_items": "partition:eval",
+        "note": "human-written evaluation text, so a failure is transfer failure and not translation failure. Every split of this task holds the same items (§2.2), so the seeded item partition is what keeps training and evaluation disjoint"
+      },
+      {
+        "name": "transfer_ben_to_mal",
+        "kind": "transfer",
+        "quadrant": "Indo-Aryan->Dravidian",
+        "train": "task_3/B/ben",
+        "eval": "task_3/H/mal",
+        "eval_provenance": "hin",
+        "train_items": "partition:train",
+        "eval_items": "partition:eval",
+        "note": "no native mal exists (§2), so evaluation uses MT from block H rather than from the block just trained on. Every split of this task holds the same items (§2.2), so the seeded item partition is what keeps training and evaluation disjoint"
+      },
+      {
+        "name": "transfer_tel_to_hin",
+        "kind": "transfer",
+        "quadrant": "Dravidian->Indo-Aryan",
+        "train": "task_3/T/tel",
+        "eval": "task_3/H/hin",
+        "eval_provenance": "native",
+        "train_items": "partition:train",
+        "eval_items": "partition:eval",
+        "note": "human-written evaluation text, so a failure is transfer failure and not translation failure. Every split of this task holds the same items (§2.2), so the seeded item partition is what keeps training and evaluation disjoint"
+      },
+      {
+        "name": "transfer_tel_to_ben",
+        "kind": "transfer",
+        "quadrant": "Dravidian->Indo-Aryan",
+        "train": "task_3/T/tel",
+        "eval": "task_3/B/ben",
+        "eval_provenance": "native",
+        "train_items": "partition:train",
+        "eval_items": "partition:eval",
+        "note": "human-written evaluation text, so a failure is transfer failure and not translation failure. Every split of this task holds the same items (§2.2), so the seeded item partition is what keeps training and evaluation disjoint"
+      },
+      {
+        "name": "transfer_tel_to_mal",
+        "kind": "transfer",
+        "quadrant": "Dravidian->Dravidian",
+        "train": "task_3/T/tel",
+        "eval": "task_3/B/mal",
+        "eval_provenance": "ben",
+        "train_items": "partition:train",
+        "eval_items": "partition:eval",
+        "note": "no native mal exists (§2), so evaluation uses MT from block B rather than from the block just trained on. Every split of this task holds the same items (§2.2), so the seeded item partition is what keeps training and evaluation disjoint"
+      },
+      {
+        "name": "translationese_hin",
+        "kind": "translationese",
+        "quadrant": null,
+        "train": null,
+        "eval": [
+          "task_3/H/hin",
+          "task_3/B/hin",
+          "task_3/T/hin"
+        ],
+        "train_items": null,
+        "eval_items": "all",
+        "note": "Three versions of hin: one written by people, two machine translated from the other two languages. Same language, same labels, differing only in provenance."
+      },
+      {
+        "name": "translationese_ben",
+        "kind": "translationese",
+        "quadrant": null,
+        "train": null,
+        "eval": [
+          "task_3/B/ben",
+          "task_3/H/ben",
+          "task_3/T/ben"
+        ],
+        "train_items": null,
+        "eval_items": "all",
+        "note": "Three versions of ben: one written by people, two machine translated from the other two languages. Same language, same labels, differing only in provenance."
+      },
+      {
+        "name": "translationese_tel",
+        "kind": "translationese",
+        "quadrant": null,
+        "train": null,
+        "eval": [
+          "task_3/T/tel",
+          "task_3/H/tel",
+          "task_3/B/tel"
+        ],
+        "train_items": null,
+        "eval_items": "all",
+        "note": "Three versions of tel: one written by people, two machine translated from the other two languages. Same language, same labels, differing only in provenance."
+      }
+    ]
+  }
+}

@@ -19,7 +19,9 @@ all.
 from __future__ import annotations
 
 import argparse
+import json
 import sys
+from datetime import datetime, timezone
 
 import pandas as pd
 
@@ -86,6 +88,26 @@ def main(argv: list[str] | None = None) -> int:
     out_dir = VERIFICATION_ROOT / f"task_{args.task}"
     out_dir.mkdir(parents=True, exist_ok=True)
     scores.to_parquet(out_dir / "labse_scores.parquet", index=False)
+    # Rule 8, plus the device: LaBSE runs float32 on both CPU and GPU so the
+    # difference is float noise rather than the float16 gap that made T-106's
+    # CPU fallback dangerous — but scores from two devices are still not
+    # byte-identical, and rule 7 asks that to be visible rather than assumed.
+    (out_dir / "labse_run.json").write_text(
+        json.dumps(
+            {
+                "task": args.task,
+                "model": config["model"],
+                "fingerprint": fingerprint,
+                "tau": tau,
+                "device": (embedder.device if embedder else "cached embeddings"),
+                "pairs": len(scores),
+                "reference_pairs": len(references),
+                "run_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            },
+            indent=2,
+        )
+        + "\n"
+    )
     print(f"\nWrote {(out_dir / 'labse_scores.parquet').relative_to(REPO_ROOT)} "
           f"({len(scores)} pairs)")
 

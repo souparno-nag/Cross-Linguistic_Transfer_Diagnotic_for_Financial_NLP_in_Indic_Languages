@@ -1,0 +1,12 @@
+{
+  "task": 3,
+  "inherited_tau": 0.82,
+  "verdict": "revised",
+  "revised_tau": 0.73,
+  "rationale": [
+    "τ=0.82 rejects 23.4% of human translations of the same items, scored on exactly the same measure. A threshold that calls one human translation in 4 a failure is not measuring translation quality.",
+    "3 of 9 directions fall more than 20% below τ (hin→mal, tel→mal, ben→mal), which §8 names as the signal that the threshold is wrong rather than the translations.",
+    "Revised τ = 0.73, the value that passes 95% of human translations. It is derived from the corpus rather than inherited, and it is a floor for 'plausibly a translation of this', not a quality score."
+  ],
+  "human_rows": 1596
+}
