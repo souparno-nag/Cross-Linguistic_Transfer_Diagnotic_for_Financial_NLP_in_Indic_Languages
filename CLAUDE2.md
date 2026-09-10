@@ -21,8 +21,11 @@ Fine-tune an encoder on a **native** split and reproduce IndicFinNLP's published
 monolingual baseline. Nothing about cross-lingual transfer is claimed or measured until
 this reproduces.
 
-Three baselines: `H_nat` (Hindi), `B_nat` (Bengali), `T_nat` (Telugu).
-Malayalam has no native split and gets no baseline.
+**Hindi only for now.** Because of time constraints, Phase 2 fine-tunes on `H_nat`
+(Hindi) alone. `B_nat` (Bengali) and `T_nat` (Telugu) baselines are deferred, not
+cancelled — keep the loader, config system and training loop language-agnostic so
+adding them later costs only GPU time. Malayalam has no native split and gets no
+baseline regardless.
 
 ---
 
@@ -63,8 +66,13 @@ architecture. Do not add layers, pooling strategies, or loss tricks.
 
 ### T-201 — Environment
 
-Python 3.11, pinned `requirements.txt`, CUDA verified on both machines.
-**Done:** identical `pip freeze` on the 3060 and 3050; smoke test passes on both.
+**Python 3.11 exactly** — assert it at every entry point and fail loudly on mismatch.
+Phase 2 shares the Phase 1 venv (`env/`, gitignored), so `transformers` stays pinned
+`<5` (CLAUDE.md §3.2). IndicBERT-v2 runs fine on 4.x; do not upgrade to satisfy a
+Phase 2 dependency without re-reading that section. Run everything as a module from the
+repo root (`python -m src.…`, `python -m scripts.…`). Pin every new dependency in
+`requirements.txt` with a one-line reason, matching the existing entries.
+**Done:** `python -m` smoke test passes; `pip freeze` committed.
 
 ### T-202 — Dataset loader
 
@@ -86,18 +94,22 @@ every result row.
 
 ### T-205 — VRAM budgets
 
-Max batch × max_len per encoder on 12 GB and 4 GB, with fp16 and gradient accumulation.
-**Done:** documented budget table; no OOM across a full epoch on either machine.
+Max batch × max_len per encoder, with fp16 and gradient accumulation. Set
+`PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True` before torch is imported — on the
+4 GB card, without it training OOMs on fragmentation rather than genuine exhaustion
+(CLAUDE.md §3.3).
+**Done:** documented budget table; no OOM across a full epoch.
 
 ### T-206 — Baseline runs
 
-IndicBERT-v2 on `H_nat`, `B_nat`, `T_nat` × 3 seeds = 9 runs.
-**Done:** mean ± std macro-F1 per language logged to `experiments.csv`; checkpoints
-saved.
+IndicBERT-v2 on `H_nat` × 3 seeds = 3 runs. (`B_nat` and `T_nat` deferred — see Goal.)
+GPU access is intermittent (CLAUDE.md §3): every run must be resumable and checkpoint
+partial progress, so an interrupted run resumes instead of restarting.
+**Done:** mean ± std macro-F1 for Hindi logged to `experiments.csv`; checkpoints saved.
 
 ### T-207 — Baseline validation gate ⚠️
 
-Compare each in-language macro-F1 to IndicFinNLP's published monolingual baseline.
+Compare the Hindi in-language macro-F1 to IndicFinNLP's published monolingual baseline.
 **Done:** within ±2 F1, or a written diagnosis of the gap.
 **Nothing in Phase 3 starts until this passes.** A gap here usually means tokenization
 or label-mapping error, not a modelling problem.
@@ -121,10 +133,23 @@ Naming convention, storage path, retention policy.
 `experiments.csv` columns: `run_id, encoder, split, seed, config_hash, accuracy,
 macro_f1, date`.
 
+`experiments.csv` is the one sanctioned CSV — it is a run log, not corpus data. Every
+read or write of corpus data still goes through `src/corpus_io.py` and stays Parquet
+(CLAUDE.md §4 rule 2, §5); never use pickle for anything under `data/`.
+
 ---
 
 ## Working agreement
 
 - Report the baseline gap honestly. Do not tune until it matches — diagnose first.
 - If a run OOMs, report the config. Do not silently reduce batch size.
+- If a run fails, report it and continue. Do not silently swap the encoder,
+  hyperparameters, or split.
+- **When a check fails, show the failing rows.** A count is not a diagnosis.
+- **Report row-count anomalies immediately.** Do not work around them.
+- **The long GPU jobs are run by the project owner, not the assistant.** Finish the
+  code, then hand over the exact commands to run.
 - Prefer boring code. This must be reproducible cold in October.
+- **Commit after every meaningful change.** A completed task, a passing check, a fixed
+  bug, or any other self-contained unit of work gets its own commit before moving on —
+  don't let unrelated changes pile up uncommitted.
