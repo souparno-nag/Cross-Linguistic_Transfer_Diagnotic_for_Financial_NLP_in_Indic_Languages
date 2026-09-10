@@ -61,6 +61,37 @@ def test_summarise_reports_mean_and_sample_std_per_config():
     assert b["macro_f1_std"] == 0.0  # one seed: std undefined -> 0
 
 
+def test_report_records_takes_current_hash_and_spans_all_configs(tmp_path):
+    """A partial re-run must not drop untouched configs; stale rows are ignored."""
+    from src import experiments as X
+    from src.config import TRAIN_CONFIG_DIR, load_run_config
+
+    configs = sorted(TRAIN_CONFIG_DIR.glob("*.yaml"))
+    assert len(configs) >= 2
+    path = tmp_path / "e.csv"
+
+    for cfg in configs:
+        run = load_run_config(cfg, seed=0)
+        X.log_run(run, f"{cfg.stem}_seed0", {"accuracy": 0.5, "macro_f1": 0.4}, path=path)
+
+    # a stale row for the last config: same run_id, obsolete hash, better score
+    class Stale:
+        encoder = "indicbert-v2"
+        seed = 0
+
+        def split_id(self):
+            return "x"
+
+        def hash(self):
+            return "obsoletehash"
+
+    X.log_run(Stale(), f"{configs[-1].stem}_seed0", {"accuracy": 0.99, "macro_f1": 0.99}, path=path)
+
+    recs = B.report_records(configs, [0], path)
+    assert len(recs) == len(configs)
+    assert all(r["macro_f1"] == 0.4 for r in recs)  # never the stale 0.99
+
+
 def test_write_report_emits_md_and_parquet(tmp_path):
     import pandas as pd
 

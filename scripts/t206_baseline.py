@@ -53,6 +53,39 @@ def already_done(run_id: str, config_hash: str, results_path) -> dict | None:
     return None
 
 
+def report_records(config_paths, seeds, results_path) -> list[dict]:
+    """Rebuild the report inputs from ``experiments.csv`` for every shipped
+    config at its *current* hash.
+
+    So a partial re-run (`--config task3...`) refreshes task 3 in the report
+    without dropping task 2, and a config whose YAML changed since its last run
+    is simply absent until it is re-run — stale rows are never shown.
+    """
+    latest: dict[tuple[str, str], dict] = {}
+    for row in read_results(results_path):
+        latest[(row["run_id"], row["config_hash"])] = row  # last write wins
+
+    out: list[dict] = []
+    for path in config_paths:
+        for seed in seeds:
+            run = load_run_config(path, seed=seed)
+            row = latest.get((f"{path.stem}_seed{seed}", run.hash()))
+            if row is None:
+                continue
+            out.append(
+                {
+                    "config": path.name,
+                    "run_id": f"{path.stem}_seed{seed}",
+                    "seed": seed,
+                    "split": run.split_id(),
+                    "encoder": run.encoder,
+                    "macro_f1": float(row["macro_f1"]),
+                    "accuracy": float(row["accuracy"]),
+                }
+            )
+    return out
+
+
 def summarise(records: list[dict]) -> list[dict]:
     """Per config: mean ± sample-std of macro-F1 and accuracy across seeds."""
     out = []
@@ -185,8 +218,12 @@ def main() -> int:
         print("no results", file=sys.stderr)
         return 1
 
-    summary = summarise(records)
-    write_report(summary, records, REPORT_DIR)
+    # Build the report from experiments.csv for *all* shipped configs, so a
+    # partial re-run does not drop the configs it did not touch.
+    all_configs = sorted(TRAIN_CONFIG_DIR.glob("*.yaml"))
+    report_recs = report_records(all_configs, seeds, RESULTS_PATH)
+    summary = summarise(report_recs)
+    write_report(summary, report_recs, REPORT_DIR)
     print(f"\nwrote {REPORT_DIR / 'baselines.md'}\n")
     for s in summary:
         print(

@@ -2,6 +2,10 @@
 # Only 532 rows over 10 classes and short headline text, so max_len is small
 # and the held-out folds are a little larger to keep every class represented.
 # T-206 runs this at seeds 0/1/2 by overriding `seed`.
+#
+# Budget raised after the first T-206 run: at lr 2e-5 / 15 epochs the model was
+# still climbing steeply when it stopped (best dev on the last epoch). ~370
+# training rows over 10 classes needs a longer, slightly hotter schedule.
 
 encoder: indicbert-v2
 task: 3
@@ -11,11 +15,11 @@ origin: native
 max_len: 64
 batch_size: 16
 grad_accum: 1
-lr: 2.0e-5
+lr: 3.0e-5
 weight_decay: 0.01
-epochs: 15
+epochs: 40
 warmup_ratio: 0.1
-patience: 4
+patience: 8
 seed: 0
 fp16: true
 
