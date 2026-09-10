@@ -29,5 +29,11 @@ numpy>=2.1
 scikit-learn      # macro-F1 is the primary metric (T-206 rule 6); also the classification report
 PyYAML            # T-204 config system: seed, LR, batch size, max_len, epochs, encoder, split
 
+# Driver notebook only (notebooks/phase2.ipynb) — not on the reproducibility
+# path. ipykernel lets an external Jupyter / VS Code run it against this venv;
+# nbformat is for programmatic notebook checks.
+ipykernel
+nbformat
+
 # Tests (CLAUDE.md §10).
 pytest
