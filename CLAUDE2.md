@@ -192,6 +192,7 @@ sensitivity, CSV round-trip) + the `slow` acceptance: two `run_training` calls o
 config produce identical `accuracy`, `macro_f1` and epoch history.
 
 ### T-205 — VRAM budgets
+`src/vram.py`, `scripts/t205_vram.py`, `tests/test_vram.py`
 
 Max batch × max_len per encoder, with fp16 and gradient accumulation. Set
 `PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True` before torch is imported — on the
@@ -204,7 +205,18 @@ on nearly every step, recovering each time. The desktop session holds ~1 GB, so 
 real budget is ~3 GB, not 4. Close every other GPU user before a run, expect `fp16` and
 `grad_accum` to be mandatory not optional, and treat a laptop reboot as part of the
 setup if the driver wedges (CLAUDE.md §3.5).
-**Done:** documented budget table; no OOM across a full epoch.
+
+`src/vram.probe_step` runs one real forward → backward → AdamW step at a given
+`(encoder, batch, max_len)` with `attention_mask` all ones (worst case) and reports
+whether it fit and its `max_memory_allocated` peak; `largest_batch` / `budget_table`
+sweep the grid. `scripts/t205_vram.py` writes `reports/vram_budget.{md,parquet}` and,
+with `--full-epoch`, trains one epoch on each shipped config's native fold to prove no
+OOM across an epoch — exiting non-zero if any config OOMs. If a shipped config fails,
+lower its `batch_size` and raise `grad_accum` in the YAML and re-run.
+
+**Code done; the GPU run is outstanding** (run by the project owner):
+`python -m scripts.t205_vram --full-epoch`. Done when `reports/vram_budget.md` exists
+and the full-epoch check is all `ok`.
 
 ### T-206 — Baseline runs
 
