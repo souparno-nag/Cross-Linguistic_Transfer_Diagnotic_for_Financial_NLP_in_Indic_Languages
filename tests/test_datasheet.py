@@ -67,8 +67,21 @@ def test_the_rates_match_the_artefacts_they_came_from():
 def test_the_two_named_limitations_are_stated_plainly(datasheet):
     """§8 names both; neither may be softened into a footnote."""
     assert "No native Malayalam" in datasheet
-    assert "No native-speaker verification" in datasheet
-    assert "nothing here establishes that the sentences mean the right thing" in datasheet
+    assert "Human verification covers a sample, not the corpus" in datasheet
+    assert "cannot establish that a sentence means the right thing" in datasheet
+
+
+def test_the_verification_sample_is_quantified_not_just_claimed():
+    """"Verified" without coverage is the claim a reader would most easily misread.
+
+    The hand-check is 180 rows per task against 68,358 / 19,614 / 4,788 MT rows,
+    so the datasheet states the percentage and who signed it off rather than
+    reporting the corpus as verified.
+    """
+    text = build()
+    assert "0.3% of task 1, 0.9% of task 2 and 3.8% of task 3" in text
+    assert "signed off by the project maintainer" in text
+    assert "rather than an independent audit" in text
 
 
 def test_share_alike_obligations_are_spelled_out_not_just_named(datasheet):

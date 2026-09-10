@@ -248,12 +248,16 @@ def build(argv=None) -> str:
         "do not, and Malayalam has no human reference against which its τ could be "
         "calibrated.",
         "",
-        "**No native-speaker verification of any target split.** The planned check — "
-        "20 sentences per direction read by someone who reads Bengali, Telugu and "
-        "Malayalam — has not been done. Automated checks establish that numerals, "
-        "labels, structure and script survive; **nothing here establishes that the "
-        "sentences mean the right thing.** This applies to every direction, Telugu "
-        "targets included, and is the most significant open item in the release.",
+        "**Human verification covers a sample, not the corpus.** The hand-check of "
+        "20 sentences per direction — 180 rows per task — was signed off by the "
+        "project maintainer. Measured against each task's machine-translated output "
+        "that is **0.3% of task 1, 0.9% of task 2 and 3.8% of task 3**, and it is a "
+        "maintainer sign-off rather than an independent audit by native speakers of "
+        "each target language. Everything outside that sample rests on the automated "
+        "checks, which establish that numerals, labels, structure and script survive "
+        "but cannot establish that a sentence means the right thing. Treat the "
+        "unsampled remainder accordingly, particularly for Telugu and Malayalam "
+        "targets.",
         "",
         "**LaBSE similarity rewards literalness, not adequacy.** Machine translations "
         "score *higher* than human translations of the same items, in every language "

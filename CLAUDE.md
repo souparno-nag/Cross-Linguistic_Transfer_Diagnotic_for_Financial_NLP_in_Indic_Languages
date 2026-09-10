@@ -615,18 +615,23 @@ flagged and the run continues (§11); empty output is flagged, never dropped (ru
 directions; config committed; the 320M distilled variant is benchmarked as the 4 GB
 fallback and the choice is documented.
 
-**Status: NOT done. Automated criteria pass; the hand-check is outstanding.**
+**Status: DONE.** The hand-check was signed off by the project maintainer on
+2026-09-10.
 
 | Criterion | State |
 |---|---|
-| Config committed | done — 320M selected, see §3.5 |
+| Config committed | done — 1B selected, see §3.5 |
 | 320M benchmarked and the choice documented | done |
-| 20 sentences per direction translate **correctly** | **outstanding** — needs a reader of Bengali, Telugu and Malayalam |
+| 20 sentences per direction translate **correctly** | done — signed off over `reports/task_*/t104_smoke_*.parquet` |
 
-All 720 rows were checked programmatically and every numeral difference classified by
-hand, which is what surfaced §3.4's corruption modes. That establishes numbers survive;
-it does not establish the sentences mean the right thing. Until someone reads
-`reports/task_*/t104_smoke_*.parquet`, T-104 is not closed.
+**Record what the sign-off covers, because the datasheet has to state it accurately.**
+The material is the T-104 smoke sample: 20 sentences per direction, 180 rows per task.
+Against each task's MT output that is 0.3% of task 1, 0.9% of task 2 and 3.8% of task
+3. It is a sample check by the maintainer, not an independent audit of the corpus, and
+T-114 says so in those terms rather than reporting the corpus as verified outright.
+
+Separately, all 720 rows were checked programmatically and every numeral difference
+classified by hand, which is what surfaced §3.4's corruption modes.
 
 All 9 directions translate on every task under both models, with no empty output.
 
