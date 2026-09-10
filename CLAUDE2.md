@@ -47,6 +47,18 @@ logged in to the Hub is not enough: accept the terms at
 works. Until then the loader raises `OSError: gated repo` and the `slow` tokeniser tests
 for `indicbert-v2` skip with that reason rather than failing.
 
+The repo ships **no `tokenizer.json`**, so `AutoTokenizer` fetches `spiece.model`
+(5.6 MB SentencePiece) on first use — and that fetch stalls at zero bytes on this
+machine, the §3.1 HF-stall symptom again. Pre-warm the cache once, outside pytest,
+before running the `slow` suite:
+
+```
+hf download ai4bharat/indic-bert config.json spiece.model spiece.vocab
+```
+
+It may `Read timed out` mid-file and resume itself; let it finish. `mBERT` and `XLM-R`
+download without trouble.
+
 ---
 
 ## Hard rules
@@ -124,8 +136,8 @@ wasted compute off the 4 GB card. The encoder registry (`ENCODERS`) carries all 
 models; only IndicBERT-v2 matters for Phase 2.
 
 **Done.** 22 offline tests (origin assertion, task-1 refusal, label range, deterministic
-stratified split) plus `slow` tests tokenising all 4 languages × 3 encoders — xlm-r and
-mbert pass; the 4 `indicbert-v2` cases skip until its gated repo is accepted (see
+stratified split) plus 13 `slow` tests tokenising all 4 languages × 3 encoders, all
+passing once `indicbert-v2`'s gated repo is accepted and its tokeniser pre-fetched (see
 Encoders).
 
 ### T-203 — Training loop
