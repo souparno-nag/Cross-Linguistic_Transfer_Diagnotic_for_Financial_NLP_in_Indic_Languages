@@ -245,9 +245,25 @@ each run resumes from `checkpoints/<run_id>/checkpoint.pt` (gitignored), and a r
 already in `experiments.csv` under the same hash is skipped — so re-running the command
 finishes an interrupted sweep. A failed run is reported and the sweep continues (§11).
 
-**Code done; the GPU run is outstanding** (run by the project owner):
-`python -m scripts.t206_baseline`. ~30–40 min. Done when all 6 runs are in
-`experiments.csv` and `reports/baselines.md` has the mean ± std table.
+**Runs done. `reports/baselines.{md,parquet}`, `experiments.csv`:**
+
+| config | macro-F1 (test, mean ± std) | accuracy | read |
+|---|---|---|---|
+| `task2_hin_indicbert` | **0.825 ± 0.024** | 0.826 ± 0.025 | healthy — dev F1 climbs to ~0.84, converges, early-stops |
+| `task3_hin_indicbert` | **0.127 ± 0.040** | 0.263 ± 0.045 | **badly underfit** — see below |
+
+Task 3 is not a wiring bug (task 2 trains fine on the same code, and task 3's loss
+falls monotonically from ln 10 ≈ 2.30). It is under-trained: 532 rows − 30% held out
+leaves ~370 training rows over **10 classes** (~37 each), and at `lr 2e-5 / 15 epochs`
+the model spends its first ~6 epochs barely moving, only starts learning near epoch 9,
+and is then cut off — seed 0 hit its best dev on the *last* epoch, seeds 1–2 early-
+stopped while train-F1 was still rising steeply. T-207 owns the diagnosis against the
+published number; the likely fix is a task-3 config with more epochs, a higher LR, and
+looser `patience`, then a re-run. Do not tune before T-207 checks the published target
+(working agreement).
+
+Also seen: transient `ReadTimeoutError` on the HF HEAD staleness check mid-run (cached,
+retried, harmless). `export HF_HUB_OFFLINE=1` once everything is cached avoids it.
 
 ### T-207 — Baseline validation gate ⚠️
 

@@ -1,0 +1,7 @@
+run_id,encoder,split,seed,config_hash,accuracy,macro_f1,date
+task2_hin_indicbert_seed0,indicbert-v2,task2/H/hin/native,0,ad7b3e2d6188ef3c,0.803571,0.80343,2026-09-10T20:16:30+00:00
+task2_hin_indicbert_seed1,indicbert-v2,task2/H/hin/native,1,0e23c0d9c1237a67,0.852679,0.851109,2026-09-10T20:20:52+00:00
+task2_hin_indicbert_seed2,indicbert-v2,task2/H/hin/native,2,5eecc1718a6b0edc,0.821429,0.821414,2026-09-10T20:23:49+00:00
+task3_hin_indicbert_seed0,indicbert-v2,task3/H/hin/native,0,5a9b91d2f1b0bbd0,0.3125,0.172316,2026-09-10T20:24:42+00:00
+task3_hin_indicbert_seed1,indicbert-v2,task3/H/hin/native,1,439f8ef75782c29a,0.225,0.096863,2026-09-10T20:25:32+00:00
+task3_hin_indicbert_seed2,indicbert-v2,task3/H/hin/native,2,3cfa977e0796d337,0.25,0.111562,2026-09-10T20:26:21+00:00
