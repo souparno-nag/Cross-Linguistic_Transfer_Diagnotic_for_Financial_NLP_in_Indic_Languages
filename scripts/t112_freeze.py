@@ -20,7 +20,7 @@ import sys
 from src.download_dataset.paths import REPO_ROOT
 from src.freeze import freeze_task, frozen_dir, verify_task
 from src.labse_gate import load_config as load_verification_config
-from src.labse_gate import verification_fingerprint
+from src.labse_gate import tau_for, verification_fingerprint
 from src.translate import decoding_fingerprint
 from src.translate import load_config as load_translation_config
 
@@ -55,7 +55,10 @@ def main(argv: list[str] | None = None) -> int:
         "decoding": decoding_fingerprint(translation),
         "similarity_model": verification["model"],
         "verification": verification_fingerprint(verification),
-        "tau": verification["tau"],
+        # Per task, not the global default: task 3's flags were derived at its
+        # own calibrated τ, and a manifest naming the wrong threshold would
+        # misdescribe the very column it seals.
+        "tau": tau_for(verification, args.task),
     }
     try:
         manifest = freeze_task(args.task, fingerprints, force=args.force)

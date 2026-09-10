@@ -367,6 +367,7 @@ src/
   labse_gate.py      ✓ embedding + cosine similarity + thresholding (T-108)
   integrity.py       ✓ structural + script-leakage checks (T-107)
   conditions.py      ✓ evaluation-condition matrix + validator (T-113)
+  datasheet.py       ✓ release datasheet, generated from artefacts (T-114)
   freeze.py          ✓ hashing, manifest, immutability (T-112)
 scripts/
   __init__.py        ✓
@@ -383,6 +384,7 @@ scripts/
   t111_ranking.py    ✓ python -m scripts.t111_ranking --task {n}
   t112_freeze.py     ✓ python -m scripts.t112_freeze --task {n} [--verify]
   t113_conditions.py ✓ python -m scripts.t113_conditions --task {n}
+  t114_datasheet.py  ✓ python -m scripts.t114_datasheet [--check]
                        (one thin CLI per task, named by task ID)
 data/
   base_paper/        ✓ upstream IndicFinNLP, committed; see §7.1
@@ -1358,6 +1360,42 @@ Direction matrix; ID scheme; MT model and decoding config; drift rate per direct
 entity-preservation rate per direction; storage format spec; known limitations (no
 native Malayalam; Telugu-target splits have no native-speaker verification); CC
 BY-NC-SA 4.0 attribution and share-alike obligations.
+
+**Status: DONE.** `src/datasheet.py`, `scripts/t114_datasheet.py`, 11 tests.
+`data/v1.0/DATASHEET.md`, 210 lines, covering 123,680 rows across 36 splits.
+
+**Every figure is read back out of the artefacts that produced it** — the frozen
+manifests, T-107's integrity report, T-109's drift table, T-110's calibration verdict,
+T-111's ranking. Nothing is transcribed. A datasheet with typed-in numbers drifts from
+its data the first time anything is regenerated, and it drifts *silently*, because
+nobody re-reads a document that looks finished. `--check` fails if the committed file
+no longer matches what the artefacts say, so staleness is caught rather than
+discovered. Structure follows Gebru et al., *Datasheets for Datasets*, with §8's
+required content mapped onto it.
+
+Sitting at the release root rather than inside a task directory, writing it touches no
+frozen file (rule 5).
+
+Four limitations are stated plainly rather than softened, and the tests assert they
+stay that way:
+
+1. **No native Malayalam**, so Malayalam results confound transfer with translation
+   quality and have no human reference to calibrate τ against.
+2. **No native-speaker verification of any target split** — T-104's hand-check was
+   never done. The automated checks establish that numerals, labels, structure and
+   script survive; nothing establishes that the sentences mean the right thing. This is
+   the release's most significant open item, and §8's "Telugu-target splits" phrasing
+   understates it: it applies to every direction.
+3. **LaBSE similarity rewards literalness, not adequacy** — MT outscores human
+   translation of the same items in every pair where both exist, so `labse_sim` ranks
+   directions usefully and is a poor absolute quality score.
+4. **Tasks 2 and 3 are not independently sourced across languages**, which is why the
+   item partition in `configs/eval_conditions.json` is mandatory rather than optional.
+
+**A freeze bug surfaced while building it.** T-112 wrote the *global* τ into every
+manifest, so task 3's release recorded 0.82 while its `translation_drift` flags had
+been derived at its calibrated 0.73 — a manifest misdescribing the very column it
+seals. Fixed to record the per-task value, and task 3 was re-frozen.
 
 ---
 

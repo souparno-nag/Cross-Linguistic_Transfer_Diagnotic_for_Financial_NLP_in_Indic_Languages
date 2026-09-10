@@ -1,6 +1,6 @@
 {
   "task": 3,
-  "frozen_at": "2026-09-10T07:37:17+00:00",
+  "frozen_at": "2026-09-10T07:43:56+00:00",
   "splits": 12,
   "rows": 6384,
   "missing": [],
@@ -9,7 +9,7 @@
     "decoding": "08e5a3dc7f258d7e",
     "similarity_model": "sentence-transformers/LaBSE",
     "verification": "c591c46c0e26f536",
-    "tau": 0.82
+    "tau": 0.73
   },
   "files": {
     "H/hin.parquet": {
