@@ -141,10 +141,33 @@ passing once `indicbert-v2`'s gated repo is accepted and its tokeniser pre-fetch
 Encoders).
 
 ### T-203 — Training loop
+`src/train.py`, `src/metrics.py`, `scripts/t203_smoke.py`, `tests/test_train.py`
 
 Linear head, cross-entropy, AdamW, warmup, early stopping on dev macro-F1.
-**Done:** overfits a 50-example subset to >0.95 train F1. This is a correctness check,
-not a result.
+
+`Classifier` is the whole architecture: encoder → `last_hidden_state[:, 0]` (the
+`[CLS]` position, **not** the BERT pooler's extra dense+tanh) → one `nn.Linear`. AdamW
+with the standard no-decay group for biases and LayerNorm; linear warmup + decay over
+`steps_per_epoch * epochs`. `train()` checkpoints atomically after every epoch and
+resumes from that checkpoint on restart (intermittent GPU, CLAUDE.md §3); a checkpoint
+written for a different config hash is refused. Early stopping restores the best-dev
+weights before returning. `src/metrics.py` owns accuracy + macro-F1 + per-class F1 so
+T-206/T-207 compute them identically.
+
+**Determinism (`hard rule 5`) needed a fix found by the test:** the classifier head is
+randomly initialised, so `build_model()` must seed *before* constructing it — otherwise
+two runs of one config start from different head weights and diverge from epoch 0. With
+that, two `overfit_subset` runs produce byte-identical history.
+
+**Done.** `python -m scripts.t203_smoke --device cuda`: mBERT on 48 class-balanced
+Hindi rows (task 2), 30 epochs, **final train macro-F1 1.0000** (need > 0.95) — the loop
+learns, the wiring is right. 15 fast tests + 6 `slow` (overfit, run-to-run determinism,
+checkpoint resume through a simulated interruption, config-mismatch refusal). The subset
+is class-balanced because macro-F1 on an all-one-class sample is capped below 1.0.
+
+*On the 3050 the 48-row run repeatedly logged `expandable_segments: memory mapping
+failed with OOM` yet completed — the card was near-full from the desktop session. Real
+training sizes are T-205's problem; note it there.*
 
 ### T-204 — Config system
 
@@ -157,7 +180,14 @@ every result row.
 Max batch × max_len per encoder, with fp16 and gradient accumulation. Set
 `PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True` before torch is imported — on the
 4 GB card, without it training OOMs on fragmentation rather than genuine exhaustion
-(CLAUDE.md §3.3).
+(CLAUDE.md §3.3). `src/train.py` sets it at module scope.
+
+Observed in T-203: even mBERT (711 MB) on 48 rows at `batch 16 / max_len 128` drove the
+3050 to a few MB free and logged `expandable_segments: memory mapping failed with OOM`
+on nearly every step, recovering each time. The desktop session holds ~1 GB, so the
+real budget is ~3 GB, not 4. Close every other GPU user before a run, expect `fp16` and
+`grad_accum` to be mandatory not optional, and treat a laptop reboot as part of the
+setup if the driver wedges (CLAUDE.md §3.5).
 **Done:** documented budget table; no OOM across a full epoch.
 
 ### T-206 — Baseline runs
