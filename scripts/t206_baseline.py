@@ -19,6 +19,7 @@ the command picks up where it stopped.
 from __future__ import annotations
 
 import argparse
+import shutil
 import statistics
 import sys
 from pathlib import Path
@@ -84,6 +85,27 @@ def report_records(config_paths, seeds, results_path) -> list[dict]:
                 }
             )
     return out
+
+
+def stale_checkpoint(work_dir: Path, config_hash: str) -> bool:
+    """True if ``work_dir`` holds a checkpoint from a *different* config.
+
+    Read from the checkpoint's own ``config_hash`` — the sidecar
+    ``run_config.json`` is written before training starts, so a failed re-run
+    leaves it pointing at the new config while the checkpoint is still the old
+    one. A changed YAML is a legitimate reason to start over; `train()` stays
+    strict and the orchestrator clears the stale dir.
+    """
+    ckpt = work_dir / "checkpoint.pt"
+    if not ckpt.exists():
+        return False
+    import torch
+
+    try:
+        blob = torch.load(ckpt, map_location="cpu", weights_only=False)
+    except Exception:
+        return True  # unreadable -> cannot trust it, redo
+    return blob.get("config_hash") != config_hash
 
 
 def summarise(records: list[dict]) -> list[dict]:
@@ -190,6 +212,9 @@ def main() -> int:
 
         print(f"\n=== {item['run_id']} ({run.hash()}) ===")
         work_dir = CHECKPOINT_ROOT / item["run_id"]
+        if stale_checkpoint(work_dir, run.hash()):
+            print(f"  clearing stale checkpoint dir (config changed): {work_dir}")
+            shutil.rmtree(work_dir)
         try:
             metrics = run_training(run, device=args.device, work_dir=work_dir, progress=print)
         except Exception as exc:  # report and continue (§11)

@@ -92,6 +92,21 @@ def test_report_records_takes_current_hash_and_spans_all_configs(tmp_path):
     assert all(r["macro_f1"] == 0.4 for r in recs)  # never the stale 0.99
 
 
+def test_stale_checkpoint_detection(tmp_path):
+    import torch
+
+    wd = tmp_path / "run"
+    wd.mkdir()
+    assert B.stale_checkpoint(wd, "abc") is False  # no checkpoint -> not stale
+
+    torch.save({"config_hash": "abc"}, wd / "checkpoint.pt")
+    assert B.stale_checkpoint(wd, "abc") is False  # same config
+    assert B.stale_checkpoint(wd, "def") is True  # config changed
+
+    (wd / "checkpoint.pt").write_bytes(b"not a torch file")
+    assert B.stale_checkpoint(wd, "abc") is True  # unreadable -> redo
+
+
 def test_write_report_emits_md_and_parquet(tmp_path):
     import pandas as pd
 
