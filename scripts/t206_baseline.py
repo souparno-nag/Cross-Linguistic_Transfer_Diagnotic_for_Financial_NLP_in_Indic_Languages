@@ -87,14 +87,15 @@ def report_records(config_paths, seeds, results_path) -> list[dict]:
     return out
 
 
-def stale_checkpoint(work_dir: Path, config_hash: str) -> bool:
-    """True if ``work_dir`` holds a checkpoint from a *different* config.
+def stale_checkpoint(work_dir: Path, run) -> bool:
+    """True if ``work_dir`` holds a checkpoint from a *different* run config.
 
-    Read from the checkpoint's own ``config_hash`` — the sidecar
-    ``run_config.json`` is written before training starts, so a failed re-run
-    leaves it pointing at the new config while the checkpoint is still the old
-    one. A changed YAML is a legitimate reason to start over; `train()` stays
-    strict and the orchestrator clears the stale dir.
+    Compared on the checkpoint's own hashes (not the ``run_config.json``
+    sidecar, which is written before training and so lies after a failed
+    re-run). Matches the run hash, or — for checkpoints written before
+    ``run_hash`` existed — the training-config hash. A changed YAML is a
+    legitimate reason to start over; `train()` stays strict and the
+    orchestrator clears the stale dir.
     """
     ckpt = work_dir / "checkpoint.pt"
     if not ckpt.exists():
@@ -105,7 +106,9 @@ def stale_checkpoint(work_dir: Path, config_hash: str) -> bool:
         blob = torch.load(ckpt, map_location="cpu", weights_only=False)
     except Exception:
         return True  # unreadable -> cannot trust it, redo
-    return blob.get("config_hash") != config_hash
+    if blob.get("run_hash") is not None:
+        return blob["run_hash"] != run.hash()
+    return blob.get("config_hash") != run.train_config().hash()  # legacy checkpoint
 
 
 def summarise(records: list[dict]) -> list[dict]:
@@ -212,7 +215,7 @@ def main() -> int:
 
         print(f"\n=== {item['run_id']} ({run.hash()}) ===")
         work_dir = CHECKPOINT_ROOT / item["run_id"]
-        if stale_checkpoint(work_dir, run.hash()):
+        if stale_checkpoint(work_dir, run):
             print(f"  clearing stale checkpoint dir (config changed): {work_dir}")
             shutil.rmtree(work_dir)
         try:

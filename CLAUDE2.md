@@ -303,9 +303,35 @@ resampled evaluation set, not a modelling error — task 2 trains cleanly and ta
 reproduces its number on the identical code.
 
 ### T-208 — Checkpoint versioning
+`src/checkpoints.py`, `scripts/t208_checkpoints.py`, `tests/test_checkpoints.py`
 
 Naming convention, storage path, retention policy.
 **Done:** any run's checkpoint retrievable from its `run_id`.
+
+**Naming / path.** One dir per run, `checkpoints/<run_id>/` where
+`run_id = "<config-stem>_seed<N>"` (e.g. `task2_hin_indicbert_seed1`). It holds
+`checkpoint.pt` (model / optimiser / scheduler / RNG / best-so-far / history / hashes,
+rewritten every epoch by `train.train`) and `run_config.json` (the resolved `RunConfig`
++ hash). `checkpoints/` is gitignored; `experiments.csv` + `reports/` are the durable
+record.
+
+**Retrieval.** `checkpoints.checkpoint_path(run_id)` / `load(run_id)` /
+`best_state_dict(run_id)` (the weights Phase 3 reloads). CLI:
+`python -m scripts.t208_checkpoints list | show <run_id> | path <run_id> | prune [--apply]`.
+
+**Retention.** A checkpoint is kept iff it is *reported* (its run hash is a row in
+`experiments.csv`) or *current* (its run hash equals the shipped YAML's hash today, so
+it is still resumable). Everything else — a superseded config, an aborted run — is an
+orphan and `prune --apply` removes it.
+
+**Bug found here, affecting T-206 resume.** There are two hashes: `TrainConfig.hash()`
+(hyperparameters only, written into the checkpoint by `train`) and `RunConfig.hash()`
+(adds the split + dev/test fractions, recorded in `experiments.csv`). The T-206
+orchestrator's `stale_checkpoint` was comparing one to the other, so **every re-run
+discarded a resumable checkpoint** and every checkpoint looked like an orphan. Fixed by
+threading `RunConfig.hash()` into the checkpoint as `run_hash` (via a new `train(...,
+run_hash=)` arg that `run_training` sets) and keying resume/retention off it; checkpoints
+written before this fall back to the `TrainConfig` hash.
 
 ---
 

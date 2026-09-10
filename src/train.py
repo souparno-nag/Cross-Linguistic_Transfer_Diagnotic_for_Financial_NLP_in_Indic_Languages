@@ -230,12 +230,19 @@ def train(
     work_dir: str | Path | None = None,
     resume: bool = True,
     progress=None,
+    run_hash: str | None = None,
 ) -> TrainResult:
     """Fine-tune ``model`` and return its best dev macro-F1.
 
     ``work_dir`` gets ``checkpoint.pt`` after every epoch; if it already holds
     one and ``resume`` is set, training continues from it. ``progress`` is an
     optional ``callable(str)`` for a status line.
+
+    ``run_hash`` is an opaque tag the caller (``config.run_training``) sets to
+    its :class:`~src.config.RunConfig` hash. ``train`` does not interpret it —
+    it only records it in the checkpoint so the T-206 orchestrator and T-208's
+    registry can tell which *run* a checkpoint belongs to (that hash also covers
+    the data split, which ``TrainConfig.hash`` does not).
     """
     say = progress or (lambda _msg: None)
     seed_everything(config.seed)
@@ -330,6 +337,7 @@ def train(
                 ckpt_path,
                 {
                     "config_hash": config.hash(),
+                    "run_hash": run_hash,
                     "epoch": epoch,
                     "model": model.state_dict(),
                     "optimizer": optimizer.state_dict(),

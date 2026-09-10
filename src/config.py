@@ -195,6 +195,7 @@ def run_training(
         device=device,
         work_dir=work_dir,
         progress=progress,
+        run_hash=run.hash(),
     )
 
     eval_name = "test" if "test" in datasets else "dev"

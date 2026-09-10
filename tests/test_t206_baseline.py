@@ -95,16 +95,33 @@ def test_report_records_takes_current_hash_and_spans_all_configs(tmp_path):
 def test_stale_checkpoint_detection(tmp_path):
     import torch
 
+    class Run:
+        def __init__(self, rh, th):
+            self._rh, self._th = rh, th
+
+        def hash(self):
+            return self._rh
+
+        def train_config(self):
+            return type("T", (), {"hash": lambda _s: self._th})()
+
+    run = Run("run_abc", "train_abc")
     wd = tmp_path / "run"
     wd.mkdir()
-    assert B.stale_checkpoint(wd, "abc") is False  # no checkpoint -> not stale
+    assert B.stale_checkpoint(wd, run) is False  # no checkpoint -> not stale
 
-    torch.save({"config_hash": "abc"}, wd / "checkpoint.pt")
-    assert B.stale_checkpoint(wd, "abc") is False  # same config
-    assert B.stale_checkpoint(wd, "def") is True  # config changed
+    # current-format checkpoint: matched on run_hash
+    torch.save({"config_hash": "train_abc", "run_hash": "run_abc"}, wd / "checkpoint.pt")
+    assert B.stale_checkpoint(wd, run) is False
+    assert B.stale_checkpoint(wd, Run("run_def", "train_def")) is True
+
+    # legacy checkpoint (no run_hash): fall back to train-config hash
+    torch.save({"config_hash": "train_abc"}, wd / "checkpoint.pt")
+    assert B.stale_checkpoint(wd, run) is False
+    assert B.stale_checkpoint(wd, Run("x", "train_def")) is True
 
     (wd / "checkpoint.pt").write_bytes(b"not a torch file")
-    assert B.stale_checkpoint(wd, "abc") is True  # unreadable -> redo
+    assert B.stale_checkpoint(wd, run) is True  # unreadable -> redo
 
 
 def test_write_report_emits_md_and_parquet(tmp_path):
