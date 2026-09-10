@@ -1,0 +1,23 @@
+# Phase 2 in-language baseline: sustainability (binary) on native Hindi.
+# T-206 runs this at seeds 0/1/2 by overriding `seed`.
+# Note: exponents must be written 2.0e-5, not 2e-5 — PyYAML parses the latter
+# as a string (load_run_config coerces it anyway, but keep the files clean).
+
+encoder: indicbert-v2
+task: 2
+lang: hin
+origin: native
+
+max_len: 128
+batch_size: 16
+grad_accum: 1
+lr: 2.0e-5
+weight_decay: 0.01
+epochs: 10
+warmup_ratio: 0.1
+patience: 3
+seed: 0
+fp16: true
+
+dev_fraction: 0.1
+test_fraction: 0.1

@@ -1,0 +1,23 @@
+# Phase 2 in-language baseline: ESG themes (10-class) on native Hindi.
+# Only 532 rows over 10 classes and short headline text, so max_len is small
+# and the held-out folds are a little larger to keep every class represented.
+# T-206 runs this at seeds 0/1/2 by overriding `seed`.
+
+encoder: indicbert-v2
+task: 3
+lang: hin
+origin: native
+
+max_len: 64
+batch_size: 16
+grad_accum: 1
+lr: 2.0e-5
+weight_decay: 0.01
+epochs: 15
+warmup_ratio: 0.1
+patience: 4
+seed: 0
+fp16: true
+
+dev_fraction: 0.15
+test_fraction: 0.15

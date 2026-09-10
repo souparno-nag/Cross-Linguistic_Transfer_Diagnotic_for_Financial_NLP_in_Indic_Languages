@@ -170,10 +170,26 @@ failed with OOM` yet completed — the card was near-full from the desktop sessi
 training sizes are T-205's problem; note it there.*
 
 ### T-204 — Config system
+`src/config.py`, `src/experiments.py`, `configs/train/*.yaml`, `tests/test_config.py`
 
 YAML: seed, LR, batch size, max_len, epochs, encoder, split. Config hash written into
 every result row.
-**Done:** two runs of one config produce identical metrics.
+
+One YAML per baseline (`configs/train/task{2,3}_hin_indicbert.yaml`). `load_run_config()`
+reads it into a frozen `RunConfig` and applies keyword overrides — T-206 sweeps seeds by
+overriding, not by keeping three near-identical files. It coerces YAML's type surprises
+(`2e-5` parses as a *string* in PyYAML) and rejects unknown keys rather than ignoring
+them. `RunConfig` is a superset of `train.TrainConfig`: a metric depends on the data
+split and the dev/test fractions as well as the hyperparameters, so `RunConfig.hash()`
+covers all of it, over the *resolved* config so `block: null` and `block: H` for Hindi
+hash equal. `run_training()` is the load→split→train→evaluate unit T-206 repeats per
+seed. `src/experiments.py` appends rows to `experiments.csv` — the one sanctioned CSV
+(a run log, not corpus data) — with the fixed columns `run_id, encoder, split, seed,
+config_hash, accuracy, macro_f1, date`.
+
+**Done.** 21 fast tests (loader coercion, unknown-key rejection, validation, hash
+sensitivity, CSV round-trip) + the `slow` acceptance: two `run_training` calls on one
+config produce identical `accuracy`, `macro_f1` and epoch history.
 
 ### T-205 — VRAM budgets
 

@@ -149,6 +149,15 @@ def _loader(dataset: SplitDataset, config: TrainConfig, *, shuffle: bool) -> Dat
     )
 
 
+def evaluate_dataset(
+    model: Classifier, dataset: SplitDataset, config: "TrainConfig", device: str
+) -> dict:
+    """Metrics for a whole dataset, using the config's batch size."""
+    return evaluate(
+        model, _loader(dataset, config, shuffle=False), device, config.num_labels
+    )
+
+
 @torch.no_grad()
 def evaluate(model: Classifier, loader: DataLoader, device: str, num_labels: int) -> dict:
     model.eval()
