@@ -72,7 +72,15 @@ Phase 2 shares the Phase 1 venv (`env/`, gitignored), so `transformers` stays pi
 Phase 2 dependency without re-reading that section. Run everything as a module from the
 repo root (`python -m src.…`, `python -m scripts.…`). Pin every new dependency in
 `requirements.txt` with a one-line reason, matching the existing entries.
-**Done:** `python -m` smoke test passes; `pip freeze` committed.
+
+`src/env_check.py` is the guard: every Phase 2 entry point calls
+`require_python()` before doing any work, and `python -m src.env_check` is the
+smoke test — it checks the interpreter, imports the training stack, and reports
+versions and CUDA state, exiting non-zero on any problem.
+
+**Done.** `src/env_check.py` (+ `tests/test_env_check.py`); `python -m src.env_check`
+passes on the 3050; `requirements.txt` carries the Phase 2 deps and
+`requirements.lock.txt` is the committed full `pip freeze`.
 
 ### T-202 — Dataset loader
 
