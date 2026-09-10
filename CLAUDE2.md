@@ -211,12 +211,25 @@ setup if the driver wedges (CLAUDE.md §3.5).
 whether it fit and its `max_memory_allocated` peak; `largest_batch` / `budget_table`
 sweep the grid. `scripts/t205_vram.py` writes `reports/vram_budget.{md,parquet}` and,
 with `--full-epoch`, trains one epoch on each shipped config's native fold to prove no
-OOM across an epoch — exiting non-zero if any config OOMs. If a shipped config fails,
-lower its `batch_size` and raise `grad_accum` in the YAML and re-run.
+OOM across an epoch — exiting non-zero if any config OOMs.
 
-**Code done; the GPU run is outstanding** (run by the project owner):
-`python -m scripts.t205_vram --full-epoch`. Done when `reports/vram_budget.md` exists
-and the full-epoch check is all `ok`.
+**Done.** `python -m scripts.t205_vram --full-epoch` on the 3050 (3.7 GiB visible
+total). Worst-case probe, fp16, all-ones mask — largest batch that fit / peak GiB:
+
+| encoder | len 64 | len 128 | len 256 |
+|---|---|---|---|
+| indicbert-v2 | 64+ / 1.60 | 64+ / 3.04 | 32 / 3.04 |
+| xlm-r-base   | 64+ / 2.76 | 32 / 2.76  | 12 / 2.37 |
+| mbert-base   | 64+ / 2.38 | 48 / 3.32  | 24 / 3.16 |
+
+(`64+` = the probe's ceiling, not a limit.) The ceiling in practice is ~3.3 GiB; batch
+48–64 at `max_len 128` is the edge for the BERT-sized encoders.
+
+**Both shipped configs pass with wide headroom** — `task2_hin_indicbert` peaked at
+**1.14 GiB** (29 s/epoch), `task3` at **0.73 GiB** (7 s). Real training uses per-batch
+dynamic padding and mostly-short text, so it costs a fraction of the all-max-length
+worst case. `batch_size 16` in the YAMLs stands; `fp16: true` matters, `grad_accum`
+is not needed for IndicBERT-v2 on either task.
 
 ### T-206 — Baseline runs
 
