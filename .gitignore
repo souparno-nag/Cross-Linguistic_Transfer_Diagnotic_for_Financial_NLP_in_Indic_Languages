@@ -223,3 +223,7 @@ data/verification/*/emb/
 
 # Per-batch translation checkpoints (§3, resumable GPU jobs).
 cache/
+
+# Phase 2 training checkpoints (T-206/T-208): large, regenerable from a config
+# + seed. experiments.csv and reports/ are the tracked record of a run.
+checkpoints/

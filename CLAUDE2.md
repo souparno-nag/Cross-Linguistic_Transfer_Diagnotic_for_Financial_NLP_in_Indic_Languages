@@ -232,11 +232,22 @@ worst case. `batch_size 16` in the YAMLs stands; `fp16: true` matters, `grad_acc
 is not needed for IndicBERT-v2 on either task.
 
 ### T-206 — Baseline runs
+`scripts/t206_baseline.py`, `tests/test_t206_baseline.py`
 
-IndicBERT-v2 on `H_nat` × 3 seeds = 3 runs. (`B_nat` and `T_nat` deferred — see Goal.)
-GPU access is intermittent (CLAUDE.md §3): every run must be resumable and checkpoint
-partial progress, so an interrupted run resumes instead of restarting.
-**Done:** mean ± std macro-F1 for Hindi logged to `experiments.csv`; checkpoints saved.
+IndicBERT-v2 on `H_nat` × 3 seeds, for both classification tasks — 6 runs total
+(`task2_hin_indicbert`, `task3_hin_indicbert`). `B_nat` and `T_nat` deferred (see Goal).
+
+`python -m scripts.t206_baseline` loops `config.run_training` over the shipped configs ×
+seeds 0/1/2, logs each to `experiments.csv` with its config hash, and writes
+`reports/baselines.{md,parquet}` with mean ± sample-std macro-F1 per config (`hard rule
+3`). Numbers are on the held-out **test** fold. Resumable at two levels (CLAUDE.md §3):
+each run resumes from `checkpoints/<run_id>/checkpoint.pt` (gitignored), and a run
+already in `experiments.csv` under the same hash is skipped — so re-running the command
+finishes an interrupted sweep. A failed run is reported and the sweep continues (§11).
+
+**Code done; the GPU run is outstanding** (run by the project owner):
+`python -m scripts.t206_baseline`. ~30–40 min. Done when all 6 runs are in
+`experiments.csv` and `reports/baselines.md` has the mean ± std table.
 
 ### T-207 — Baseline validation gate ⚠️
 
