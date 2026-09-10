@@ -5,6 +5,7 @@ IndicBERT-v2 fine-tuned on each native Hindi split, three seeds. Numbers are on 
 | config | split | seeds | macro-F1 (mean ± std) | accuracy (mean ± std) |
 |---|---|---|---|---|
 | task2_hin_indicbert.yaml | task2/H/hin/native | 0,1,2 | 0.8253 ± 0.0241 | 0.8259 ± 0.0249 |
+| task3_hin_indicbert.yaml | task3/H/hin/native | 0,1,2 | 0.1526 ± 0.0249 | 0.2250 ± 0.0331 |
 
 ## Per-seed macro-F1
 
@@ -13,3 +14,6 @@ IndicBERT-v2 fine-tuned on each native Hindi split, three seeds. Numbers are on 
 | task2_hin_indicbert.yaml | 0 | 0.8034 | 0.8036 |
 | task2_hin_indicbert.yaml | 1 | 0.8511 | 0.8527 |
 | task2_hin_indicbert.yaml | 2 | 0.8214 | 0.8214 |
+| task3_hin_indicbert.yaml | 0 | 0.1620 | 0.2375 |
+| task3_hin_indicbert.yaml | 1 | 0.1714 | 0.2500 |
+| task3_hin_indicbert.yaml | 2 | 0.1243 | 0.1875 |

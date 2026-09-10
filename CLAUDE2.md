@@ -250,20 +250,31 @@ finishes an interrupted sweep. A failed run is reported and the sweep continues 
 | config | macro-F1 (test, mean ± std) | accuracy | read |
 |---|---|---|---|
 | `task2_hin_indicbert` | **0.825 ± 0.024** | 0.826 ± 0.025 | healthy — dev F1 climbs to ~0.84, converges, early-stops |
-| `task3_hin_indicbert` | **0.127 ± 0.040** | 0.263 ± 0.045 | **badly underfit** — see below |
+| `task3_hin_indicbert` | **0.153 ± 0.025** | 0.225 ± 0.033 | **data-scarcity ceiling** — see below |
 
-Task 3 is not a wiring bug (task 2 trains fine on the same code, and task 3's loss
-falls monotonically from ln 10 ≈ 2.30). It is under-trained: 532 rows − 30% held out
-leaves ~370 training rows over **10 classes** (~37 each), and at `lr 2e-5 / 15 epochs`
-the model spends its first ~6 epochs barely moving, only starts learning near epoch 9,
-and is then cut off — seed 0 hit its best dev on the *last* epoch, seeds 1–2 early-
-stopped while train-F1 was still rising steeply. T-207 owns the diagnosis against the
-published number; the likely fix is a task-3 config with more epochs, a higher LR, and
-looser `patience`, then a re-run. Do not tune before T-207 checks the published target
-(working agreement).
+Task 3 is not a wiring bug (task 2 trains fine on the same code) and — after the budget
+was raised (`lr 3e-5 / 40 epochs / patience 8`) — not underfitting either. It now
+**overfits hard**: train macro-F1 reaches 0.99 while dev/test sit at ~0.15–0.20. The
+extra budget moved the test number only 0.127 → 0.153 (inside seed noise). Task 3 has
+**532 Hindi rows total**; minus a 30% dev+test holdout that is ~370 training examples
+over **10 ESG classes** (21–92 rows/class upstream). A 12M-param encoder memorises that
+and cannot generalise from it — more epochs, more regularisation or a bigger model will
+not lift the test number, because the ceiling is the data.
+
+**This is now blocked on T-207.** The open question is whether IndicFinNLP's *published*
+task-3 Hindi macro-F1 is also low (then this reproduces and the task is simply hard) or
+much higher (then their setup differs — likely a smaller holdout, a provided split, or
+different preprocessing). Get the published numbers for both tasks before any further
+task-3 tuning (working agreement: diagnose against the target first). The 40-epoch
+config is past the useful point and could be dialled back to ~20 without changing the
+result.
 
 Also seen: transient `ReadTimeoutError` on the HF HEAD staleness check mid-run (cached,
 retried, harmless). `export HF_HUB_OFFLINE=1` once everything is cached avoids it.
+A changed YAML invalidates a run's checkpoint; the orchestrator now clears the stale
+`checkpoints/<run_id>/` and starts fresh (it reads the checkpoint's own `config_hash`,
+since the `run_config.json` sidecar is written before training and a failed re-run
+makes it lie).
 
 ### T-207 — Baseline validation gate ⚠️
 
