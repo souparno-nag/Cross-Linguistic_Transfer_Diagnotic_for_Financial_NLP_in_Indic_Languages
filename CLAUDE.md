@@ -1105,7 +1105,7 @@ directions, **every pair, nothing sampled**. Cache embeddings as `.npy`. Runs on
 **Done when:** `data/verification/task_{n}/labse_scores.parquet` has a score for every MT row;
 `labse_sim` is populated in the corpus.
 
-**Status: built; run on task 3 only.** `src/labse_gate.py`, `scripts/t108_labse.py`,
+**Status: DONE for all three tasks.** `src/labse_gate.py`, `scripts/t108_labse.py`,
 `configs/verification_config.json`, 7 tests including §10's fixture on the real model.
 
 Embeddings are L2-normalised at encode time, so cosine is a dot product and nothing
@@ -1121,22 +1121,21 @@ and 3 the native split in the target language is a *human* translation of the sa
 Task 1 has no reference in any direction, and no Malayalam target has one anywhere; the
 run says so rather than implying one standard was applied throughout.
 
-Task 3, on CPU, 2 minutes for 6384 sentences:
+92,760 pairs scored on the GPU: task 3 in about a minute, task 2 in a few, task 1 in
+under half an hour. Median similarity by task:
 
-| direction | median | below τ=0.82 |
-|---|---|---|
-| hin→mal | 0.859 | **29.7%** |
-| tel→mal | 0.861 | **26.1%** |
-| ben→mal | 0.870 | **21.2%** |
-| tel→ben | 0.881 | 16.2% |
-| ben→tel | 0.889 | 12.4% |
-| tel→hin | 0.891 | 10.2% |
-| hin→tel | 0.903 | 8.5% |
-| ben→hin | 0.898 | 7.7% |
-| hin→ben | 0.908 | 7.1% |
+| | task 1 | task 2 | task 3 |
+|---|---|---|---|
+| best direction | hin→tel 0.937 | hin→ben 0.950 | hin→ben 0.908 |
+| worst direction | ben→mal 0.844 | ben→mal 0.902 | hin→mal 0.859 |
 
-Every Malayalam target breaks §8's 20% rule, which is T-110's cue that the threshold —
-not the translation — is what needs examining.
+**Task 1 splits in two by source language, and the gap is large.** Hindi-source
+directions sit at 0.906-0.937 median; Bengali-source at 0.844-0.854, drifting on 29-34%
+of rows against Hindi-source's 5-11%. Telugu-source sits between, but with a very long
+tail — its 5th percentile reaches 0.54 where Hindi-source's stays above 0.78. Task 1 is
+the only task where this happens, and it is the only task whose native splits are
+independently sourced, so the three blocks hold genuinely different text rather than
+three views of the same sentences.
 
 ---
 
@@ -1149,14 +1148,28 @@ class.
 **Done when:** `reports/drift_by_direction.md` exists; below-τ rows carry
 `translation_drift` in `flags` and **remain in the corpus**.
 
-**Status: built; run on task 3.** `scripts/t109_drift.py`, CPU only, reports to
+**Status: DONE for all three tasks.** `scripts/t109_drift.py`, CPU only, reports to
 `reports/task_{n}/drift_by_direction.{md,parquet}` and `drift_by_class.parquet`.
 
 Task 1 has no gold class, so its second breakdown is by `span_recovered` instead:
 whether the annotated numeral survived is that task's equivalent of a class, and it is
 the axis T-111 needs. Below-τ rows are flagged `translation_drift` and kept (rule 1);
 the flag is stripped and re-derived on each run, so re-running after a τ change leaves
-no stale flags.
+no stale flags. 11,419 / 357 / 85 rows flagged.
+
+**The task-1 class breakdown is the strongest internal consistency check in the
+project.** Splitting each direction by `span_recovered` — did the annotated numeral
+survive — separates two populations cleanly:
+
+| direction | span recovered | span lost |
+|---|---|---|
+| tel→ben | 0.921 median, 8.3% below τ | 0.707 median, **68.9%** below τ |
+| tel→hin | 0.925, 6.3% | 0.735, 61.4% |
+| hin→ben | 0.941, 2.6% | 0.861, 28.0% |
+
+Two measures built for different purposes — one locates a digit, the other embeds a
+sentence — agree on which rows went wrong, having never seen each other's output. A row
+that loses its numeral usually loses more than its numeral.
 
 ---
 
@@ -1173,38 +1186,41 @@ threshold is measuring the wrong thing — report that rather than defending 0.8
 **Done when:** τ is confirmed with evidence or revised with written rationale;
 inspection notes committed.
 
-**Status: built; run on task 3, and the evidence says τ=0.82 is wrong.**
+**Status: DONE for all three tasks. τ is now calibrated and per task.**
 
 The calibration works by putting three things on one page. What MT scores; what a
 **human** translation of the same item scores *on the same measure* (§2.1 — the native
 splits are human translations of each other, so the cosine between two of them is a
 known-good pair); and what MT scores against a human translation in the same language.
 
-On task 3:
+**The two calibratable tasks disagreed, and the disagreement is the finding.** The same
+τ=0.82 rejects **0.0%** of human translations on task 2 and **23.4%** on task 3:
 
-| | median | 5th pct | below τ=0.82 |
-|---|---|---|---|
-| human ben-hin | 0.876 | 0.748 | 21.2% |
-| human ben-tel | 0.851 | 0.708 | 32.5% |
-| human hin-tel | 0.884 | 0.749 | 16.5% |
-| **all human pairs** | | | **23.4%** |
+| | median human pair | 5th pct | rejected by τ=0.82 | median text length |
+|---|---|---|---|---|
+| task 2 | 0.921 | 0.846 | 0.0% | 148 chars |
+| task 3 | 0.870 | 0.729 | 23.4% | 86 chars |
 
-**τ=0.82 rejects 23.4% of human translations.** A threshold that calls one human
-translation in four a failure is not measuring translation quality, and three
-directions also break §8's 20% rule. The script therefore reports a revised
-**τ = 0.73** — the value that passes 95% of known-good human pairs — with the rationale
-written into `reports/task_{n}/tau_calibration.{md,json}`.
+Task 3 is news headlines. **LaBSE cosine falls as context shortens**, so a single global
+threshold has to be wrong for one of them — and the difference is text length, not
+translation quality. τ is therefore per task in `configs/verification_config.json`:
 
-**The more uncomfortable finding: MT scores *higher* than human translation on this
-measure.** hin→ben MT medians 0.908 against 0.876 for the human ben-hin pair, and the
-same ordering holds for every pair. LaBSE cosine rewards literalness, and MT is more
-literal than a human translator who paraphrases. So `labse_sim` is a usable *relative*
-ranking of directions and a poor *absolute* quality score — T-111 and T-114 must both
-say so.
+| task | τ | basis |
+|---|---|---|
+| `task_1` | 0.82 | **inherited, not calibrated** — no human reference exists (§2.2) |
+| `task_2` | 0.82 | confirmed: rejects 0.0% of human pairs, no direction over the 20% trigger |
+| `task_3` | **0.73** | revised: the value passing 95% of human pairs |
 
-**τ is not changed in the config yet.** Task 2 has human anchors too and should be
-folded in before the number is frozen, and task 1 has none at all — its τ stays
-inherited whatever the others say, which the report states rather than hiding.
+Task 1's value cannot be borrowed from either: τ tracks text length as much as quality,
+and every figure derived from it must be read as inherited. Re-running T-109 at the
+calibrated τ took task 3's flagged rows from 740 to 85.
+
+**The uncomfortable finding: MT scores *higher* than human translation on this measure**,
+in both calibratable tasks and every language pair. Task 3 hin→ben MT medians 0.908
+against 0.876 for the human Bengali-Hindi pair; task 2 hin→ben 0.950 against 0.918.
+LaBSE cosine rewards literalness, and MT is more literal than a human translator who
+paraphrases. `labse_sim` is therefore a usable *relative* ranking of directions and a
+poor *absolute* quality score — T-111 and T-114 must both say so.
 
 ---
 
@@ -1219,7 +1235,7 @@ symmetric?
 
 **Done when:** `reports/direction_ranking.md` ranks all 9 with supporting numbers.
 
-**Status: built; run on task 3.** `scripts/t111_ranking.py`, CPU only.
+**Status: DONE for all three tasks.** `scripts/t111_ranking.py`, CPU only.
 
 Ranked by the **mean of each measure's rank**, not by a weighted sum. A drift rate and
 a numeral-preservation rate are not on one scale, and inventing weights between them
@@ -1228,14 +1244,25 @@ on more measures". Inputs are deliberately different in kind because each sees w
 others cannot — LaBSE drift sees meaning loss but not which numeral moved, T-105 sees
 numerals but not fluency, T-107 sees corruption that leaves fluent text behind.
 
-Task 3's answers to §8's three questions:
+**Two of §8's three questions get different answers on different tasks, and one is
+stable across all three.**
 
-- **Is Hi→Ml worse than Bn→Ml?** Yes — 29.7% drift against 21.2%, ranks 9 and 6 of 9.
-- **Are Dravidian-source directions worse?** Yes, but mildly: 17.5% mean drift from
-  Dravidian source against 14.4% from Indo-Aryan.
-- **Is the Indo-Aryan↔Dravidian penalty symmetric?** **No.** Crossing *into* Dravidian
-  drifts on 18.0% of rows; crossing back into Indo-Aryan on 13.2% — a 4.8-point gap in
-  the same language pairs. The cost is in the direction of travel, not the pairing.
+| question | task 1 | task 2 | task 3 |
+|---|---|---|---|
+| Hi→Ml worse than Bn→Ml? | no (10.8% vs 34.1%) | no (4.4% vs 5.4%) | **yes** (29.7% vs 21.2%) |
+| Dravidian source worse? | no (18.0% vs 19.5%) | no (0.9% vs 2.3%) | **yes** (17.5% vs 14.4%) |
+| IA↔Dravidian symmetric? | **no**, 2.6 pts | **no**, 2.6 pts | **no**, 4.8 pts |
+
+The first two flip because the content differs, so neither generalises and T-114 should
+not report either as a property of the language pair. **The asymmetry does generalise**:
+in all three tasks, crossing *into* Dravidian drifts more than crossing back into
+Indo-Aryan, in the same language pairs, by 2.6 to 4.8 points. That is the finding worth
+carrying forward — the cost is in the direction of travel, not the pairing.
+
+Ranking is by the **mean of each measure's rank**, not a weighted sum: a drift rate and
+a numeral-preservation rate share no scale, and inventing weights between them would
+manufacture precision the data cannot support. Task 1's ranking also carries
+`span_recovery`, which the other two have no equivalent of.
 
 ---
 
@@ -1249,7 +1276,7 @@ its own checks pass; the manifest covers whatever is present.
 **Done when:** the manifest verifies; a tamper test (modify one file, re-verify) fails
 as expected.
 
-**Status: built, not yet run on real data.** `src/freeze.py`, `scripts/t112_freeze.py`,
+**Status: DONE. All three tasks frozen and verifying.** `src/freeze.py`, `scripts/t112_freeze.py`,
 7 tests including §8's tamper test and its two siblings — a *deleted* file and an
 *unexpected* extra file both fail verification too, since a release with a file nobody
 recorded is as compromised as one with a changed file.
@@ -1260,8 +1287,19 @@ fingerprint, similarity model, τ — and artefacts are only comparable within o
 those. Re-freezing a task is refused (rule 5); `--force` exists only for a freeze that
 was never released.
 
-**Do not freeze until τ is settled.** `labse_sim` is baked into the splits, so freezing
-now would seal a value T-110 is in the middle of revising.
+| task | splits | rows |
+|---|---|---|
+| `task_1` | 12 | 91,144 |
+| `task_2` | 12 | 26,152 |
+| `task_3` | 12 | 6,384 |
+
+Frozen only after τ was settled: `labse_sim` and `translation_drift` are baked into the
+splits, so freezing earlier would have sealed a threshold that was still moving.
+
+**One acceptance criterion elsewhere is still open at freeze time.** T-104's hand-check
+— 20 sentences per direction read by someone who reads Bengali, Telugu and Malayalam —
+has never been done. The corpus is frozen with that outstanding, and T-114's datasheet
+must record it as a limitation rather than let the freeze imply it was cleared.
 
 ---
 

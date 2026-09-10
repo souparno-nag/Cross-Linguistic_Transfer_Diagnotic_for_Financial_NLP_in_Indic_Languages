@@ -3,8 +3,8 @@
   "model": "sentence-transformers/LaBSE",
   "fingerprint": "c591c46c0e26f536",
   "tau": 0.82,
-  "device": "cached embeddings",
+  "device": "cuda",
   "pairs": 4788,
   "reference_pairs": 3192,
-  "run_at": "2026-09-10T05:20:52+00:00"
+  "run_at": "2026-09-10T07:18:13+00:00"
 }

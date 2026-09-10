@@ -1,0 +1,12 @@
+{
+  "task": 2,
+  "inherited_tau": 0.82,
+  "verdict": "confirmed",
+  "revised_tau": 0.82,
+  "rationale": [
+    "τ=0.82 rejects 0.0% of human translations of the same items — inside the 5% the calibration allows, so the threshold is not rejecting known-good work.",
+    "No direction falls more than 20% below τ, the signal §8 names for a threshold measuring the wrong thing.",
+    "This task's native sentences run 148 characters at the median. LaBSE cosine falls as context shortens, which is why τ is per task: the same threshold rejects 0% of human translations on task 2 and 23% on task 3, and the difference is text length, not translation quality."
+  ],
+  "human_rows": 5307
+}

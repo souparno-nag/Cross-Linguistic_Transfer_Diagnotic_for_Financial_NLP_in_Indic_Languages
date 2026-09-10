@@ -26,7 +26,7 @@ from src.audit import config_hash
 from src.corpus_io import is_numeral_task, read_split, write_split
 from src.download_dataset.paths import REPO_ROOT
 from src.ids import BLOCK_NATIVE_LANG
-from src.labse_gate import VERIFICATION_ROOT, load_config
+from src.labse_gate import VERIFICATION_ROOT, load_config, tau_for
 
 REPORT_ROOT = REPO_ROOT / "reports"
 DRIFT_FLAG = "translation_drift"
@@ -107,7 +107,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     config = load_config()
-    tau = args.tau if args.tau is not None else config["tau"]
+    tau = args.tau if args.tau is not None else tau_for(config, args.task)
     try:
         scores = with_classes(args.task, load_scores(args.task))
     except FileNotFoundError as error:

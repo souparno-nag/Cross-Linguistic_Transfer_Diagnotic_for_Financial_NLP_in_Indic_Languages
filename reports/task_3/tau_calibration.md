@@ -1,20 +1,20 @@
 # T-110 — calibrating τ, task 3
 
-Inherited τ = 0.82. **Verdict: revised, revised to 0.73.**
+τ in effect = 0.73. **Verdict: confirmed (calibrated).**
 
 ## What MT scores
 
 | src_lang   | tgt_lang   |   rows |   median |    p05 |   below_share |
 |:-----------|:-----------|-------:|---------:|-------:|--------------:|
-| hin        | mal        |    532 |   0.8588 | 0.7372 |        0.297  |
-| tel        | mal        |    532 |   0.8607 | 0.7458 |        0.2613 |
-| ben        | mal        |    532 |   0.8702 | 0.762  |        0.2124 |
-| tel        | ben        |    532 |   0.8812 | 0.7745 |        0.1617 |
-| ben        | tel        |    532 |   0.8889 | 0.7769 |        0.1241 |
-| tel        | hin        |    532 |   0.8905 | 0.7855 |        0.1015 |
-| hin        | tel        |    532 |   0.9028 | 0.8008 |        0.0846 |
-| ben        | hin        |    532 |   0.8984 | 0.7982 |        0.0771 |
-| hin        | ben        |    532 |   0.9083 | 0.8107 |        0.0714 |
+| hin        | mal        |    532 |   0.8588 | 0.7372 |        0.0451 |
+| tel        | mal        |    532 |   0.8607 | 0.7458 |        0.0376 |
+| ben        | mal        |    532 |   0.8702 | 0.762  |        0.0207 |
+| tel        | ben        |    532 |   0.8812 | 0.7745 |        0.0188 |
+| tel        | hin        |    532 |   0.8905 | 0.7855 |        0.0113 |
+| ben        | tel        |    532 |   0.8889 | 0.7769 |        0.0113 |
+| hin        | tel        |    532 |   0.9028 | 0.8008 |        0.0075 |
+| ben        | hin        |    532 |   0.8984 | 0.7982 |        0.0038 |
+| hin        | ben        |    532 |   0.9083 | 0.8107 |        0.0038 |
 
 ## What a human translation scores, on the same measure
 
@@ -22,9 +22,9 @@ The native splits of this task are human translations of one another (§2.1), so
 
 | pair    |   rows |   median |    p05 |   below_tau |
 |:--------|-------:|---------:|-------:|------------:|
-| ben-hin |    532 |   0.8758 | 0.7484 |      0.2124 |
-| ben-tel |    532 |   0.8511 | 0.7084 |      0.3252 |
-| hin-tel |    532 |   0.8839 | 0.7492 |      0.1654 |
+| ben-hin |    532 |   0.8758 | 0.7484 |      0.0338 |
+| ben-tel |    532 |   0.8511 | 0.7084 |      0.0827 |
+| hin-tel |    532 |   0.8839 | 0.7492 |      0.0395 |
 
 ## MT against a human translation of the same item
 
@@ -41,8 +41,8 @@ Same language, same item, so this isolates translation quality from cross-langua
 
 ## Rationale
 
-- τ=0.82 rejects 23.4% of human translations of the same items, scored on exactly the same measure. A threshold that calls one human translation in 4 a failure is not measuring translation quality.
-- 3 of 9 directions fall more than 20% below τ (hin→mal, tel→mal, ben→mal), which §8 names as the signal that the threshold is wrong rather than the translations.
-- Revised τ = 0.73, the value that passes 95% of human translations. It is derived from the corpus rather than inherited, and it is a floor for 'plausibly a translation of this', not a quality score.
+- τ=0.73 **is** the calibrated value: it is where 95% of human translations of these same items pass, measured exactly as MT is measured. It rejects 5.2% of them.
+- 0 of 9 directions fall more than 20% below τ.
+- This task's native sentences run 86 characters at the median. LaBSE cosine falls as context shortens, which is why τ is per task: the same threshold rejects 0% of human translations on task 2 and 23% on task 3, and the difference is text length, not translation quality.
 
-240 marginal pairs either side of τ are exported to `tau_inspection_pairs.parquet` for reading — 30 per side per target language, chosen by closeness to τ, which are the pairs the threshold actually decides.
+180 marginal pairs either side of τ are exported to `tau_inspection_pairs.parquet` for reading — 30 per side per target language, chosen by closeness to τ, which are the pairs the threshold actually decides.

@@ -32,6 +32,7 @@ from src.labse_gate import (
     apply_scores,
     load_config,
     reference_scores,
+    tau_for,
     score_task,
     verification_fingerprint,
 )
@@ -70,7 +71,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"\n{error}", file=sys.stderr)
         return 1
 
-    tau = config["tau"]
+    tau = tau_for(config, args.task)
     summary = (
         scores.groupby(["src_lang", "tgt_lang"])["labse_sim"]
         .agg(rows="size", mean="mean", median="median", p05=lambda s: s.quantile(0.05))

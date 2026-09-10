@@ -41,6 +41,18 @@ def load_config(path=CONFIG_PATH) -> dict:
     return json.loads(path.read_text())
 
 
+def tau_for(config: dict, task: int) -> float:
+    """The threshold for one task.
+
+    Per task, because the evidence is per task. T-110 found the same τ rejecting
+    0.0% of human translations on task 2 and 23.4% on task 3 — not because task
+    3 is translated worse, but because its text is news headlines at a median of
+    88 characters against task 2's 144, and LaBSE cosine falls as context
+    shortens. One global number would have to be wrong for one of them.
+    """
+    return float(config.get("tau_by_task", {}).get(f"task_{task}", config["tau"]))
+
+
 def verification_fingerprint(config: dict) -> str:
     """Everything that can change a score (§4 rule 8). Batch size cannot."""
     return config_hash(

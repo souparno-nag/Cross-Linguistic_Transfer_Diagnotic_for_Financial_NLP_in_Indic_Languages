@@ -6,5 +6,8 @@
   "max_seq_length": 256,
   "normalize_embeddings": true,
   "seed": 20260903,
-  "note": "The verification layer's frozen settings (T-108-T-110). tau is inherited from the project brief and is CALIBRATED, not asserted, in T-110 — if that task revises it, change it here and re-run T-109 and T-111, whose outputs are only comparable within one value. Embeddings are L2-normalised at encode time so cosine similarity is a plain dot product; changing that changes every score."
+  "note": "The verification layer's frozen settings (T-108-T-110). tau is CALIBRATED, not asserted: T-110 scores human translations of the same items on the same measure and sets tau where 95% of them pass. It is per task because the answer differs by task, and the reason is text length rather than translation quality — task 3 is news headlines at a median of 88 characters against 144 for task 2, and LaBSE cosine falls as context shortens. A global 0.82 rejects 0.0% of human translations on task 2 and 23.4% on task 3. Task 1 has no human reference at all (§2.2), so its value stays inherited and every figure derived from it must be read that way. Changing a value here invalidates comparisons against artefacts produced under the old one: re-run T-109 and T-111 for that task. Embeddings are L2-normalised at encode time so cosine is a plain dot product; changing that changes every score.",
+  "tau_by_task": {
+    "task_3": 0.73
+  }
 }

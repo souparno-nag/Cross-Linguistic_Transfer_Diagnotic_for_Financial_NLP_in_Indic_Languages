@@ -33,7 +33,7 @@ import pandas as pd
 from src.corpus_io import read_split
 from src.download_dataset.paths import REPO_ROOT
 from src.ids import BLOCK_NATIVE_LANG
-from src.labse_gate import VERIFICATION_ROOT, human_cross_scores, load_config
+from src.labse_gate import VERIFICATION_ROOT, human_cross_scores, load_config, tau_for
 
 REPORT_ROOT = REPO_ROOT / "reports"
 PAIRS_EITHER_SIDE = 30
@@ -83,7 +83,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     config = load_config()
-    tau = config["tau"]
+    tau = tau_for(config, args.task)
     task_dir = VERIFICATION_ROOT / f"task_{args.task}"
     scores_path = task_dir / "labse_scores.parquet"
     if not scores_path.exists():
@@ -111,9 +111,12 @@ def main(argv: list[str] | None = None) -> int:
 
     verdict, revised, rationale = "confirmed", tau, []
     if len(human):
-        human_stats = deciles(human["human_sim"])
-        floor = float(human["human_sim"].quantile(1 - HUMAN_PASS_RATE))
+        floor = round(float(human["human_sim"].quantile(1 - HUMAN_PASS_RATE)), 2)
         rejected = float((human["human_sim"] < tau).mean())
+        median_length = float(
+            pd.Series([len(str(t)) for t in read_split(args.task, "H", "hin")["text"]]).median()
+        )
+        over = per_direction[per_direction["below_share"] > OVER_THRESHOLD]
         print("\nhuman translations of the same item, scored the same way:")
         print(pd.DataFrame([
             {"pair": f"{a}-{b}", "rows": len(g), "median": round(g["human_sim"].median(), 4),
@@ -121,32 +124,63 @@ def main(argv: list[str] | None = None) -> int:
              "below_tau": round(float((g["human_sim"] < tau).mean()), 4)}
             for (a, b), g in human.groupby(["lang_a", "lang_b"])
         ]).to_string(index=False))
-        print(f"\nτ={tau} rejects {rejected:.1%} of known-good human translations")
+        print(f"\nτ={tau} rejects {rejected:.1%} of known-good human translations; "
+              f"the value that would pass {HUMAN_PASS_RATE:.0%} of them is {floor}")
+        print(f"median native sentence length: {median_length:.0f} characters")
 
-        over = per_direction[per_direction["below_share"] > OVER_THRESHOLD]
-        if rejected > (1 - HUMAN_PASS_RATE) or len(over):
+        length_note = (
+            f"This task's native sentences run {median_length:.0f} characters at the "
+            "median. LaBSE cosine falls as context shortens, which is why τ is per "
+            "task: the same threshold rejects 0% of human translations on task 2 and "
+            "23% on task 3, and the difference is text length, not translation quality."
+        )
+        if abs(tau - floor) < 0.005:
+            verdict = "confirmed (calibrated)"
+            rationale = [
+                f"τ={tau} **is** the calibrated value: it is where "
+                f"{HUMAN_PASS_RATE:.0%} of human translations of these same items pass, "
+                f"measured exactly as MT is measured. It rejects {rejected:.1%} of them.",
+                f"{len(over)} of 9 directions fall more than {OVER_THRESHOLD:.0%} below "
+                "τ" + (f" ({', '.join(f'{r.src_lang}→{r.tgt_lang}' for r in over.itertuples())})." if len(over) else "."),
+                length_note,
+            ]
+        elif rejected > (1 - HUMAN_PASS_RATE) or len(over):
             verdict = "revised"
-            revised = round(floor, 2)
+            revised = floor
             rationale = [
                 f"τ={tau} rejects {rejected:.1%} of human translations of the same "
-                f"items, scored on exactly the same measure. A threshold that calls "
-                f"one human translation in {max(1, round(1 / max(rejected, 1e-9)))} a "
-                f"failure is not measuring translation quality.",
-                f"{len(over)} of 9 directions fall more than {OVER_THRESHOLD:.0%} below "
-                f"τ ({', '.join(f'{r.src_lang}→{r.tgt_lang}' for r in over.itertuples())}), "
-                "which §8 names as the signal that the threshold is wrong rather than "
-                "the translations.",
+                "items, scored on exactly the same measure. A threshold that rejects "
+                "known-good work at that rate is not measuring translation quality.",
+                (f"{len(over)} of 9 directions fall more than {OVER_THRESHOLD:.0%} below τ "
+                 f"({', '.join(f'{r.src_lang}→{r.tgt_lang}' for r in over.itertuples())}), "
+                 "which §8 names as the signal that the threshold is wrong rather than "
+                 "the translations.") if len(over) else
+                (f"No direction exceeds §8's {OVER_THRESHOLD:.0%} trigger, but the human "
+                 "anchor alone is enough to move it."),
                 f"Revised τ = {revised:.2f}, the value that passes "
-                f"{HUMAN_PASS_RATE:.0%} of human translations. It is derived from the "
-                "corpus rather than inherited, and it is a floor for 'plausibly a "
-                "translation of this', not a quality score.",
+                f"{HUMAN_PASS_RATE:.0%} of human translations. Derived from the corpus "
+                "rather than inherited, and a floor for 'plausibly a translation of "
+                "this', not a quality score.",
+                length_note,
+            ]
+        else:
+            rationale = [
+                f"τ={tau} rejects {rejected:.1%} of human translations of the same "
+                f"items — inside the {1 - HUMAN_PASS_RATE:.0%} the calibration allows, "
+                "so the threshold is not rejecting known-good work.",
+                f"No direction falls more than {OVER_THRESHOLD:.0%} below τ, the signal "
+                "§8 names for a threshold measuring the wrong thing.",
+                length_note,
             ]
     else:
         rationale = [
             f"Task {args.task} has no human reference in any direction — its native "
             "splits are independently sourced (§2.2), so there is no known-good pair "
-            "to calibrate against. τ stays at the inherited value and every figure "
+            "to calibrate against. τ stays at the inherited value, and every figure "
             "derived from it must be read as inherited, not calibrated.",
+            "The other tasks' calibrated values cannot be borrowed either: τ tracks "
+            "text length as much as translation quality, and this task's text is a "
+            "different length again.",
         ]
 
     if len(reference):
@@ -171,7 +205,7 @@ def main(argv: list[str] | None = None) -> int:
     lines = [
         f"# T-110 — calibrating τ, task {args.task}",
         "",
-        f"Inherited τ = {tau}. **Verdict: {verdict}"
+        f"τ in effect = {tau}. **Verdict: {verdict}"
         + (f", revised to {revised:.2f}.**" if verdict == "revised" else ".**"),
         "",
         "## What MT scores",

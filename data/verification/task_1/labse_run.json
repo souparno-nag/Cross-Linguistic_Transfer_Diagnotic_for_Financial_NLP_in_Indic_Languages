@@ -1,0 +1,10 @@
+{
+  "task": 1,
+  "model": "sentence-transformers/LaBSE",
+  "fingerprint": "c591c46c0e26f536",
+  "tau": 0.82,
+  "device": "cuda",
+  "pairs": 68358,
+  "reference_pairs": 0,
+  "run_at": "2026-09-10T07:25:34+00:00"
+}

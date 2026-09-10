@@ -1,0 +1,112 @@
+{
+  "task": 3,
+  "frozen_at": "2026-09-10T07:37:17+00:00",
+  "splits": 12,
+  "rows": 6384,
+  "missing": [],
+  "fingerprints": {
+    "translation_model": "ai4bharat/indictrans2-indic-indic-1B",
+    "decoding": "08e5a3dc7f258d7e",
+    "similarity_model": "sentence-transformers/LaBSE",
+    "verification": "c591c46c0e26f536",
+    "tau": 0.82
+  },
+  "files": {
+    "H/hin.parquet": {
+      "sha256": "1fbe2c2fbf17bc94383e9c14d8a5965fd9d14748b90152a3f5e8eadc7d2c56c9",
+      "rows": 532,
+      "origin": [
+        "native"
+      ],
+      "flagged_rows": 0
+    },
+    "H/ben.parquet": {
+      "sha256": "ea711a2487cda5ecccd5fceec30d6dcb399c1ef39a05a8c68722910a47620ed1",
+      "rows": 532,
+      "origin": [
+        "mt"
+      ],
+      "flagged_rows": 4
+    },
+    "H/tel.parquet": {
+      "sha256": "db6f08f6baee21304f9f02c9693780daa64c4562e269afa3aeb2b648b790e3d9",
+      "rows": 532,
+      "origin": [
+        "mt"
+      ],
+      "flagged_rows": 4
+    },
+    "H/mal.parquet": {
+      "sha256": "c3a5b402b2b2268f4741e2701d1aa34c71d0fec17ccf38afeb11eef72222f97b",
+      "rows": 532,
+      "origin": [
+        "mt"
+      ],
+      "flagged_rows": 25
+    },
+    "B/ben.parquet": {
+      "sha256": "9b8b571fccd5edf76ea1d40c4c924b92e395dc7de57bde19ef3bc3a0088e0f5f",
+      "rows": 532,
+      "origin": [
+        "native"
+      ],
+      "flagged_rows": 0
+    },
+    "B/hin.parquet": {
+      "sha256": "9aa258faafb3f36c56f4b8d42c6ee8b074b67a025160dcdd0643fdbbf372ace3",
+      "rows": 532,
+      "origin": [
+        "mt"
+      ],
+      "flagged_rows": 3
+    },
+    "B/tel.parquet": {
+      "sha256": "224af587a3e7c53f935d488769ff528f3a3d0d4edc17d2c5f8f7114a1465196a",
+      "rows": 532,
+      "origin": [
+        "mt"
+      ],
+      "flagged_rows": 7
+    },
+    "B/mal.parquet": {
+      "sha256": "562a19119e7192d27ebaf89cc527b6896899f6fc10d6ef4276a00d37962904e7",
+      "rows": 532,
+      "origin": [
+        "mt"
+      ],
+      "flagged_rows": 12
+    },
+    "T/tel.parquet": {
+      "sha256": "c243a06f6ea28fda8597fbcd3c1afc736027e987de96bd651d99948d539ed539",
+      "rows": 532,
+      "origin": [
+        "native"
+      ],
+      "flagged_rows": 0
+    },
+    "T/hin.parquet": {
+      "sha256": "1c8a846cf8c3ccb5d7c05bcd8568b1ab54d6d5632829c3f0b8f14bc7cf006b60",
+      "rows": 532,
+      "origin": [
+        "mt"
+      ],
+      "flagged_rows": 11
+    },
+    "T/ben.parquet": {
+      "sha256": "70195a9dcca07fd66d941263ef6d06efbf3da00a1c7c0399de2d31a87d116ab0",
+      "rows": 532,
+      "origin": [
+        "mt"
+      ],
+      "flagged_rows": 17
+    },
+    "T/mal.parquet": {
+      "sha256": "11c7d6b1af516455273362efe51064513cb930de42ed45919badb38258534d53",
+      "rows": 532,
+      "origin": [
+        "mt"
+      ],
+      "flagged_rows": 24
+    }
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "task": 1,
+  "inherited_tau": 0.82,
+  "verdict": "confirmed",
+  "revised_tau": 0.82,
+  "rationale": [
+    "Task 1 has no human reference in any direction — its native splits are independently sourced (§2.2), so there is no known-good pair to calibrate against. τ stays at the inherited value, and every figure derived from it must be read as inherited, not calibrated.",
+    "The other tasks' calibrated values cannot be borrowed either: τ tracks text length as much as translation quality, and this task's text is a different length again."
+  ],
+  "human_rows": 0
+}

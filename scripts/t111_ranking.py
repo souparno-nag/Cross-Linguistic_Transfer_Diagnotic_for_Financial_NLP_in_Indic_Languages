@@ -29,7 +29,7 @@ import pandas as pd
 from src.corpus_io import is_numeral_task, read_split
 from src.download_dataset.paths import REPO_ROOT
 from src.ids import BLOCK_NATIVE_LANG, targets_for_block
-from src.labse_gate import VERIFICATION_ROOT, load_config
+from src.labse_gate import VERIFICATION_ROOT, load_config, tau_for
 
 REPORT_ROOT = REPO_ROOT / "reports"
 
@@ -167,7 +167,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     config = load_config()
-    tau = args.tau if args.tau is not None else config["tau"]
+    tau = args.tau if args.tau is not None else tau_for(config, args.task)
     try:
         frame = gather(args.task, tau)
     except FileNotFoundError as error:
