@@ -62,6 +62,24 @@ architecture. Do not add layers, pooling strategies, or loss tricks.
 
 ---
 
+## Code layout
+
+Same shape as Phase 1: **all logic lives in importable `src/` modules**
+(`src/train.py`, `src/data.py`, `src/config.py`, `src/metrics.py`, …), each with
+tests in `tests/`, driven by thin `scripts/t20x_*.py` CLIs run as
+`python -m scripts.t20x_*`. The corpus modules stay flat in `src/`.
+
+A **single** exploratory notebook, `notebooks/phase2.ipynb`, is allowed — but only
+as a *driver*: it imports `src/` code to launch runs and inspect results (VRAM
+probing, tokeniser output, the T-207 baseline gap, learning curves). No pipeline
+logic is defined in it. Nothing on the reproducibility path — the loader, the
+training loop, the config system, the baseline runs — may exist only in the
+notebook, because out-of-order cell execution and hidden kernel state defeat
+`hard rule 5` and the "reproducible cold in October" requirement. Strip outputs
+before committing the notebook.
+
+---
+
 ## Tasks
 
 ### T-201 — Environment
