@@ -8,3 +8,6 @@ task3_hin_indicbert_seed2,indicbert-v2,task3/H/hin/native,2,3cfa977e0796d337,0.2
 task3_hin_indicbert_seed0,indicbert-v2,task3/H/hin/native,0,3c26eb850cc022ce,0.2375,0.162002,2026-09-10T21:14:59+00:00
 task3_hin_indicbert_seed1,indicbert-v2,task3/H/hin/native,1,0ff17fac80ff5047,0.25,0.171425,2026-09-10T21:16:22+00:00
 task3_hin_indicbert_seed2,indicbert-v2,task3/H/hin/native,2,679af8829a83a21a,0.1875,0.124289,2026-09-10T21:18:38+00:00
+task2_hin_indicbert_seed0,indicbert-v2,task2/H/hin/native,0,241c6ddff33229dd,0.821429,0.819355,2026-09-10T21:39:40+00:00
+task2_hin_indicbert_seed1,indicbert-v2,task2/H/hin/native,1,e246d163f8ada87a,0.821429,0.820915,2026-09-10T21:44:44+00:00
+task2_hin_indicbert_seed2,indicbert-v2,task2/H/hin/native,2,7e441ddd0cf95de3,0.830357,0.827664,2026-09-10T21:53:54+00:00

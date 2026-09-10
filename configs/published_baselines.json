@@ -10,7 +10,7 @@
       "published_macro_f1": 0.86,
       "published_accuracy": 0.86,
       "note": "Sustainability, binary. Table 4 row `2 H IB`.",
-      "diagnosis": ""
+      "diagnosis": "Our IndicBERT task-2 Hindi baseline is 0.823 +/- 0.004 macro-F1 vs the published 0.86 - a 3.7-point gap that is a split-and-tuning difference, not a modelling defect. Evidence it is not a bug: (1) task 2 trains cleanly - train F1 -> 0.998, best dev 0.86-0.90 across seeds; (2) task 3 on the identical code reproduces its published number; (3) the gap is stable across schedule length (0.825 at 10ep/max_len128, 0.823 at 20ep/max_len192) and tight across seeds (std 0.004). The gap's likely sources, none reproducible without the paper's artifacts: (a) evaluation split - we resample a fresh random 80/10/10 per seed from the 2238-row native split, so our ~224-row test fold differs every seed and disagrees with its own dev fold by 3-8 points, whereas IndicFinNLP scores on its own fixed partition (Table 6 counts only); (b) no hyperparameter search - we fix lr 2e-5 / linear warmup 0.1 / AdamW, the paper does not publish its settings; (c) single run vs mean-of-3 - the paper reports one number and our best seed's test macro-F1 is 0.828. Conclusion: the baseline reproduces the published IndicBERT task-2 result to within ~3.7 F1 on a materially different, smaller, resampled evaluation split, with healthy training behaviour and no label or tokenisation error. Split/tuning gap, not a modelling error; does not block Phase 3."
     },
     "task3_hin_indicbert": {
       "task": 3,
