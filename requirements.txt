@@ -20,5 +20,14 @@ transformers<5
 IndicTransToolkit
 sentencepiece
 
+# Training pipeline (Phase 2, CLAUDE2.md T-201–T-208). Shares this venv with
+# Phase 1, so transformers stays <5 (above); IndicBERT-v2, XLM-R and mBERT all
+# load fine on 4.x via AutoModel/AutoTokenizer.
+# torch/numpy floors match CLAUDE.md §3.
+torch>=2.5
+numpy>=2.1
+scikit-learn      # macro-F1 is the primary metric (T-206 rule 6); also the classification report
+PyYAML            # T-204 config system: seed, LR, batch size, max_len, epochs, encoder, split
+
 # Tests (CLAUDE.md §10).
 pytest
