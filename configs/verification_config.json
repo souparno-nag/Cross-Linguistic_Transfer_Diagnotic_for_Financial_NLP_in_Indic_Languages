@@ -1,0 +1,10 @@
+{
+  "model": "sentence-transformers/LaBSE",
+  "revision": "main",
+  "tau": 0.82,
+  "batch_size": 32,
+  "max_seq_length": 256,
+  "normalize_embeddings": true,
+  "seed": 20260903,
+  "note": "The verification layer's frozen settings (T-108-T-110). tau is inherited from the project brief and is CALIBRATED, not asserted, in T-110 — if that task revises it, change it here and re-run T-109 and T-111, whose outputs are only comparable within one value. Embeddings are L2-normalised at encode time so cosine similarity is a plain dot product; changing that changes every score."
+}
