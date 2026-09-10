@@ -31,14 +31,21 @@ baseline regardless.
 
 ## Encoders
 
-| Model | HF id | Status |
-| --- | --- | --- |
-| IndicBERT-v2 | `ai4bharat/indic-bert` | committed |
-| XLM-R base | `xlm-roberta-base` | Phase 5 extension |
-| mBERT base | `bert-base-multilingual-cased` | Phase 5 extension |
+| Model | HF id | encoder key | Status |
+| --- | --- | --- | --- |
+| IndicBERT-v2 | `ai4bharat/indic-bert` | `indicbert-v2` | committed |
+| XLM-R base | `xlm-roberta-base` | `xlm-r-base` | Phase 5 extension |
+| mBERT base | `bert-base-multilingual-cased` | `mbert-base` | Phase 5 extension |
 
 Phase 2 only needs IndicBERT-v2 working. Keep the loader model-agnostic so Phase 5 costs
-nothing.
+nothing — `src/data.py` holds the registry and both other encoders already load and
+tokenise.
+
+**`ai4bharat/indic-bert` is gated**, like the IndicTrans2 repos (CLAUDE.md §3.1). Being
+logged in to the Hub is not enough: accept the terms at
+<https://huggingface.co/ai4bharat/indic-bert> with the same account, then the download
+works. Until then the loader raises `OSError: gated repo` and the `slow` tokeniser tests
+for `indicbert-v2` skip with that reason rather than failing.
 
 ---
 
@@ -101,10 +108,25 @@ passes on the 3050; `requirements.txt` carries the Phase 2 deps and
 `requirements.lock.txt` is the committed full `pip freeze`.
 
 ### T-202 — Dataset loader
+`src/data.py`, `tests/test_data.py`
 
 Loads any split by `(block_id, lang, origin)`; tokenizes per encoder; asserts labels
 against `labels.json`.
-**Done:** unit tests cover all 4 languages × 3 encoders.
+
+`load_split(task, block, lang, origin)` goes through `src/corpus_io.read_split`, so the
+§6 schema and label checks run before a row is seen. `origin` is asserted against the
+file's actual contents — asking for `native` on a machine-translated split raises rather
+than returning nothing, so `hard rule 1` cannot be broken by accident. The numeral task
+(task 1) is refused: it has no classification label. `stratified_split()` makes the
+seeded, class-stratified train/dev/test partition the frozen corpus does not carry.
+`SplitDataset` tokenises once with truncation and pads per batch in `collate` to keep
+wasted compute off the 4 GB card. The encoder registry (`ENCODERS`) carries all three
+models; only IndicBERT-v2 matters for Phase 2.
+
+**Done.** 22 offline tests (origin assertion, task-1 refusal, label range, deterministic
+stratified split) plus `slow` tests tokenising all 4 languages × 3 encoders — xlm-r and
+mbert pass; the 4 `indicbert-v2` cases skip until its gated repo is accepted (see
+Encoders).
 
 ### T-203 — Training loop
 
