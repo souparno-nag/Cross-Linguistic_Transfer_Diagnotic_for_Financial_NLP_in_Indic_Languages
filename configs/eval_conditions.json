@@ -266,6 +266,105 @@
         "note": "no native mal exists (§2), so evaluation uses MT from block B rather than from the block just trained on. Every split of this task holds the same items (§2.2), so the seeded item partition is what keeps training and evaluation disjoint"
       },
       {
+        "name": "transfer_hin_to_ben_mt",
+        "kind": "transfer_mt",
+        "quadrant": "Indo-Aryan->Indo-Aryan",
+        "train": "task_2/H/hin",
+        "eval": "task_2/H/ben",
+        "eval_provenance": "hin",
+        "train_items": "partition:train",
+        "eval_items": "partition:eval",
+        "note": "same underlying hin-authored content as the matching native transfer cell, but evaluated on hin→ben machine translation instead of real text -- isolates translation artefacts from the language-transfer effect, at the cost of the same-source risk transfer_conditions avoids for Malayalam. Every split of this task holds the same items (§2.2), so the seeded item partition is what keeps training and evaluation disjoint"
+      },
+      {
+        "name": "transfer_hin_to_tel_mt",
+        "kind": "transfer_mt",
+        "quadrant": "Indo-Aryan->Dravidian",
+        "train": "task_2/H/hin",
+        "eval": "task_2/H/tel",
+        "eval_provenance": "hin",
+        "train_items": "partition:train",
+        "eval_items": "partition:eval",
+        "note": "same underlying hin-authored content as the matching native transfer cell, but evaluated on hin→tel machine translation instead of real text -- isolates translation artefacts from the language-transfer effect, at the cost of the same-source risk transfer_conditions avoids for Malayalam. Every split of this task holds the same items (§2.2), so the seeded item partition is what keeps training and evaluation disjoint"
+      },
+      {
+        "name": "transfer_hin_to_mal_mt",
+        "kind": "transfer_mt",
+        "quadrant": "Indo-Aryan->Dravidian",
+        "train": "task_2/H/hin",
+        "eval": "task_2/H/mal",
+        "eval_provenance": "hin",
+        "train_items": "partition:train",
+        "eval_items": "partition:eval",
+        "note": "same underlying hin-authored content as the matching native transfer cell, but evaluated on hin→mal machine translation instead of real text -- isolates translation artefacts from the language-transfer effect, at the cost of the same-source risk transfer_conditions avoids for Malayalam. Every split of this task holds the same items (§2.2), so the seeded item partition is what keeps training and evaluation disjoint"
+      },
+      {
+        "name": "transfer_ben_to_hin_mt",
+        "kind": "transfer_mt",
+        "quadrant": "Indo-Aryan->Indo-Aryan",
+        "train": "task_2/B/ben",
+        "eval": "task_2/B/hin",
+        "eval_provenance": "ben",
+        "train_items": "partition:train",
+        "eval_items": "partition:eval",
+        "note": "same underlying ben-authored content as the matching native transfer cell, but evaluated on ben→hin machine translation instead of real text -- isolates translation artefacts from the language-transfer effect, at the cost of the same-source risk transfer_conditions avoids for Malayalam. Every split of this task holds the same items (§2.2), so the seeded item partition is what keeps training and evaluation disjoint"
+      },
+      {
+        "name": "transfer_ben_to_tel_mt",
+        "kind": "transfer_mt",
+        "quadrant": "Indo-Aryan->Dravidian",
+        "train": "task_2/B/ben",
+        "eval": "task_2/B/tel",
+        "eval_provenance": "ben",
+        "train_items": "partition:train",
+        "eval_items": "partition:eval",
+        "note": "same underlying ben-authored content as the matching native transfer cell, but evaluated on ben→tel machine translation instead of real text -- isolates translation artefacts from the language-transfer effect, at the cost of the same-source risk transfer_conditions avoids for Malayalam. Every split of this task holds the same items (§2.2), so the seeded item partition is what keeps training and evaluation disjoint"
+      },
+      {
+        "name": "transfer_ben_to_mal_mt",
+        "kind": "transfer_mt",
+        "quadrant": "Indo-Aryan->Dravidian",
+        "train": "task_2/B/ben",
+        "eval": "task_2/B/mal",
+        "eval_provenance": "ben",
+        "train_items": "partition:train",
+        "eval_items": "partition:eval",
+        "note": "same underlying ben-authored content as the matching native transfer cell, but evaluated on ben→mal machine translation instead of real text -- isolates translation artefacts from the language-transfer effect, at the cost of the same-source risk transfer_conditions avoids for Malayalam. Every split of this task holds the same items (§2.2), so the seeded item partition is what keeps training and evaluation disjoint"
+      },
+      {
+        "name": "transfer_tel_to_hin_mt",
+        "kind": "transfer_mt",
+        "quadrant": "Dravidian->Indo-Aryan",
+        "train": "task_2/T/tel",
+        "eval": "task_2/T/hin",
+        "eval_provenance": "tel",
+        "train_items": "partition:train",
+        "eval_items": "partition:eval",
+        "note": "same underlying tel-authored content as the matching native transfer cell, but evaluated on tel→hin machine translation instead of real text -- isolates translation artefacts from the language-transfer effect, at the cost of the same-source risk transfer_conditions avoids for Malayalam. Every split of this task holds the same items (§2.2), so the seeded item partition is what keeps training and evaluation disjoint"
+      },
+      {
+        "name": "transfer_tel_to_ben_mt",
+        "kind": "transfer_mt",
+        "quadrant": "Dravidian->Indo-Aryan",
+        "train": "task_2/T/tel",
+        "eval": "task_2/T/ben",
+        "eval_provenance": "tel",
+        "train_items": "partition:train",
+        "eval_items": "partition:eval",
+        "note": "same underlying tel-authored content as the matching native transfer cell, but evaluated on tel→ben machine translation instead of real text -- isolates translation artefacts from the language-transfer effect, at the cost of the same-source risk transfer_conditions avoids for Malayalam. Every split of this task holds the same items (§2.2), so the seeded item partition is what keeps training and evaluation disjoint"
+      },
+      {
+        "name": "transfer_tel_to_mal_mt",
+        "kind": "transfer_mt",
+        "quadrant": "Dravidian->Dravidian",
+        "train": "task_2/T/tel",
+        "eval": "task_2/T/mal",
+        "eval_provenance": "tel",
+        "train_items": "partition:train",
+        "eval_items": "partition:eval",
+        "note": "same underlying tel-authored content as the matching native transfer cell, but evaluated on tel→mal machine translation instead of real text -- isolates translation artefacts from the language-transfer effect, at the cost of the same-source risk transfer_conditions avoids for Malayalam. Every split of this task holds the same items (§2.2), so the seeded item partition is what keeps training and evaluation disjoint"
+      },
+      {
         "name": "translationese_hin",
         "kind": "translationese",
         "quadrant": null,
@@ -419,6 +518,105 @@
         "train_items": "partition:train",
         "eval_items": "partition:eval",
         "note": "no native mal exists (§2), so evaluation uses MT from block B rather than from the block just trained on. Every split of this task holds the same items (§2.2), so the seeded item partition is what keeps training and evaluation disjoint"
+      },
+      {
+        "name": "transfer_hin_to_ben_mt",
+        "kind": "transfer_mt",
+        "quadrant": "Indo-Aryan->Indo-Aryan",
+        "train": "task_3/H/hin",
+        "eval": "task_3/H/ben",
+        "eval_provenance": "hin",
+        "train_items": "partition:train",
+        "eval_items": "partition:eval",
+        "note": "same underlying hin-authored content as the matching native transfer cell, but evaluated on hin→ben machine translation instead of real text -- isolates translation artefacts from the language-transfer effect, at the cost of the same-source risk transfer_conditions avoids for Malayalam. Every split of this task holds the same items (§2.2), so the seeded item partition is what keeps training and evaluation disjoint"
+      },
+      {
+        "name": "transfer_hin_to_tel_mt",
+        "kind": "transfer_mt",
+        "quadrant": "Indo-Aryan->Dravidian",
+        "train": "task_3/H/hin",
+        "eval": "task_3/H/tel",
+        "eval_provenance": "hin",
+        "train_items": "partition:train",
+        "eval_items": "partition:eval",
+        "note": "same underlying hin-authored content as the matching native transfer cell, but evaluated on hin→tel machine translation instead of real text -- isolates translation artefacts from the language-transfer effect, at the cost of the same-source risk transfer_conditions avoids for Malayalam. Every split of this task holds the same items (§2.2), so the seeded item partition is what keeps training and evaluation disjoint"
+      },
+      {
+        "name": "transfer_hin_to_mal_mt",
+        "kind": "transfer_mt",
+        "quadrant": "Indo-Aryan->Dravidian",
+        "train": "task_3/H/hin",
+        "eval": "task_3/H/mal",
+        "eval_provenance": "hin",
+        "train_items": "partition:train",
+        "eval_items": "partition:eval",
+        "note": "same underlying hin-authored content as the matching native transfer cell, but evaluated on hin→mal machine translation instead of real text -- isolates translation artefacts from the language-transfer effect, at the cost of the same-source risk transfer_conditions avoids for Malayalam. Every split of this task holds the same items (§2.2), so the seeded item partition is what keeps training and evaluation disjoint"
+      },
+      {
+        "name": "transfer_ben_to_hin_mt",
+        "kind": "transfer_mt",
+        "quadrant": "Indo-Aryan->Indo-Aryan",
+        "train": "task_3/B/ben",
+        "eval": "task_3/B/hin",
+        "eval_provenance": "ben",
+        "train_items": "partition:train",
+        "eval_items": "partition:eval",
+        "note": "same underlying ben-authored content as the matching native transfer cell, but evaluated on ben→hin machine translation instead of real text -- isolates translation artefacts from the language-transfer effect, at the cost of the same-source risk transfer_conditions avoids for Malayalam. Every split of this task holds the same items (§2.2), so the seeded item partition is what keeps training and evaluation disjoint"
+      },
+      {
+        "name": "transfer_ben_to_tel_mt",
+        "kind": "transfer_mt",
+        "quadrant": "Indo-Aryan->Dravidian",
+        "train": "task_3/B/ben",
+        "eval": "task_3/B/tel",
+        "eval_provenance": "ben",
+        "train_items": "partition:train",
+        "eval_items": "partition:eval",
+        "note": "same underlying ben-authored content as the matching native transfer cell, but evaluated on ben→tel machine translation instead of real text -- isolates translation artefacts from the language-transfer effect, at the cost of the same-source risk transfer_conditions avoids for Malayalam. Every split of this task holds the same items (§2.2), so the seeded item partition is what keeps training and evaluation disjoint"
+      },
+      {
+        "name": "transfer_ben_to_mal_mt",
+        "kind": "transfer_mt",
+        "quadrant": "Indo-Aryan->Dravidian",
+        "train": "task_3/B/ben",
+        "eval": "task_3/B/mal",
+        "eval_provenance": "ben",
+        "train_items": "partition:train",
+        "eval_items": "partition:eval",
+        "note": "same underlying ben-authored content as the matching native transfer cell, but evaluated on ben→mal machine translation instead of real text -- isolates translation artefacts from the language-transfer effect, at the cost of the same-source risk transfer_conditions avoids for Malayalam. Every split of this task holds the same items (§2.2), so the seeded item partition is what keeps training and evaluation disjoint"
+      },
+      {
+        "name": "transfer_tel_to_hin_mt",
+        "kind": "transfer_mt",
+        "quadrant": "Dravidian->Indo-Aryan",
+        "train": "task_3/T/tel",
+        "eval": "task_3/T/hin",
+        "eval_provenance": "tel",
+        "train_items": "partition:train",
+        "eval_items": "partition:eval",
+        "note": "same underlying tel-authored content as the matching native transfer cell, but evaluated on tel→hin machine translation instead of real text -- isolates translation artefacts from the language-transfer effect, at the cost of the same-source risk transfer_conditions avoids for Malayalam. Every split of this task holds the same items (§2.2), so the seeded item partition is what keeps training and evaluation disjoint"
+      },
+      {
+        "name": "transfer_tel_to_ben_mt",
+        "kind": "transfer_mt",
+        "quadrant": "Dravidian->Indo-Aryan",
+        "train": "task_3/T/tel",
+        "eval": "task_3/T/ben",
+        "eval_provenance": "tel",
+        "train_items": "partition:train",
+        "eval_items": "partition:eval",
+        "note": "same underlying tel-authored content as the matching native transfer cell, but evaluated on tel→ben machine translation instead of real text -- isolates translation artefacts from the language-transfer effect, at the cost of the same-source risk transfer_conditions avoids for Malayalam. Every split of this task holds the same items (§2.2), so the seeded item partition is what keeps training and evaluation disjoint"
+      },
+      {
+        "name": "transfer_tel_to_mal_mt",
+        "kind": "transfer_mt",
+        "quadrant": "Dravidian->Dravidian",
+        "train": "task_3/T/tel",
+        "eval": "task_3/T/mal",
+        "eval_provenance": "tel",
+        "train_items": "partition:train",
+        "eval_items": "partition:eval",
+        "note": "same underlying tel-authored content as the matching native transfer cell, but evaluated on tel→mal machine translation instead of real text -- isolates translation artefacts from the language-transfer effect, at the cost of the same-source risk transfer_conditions avoids for Malayalam. Every split of this task holds the same items (§2.2), so the seeded item partition is what keeps training and evaluation disjoint"
       },
       {
         "name": "translationese_hin",

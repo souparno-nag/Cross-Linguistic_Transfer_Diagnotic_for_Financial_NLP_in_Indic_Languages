@@ -149,6 +149,64 @@ def transfer_conditions(task: int, seed: int = DEFAULT_SEED) -> list[dict]:
     return out
 
 
+def transfer_mt_conditions(task: int, seed: int = DEFAULT_SEED) -> list[dict]:
+    """The same 9 cells, evaluated on MT translated from the training language
+    itself, rather than on the native (or cross-block MT) text `transfer_conditions`
+    prefers.
+
+    `transfer_conditions` deliberately avoids this for Malayalam — evaluating a
+    Hindi-trained model on Hindi's own Malayalam translation risks reading as
+    "the model recognises its own training sentences dressed up in another
+    script" rather than genuine transfer. That risk is real for a *quality*
+    claim, but these cells serve a different, narrower purpose: paired against
+    the matching native (or cross-block) transfer cell, they isolate how much
+    of a gap is the target language itself versus what our own translator does
+    to it, holding the underlying content and its source language fixed. Doing
+    that requires exactly the same-source MT that the other cell avoids, so the
+    two are complementary rather than redundant.
+
+    Item disjointness still holds: the training half and evaluation half are
+    the same item-id partition used everywhere else, so this never evaluates
+    on the sentences the model actually trained on.
+    """
+    out = []
+    partitioned = not is_numeral_task(task)
+    for block, native in BLOCK_NATIVE_LANG.items():
+        for target in targets_for_block(block):
+            note = (
+                f"same underlying {native}-authored content as the matching native "
+                f"transfer cell, but evaluated on {native}→{target} machine "
+                "translation instead of real text -- isolates translation artefacts "
+                "from the language-transfer effect, at the cost of the same-source "
+                "risk transfer_conditions avoids for Malayalam"
+            )
+            if partitioned:
+                note += (
+                    ". Every split of this task holds the same items (§2.2), so the "
+                    "seeded item partition is what keeps training and evaluation "
+                    "disjoint"
+                )
+            else:
+                note += (
+                    ". Task 1's blocks hold different sentences (§2.2), so the two "
+                    "splits share no items and no partition is needed"
+                )
+            out.append(
+                {
+                    "name": f"transfer_{native}_to_{target}_mt",
+                    "kind": "transfer_mt",
+                    "quadrant": quadrant(native, target),
+                    "train": split_name(task, block, native),
+                    "eval": split_name(task, block, target),
+                    "eval_provenance": native,
+                    "train_items": "partition:train" if partitioned else "all",
+                    "eval_items": "partition:eval" if partitioned else "all",
+                    "note": note,
+                }
+            )
+    return out
+
+
 def translationese_conditions(task: int) -> list[dict]:
     """Same language, same labels, different provenance (§8).
 
@@ -186,7 +244,11 @@ def translationese_conditions(task: int) -> list[dict]:
 
 
 def build(task: int, seed: int = DEFAULT_SEED) -> dict:
-    conditions = transfer_conditions(task, seed) + translationese_conditions(task)
+    conditions = (
+        transfer_conditions(task, seed)
+        + transfer_mt_conditions(task, seed)
+        + translationese_conditions(task)
+    )
     return {
         "task": task,
         "seed": seed,
@@ -247,6 +309,20 @@ def validate(matrix: dict, item_sets: dict[str, set] | None = None) -> list[str]
     }
     if quadrants != expected_quadrants:
         failures.append(f"quadrants covered {sorted(quadrants)}, expected all four")
+
+    transfer_mt = [c for c in matrix["conditions"] if c["kind"] == "transfer_mt"]
+    if len(transfer_mt) != 9:
+        failures.append(f"{len(transfer_mt)} same-source-MT transfer cells, expected all 9")
+    for condition in transfer_mt:
+        train_block = condition["train"].split("/")[1]
+        eval_block = condition["eval"].split("/")[1]
+        if train_block != eval_block:
+            failures.append(
+                f"{condition['name']}: eval block {eval_block} does not match the "
+                f"training block {train_block} -- this family is defined as "
+                "same-block, same-source MT"
+            )
+
     translationese = [c for c in matrix["conditions"] if c["kind"] == "translationese"]
     if len(translationese) != 3:
         failures.append(

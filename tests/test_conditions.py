@@ -46,6 +46,45 @@ def test_translationese_conditions_exist_for_all_three_native_languages():
             assert len(condition["eval"]) == 3, "native plus two translated versions"
 
 
+def test_same_source_mt_conditions_cover_all_nine_cells_within_their_own_block():
+    """The H/B/T-sourced MT arm: train and eval share a block, unlike `transfer`."""
+    matrix = C.build(2)
+    assert C.validate(matrix) == []
+    transfer_mt = [c for c in matrix["conditions"] if c["kind"] == "transfer_mt"]
+    assert len(transfer_mt) == 9
+    for condition in transfer_mt:
+        train_block = condition["train"].split("/")[1]
+        eval_block = condition["eval"].split("/")[1]
+        assert train_block == eval_block, condition["name"]
+        assert condition["eval_provenance"] == condition["train"].split("/")[2]
+
+
+def test_same_source_mt_conditions_pair_up_with_the_native_transfer_cells():
+    """For every native transfer cell there is a matching same-source-MT one."""
+    matrix = C.build(2)
+    transfer = {c["name"]: c for c in matrix["conditions"] if c["kind"] == "transfer"}
+    transfer_mt = {
+        c["name"]: c for c in matrix["conditions"] if c["kind"] == "transfer_mt"
+    }
+    assert {f"{name}_mt" for name in transfer} == set(transfer_mt)
+    for name, native_cell in transfer.items():
+        mt_cell = transfer_mt[f"{name}_mt"]
+        assert mt_cell["train"] == native_cell["train"]
+        assert mt_cell["quadrant"] == native_cell["quadrant"]
+
+
+def test_same_source_mt_still_keeps_train_and_eval_items_disjoint():
+    """Same-block eval must not leak into the training half either."""
+    matrix = C.build(2)
+    condition = next(c for c in matrix["conditions"] if c["kind"] == "transfer_mt")
+    ids = {f"t2_{i:06d}" for i in range(500)}
+    failures = C.validate(
+        {**matrix, "conditions": [condition]},
+        {condition["train"]: ids, condition["eval"]: ids},
+    )
+    assert not [f for f in failures if "items" in f], failures
+
+
 def test_a_split_used_for_both_training_and_evaluation_is_caught():
     matrix = C.build(2)
     matrix["conditions"][0]["eval"] = matrix["conditions"][0]["train"]
