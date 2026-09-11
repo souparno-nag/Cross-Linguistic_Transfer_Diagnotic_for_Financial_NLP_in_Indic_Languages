@@ -72,8 +72,8 @@ def test_write_then_read_round_trips(tmp_path):
         _fake_result(), _fake_frame(src_lang="hin"), condition_id="c1", run_id="r1",
         block="H", lang="ben", origin="mt", seed=0,
     )
-    P.write_prediction_log(rows, "c1", root=tmp_path)
-    back = P.read_prediction_log("c1", root=tmp_path)
+    P.write_prediction_log(rows, 3, "c1", root=tmp_path)
+    back = P.read_prediction_log(3, "c1", root=tmp_path)
     assert back["item_id"].tolist() == rows["item_id"].tolist()
     # Parquet round-trips a list column as numpy arrays, not python lists.
     assert [list(p) for p in back["probs"]] == rows["probs"].tolist()
@@ -81,7 +81,7 @@ def test_write_then_read_round_trips(tmp_path):
 
 def test_read_missing_log_raises(tmp_path):
     with pytest.raises(FileNotFoundError, match="no prediction log"):
-        P.read_prediction_log("nope", root=tmp_path)
+        P.read_prediction_log(3, "nope", root=tmp_path)
 
 
 def test_writing_a_second_seed_accumulates_rather_than_overwrites(tmp_path):
@@ -93,9 +93,9 @@ def test_writing_a_second_seed_accumulates_rather_than_overwrites(tmp_path):
         _fake_result(), _fake_frame(src_lang="hin"), condition_id="c1", run_id="r1",
         block="H", lang="ben", origin="mt", seed=1,
     )
-    P.write_prediction_log(seed0, "c1", root=tmp_path)
-    P.write_prediction_log(seed1, "c1", root=tmp_path)
-    combined = P.read_prediction_log("c1", root=tmp_path)
+    P.write_prediction_log(seed0, 3, "c1", root=tmp_path)
+    P.write_prediction_log(seed1, 3, "c1", root=tmp_path)
+    combined = P.read_prediction_log(3, "c1", root=tmp_path)
     assert sorted(combined["seed"].unique().tolist()) == [0, 1]
     assert len(combined) == len(seed0) + len(seed1)
 
@@ -105,13 +105,13 @@ def test_rewriting_the_same_seed_replaces_it_instead_of_duplicating(tmp_path):
         _fake_result(), _fake_frame(src_lang="hin"), condition_id="c1", run_id="r1",
         block="H", lang="ben", origin="mt", seed=0,
     )
-    P.write_prediction_log(original, "c1", root=tmp_path)
+    P.write_prediction_log(original, 3, "c1", root=tmp_path)
 
     redone = original.copy()
     redone["pred"] = [0, 0, 0, 0]  # a re-run that scored differently
-    P.write_prediction_log(redone, "c1", root=tmp_path)
+    P.write_prediction_log(redone, 3, "c1", root=tmp_path)
 
-    combined = P.read_prediction_log("c1", root=tmp_path)
+    combined = P.read_prediction_log(3, "c1", root=tmp_path)
     assert len(combined) == len(original)  # not doubled
     assert combined["pred"].tolist() == [0, 0, 0, 0]  # the new run wins
 

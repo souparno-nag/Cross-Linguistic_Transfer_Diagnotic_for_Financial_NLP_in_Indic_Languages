@@ -72,7 +72,7 @@ def main(argv: list[str] | None = None) -> int:
             condition_id, args.run_id, args.task, block, lang, origin, run.seed,
             device=args.device, batch_size=args.batch_size,
         )
-        path = write_prediction_log(frame, condition_id)
+        path = write_prediction_log(frame, args.task, condition_id)
         print(f"wrote {len(frame)} rows -> {path.relative_to(REPO_ROOT)}")
         logs[lang] = frame
 

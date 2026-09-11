@@ -122,13 +122,21 @@ def prediction_log(
 # --------------------------------------------------------------------------
 
 
-def log_path(condition_id: str, *, root: Path | None = None) -> Path:
+def log_path(task: int, condition_id: str, *, root: Path | None = None) -> Path:
+    """`data/predictions/task_{n}/{condition_id}.parquet`.
+
+    The `task_{n}` level is not decoration (CLAUDE.md §5): task 2 and task 3
+    both produce a condition named e.g. `transfer_hin_to_ben_mt`, and without
+    this level the two tasks' logs collide on one path and silently merge --
+    exactly the corruption §5 warns about for corpus data, and just as
+    unrecoverable here since item_id is only unique *within* a task.
+    """
     root = root if root is not None else PREDICTIONS_ROOT
-    return root / f"{condition_id}.parquet"
+    return root / f"task_{task}" / f"{condition_id}.parquet"
 
 
 def write_prediction_log(
-    frame: pd.DataFrame, condition_id: str, *, root: Path | None = None
+    frame: pd.DataFrame, task: int, condition_id: str, *, root: Path | None = None
 ) -> Path:
     """Write one condition's log, merging with whatever is already on disk.
 
@@ -137,7 +145,7 @@ def write_prediction_log(
     run_id)`: re-running one seed replaces just that seed's rows instead of
     duplicating them or losing the others.
     """
-    path = log_path(condition_id, root=root)
+    path = log_path(task, condition_id, root=root)
     path.parent.mkdir(parents=True, exist_ok=True)
     if path.exists():
         existing = pd.read_parquet(path)
@@ -148,8 +156,10 @@ def write_prediction_log(
     return path
 
 
-def read_prediction_log(condition_id: str, *, root: Path | None = None) -> pd.DataFrame:
-    path = log_path(condition_id, root=root)
+def read_prediction_log(
+    task: int, condition_id: str, *, root: Path | None = None
+) -> pd.DataFrame:
+    path = log_path(task, condition_id, root=root)
     if not path.exists():
         raise FileNotFoundError(f"no prediction log for condition {condition_id!r} at {path}")
     return pd.read_parquet(path)
