@@ -8,9 +8,9 @@ Gap = source (in-language, same items) − target, XTREME convention (§T-304). 
 
 | condition | quadrant | status | n seeds | source | target | gap (mean±std) | within seed noise? |
 |---|---|---|---|---|---|---|---|
-| transfer_hin_to_ben | Indo-Aryan->Indo-Aryan | ok | 1 | 0.9667 | 0.5959 | 0.3709 ± 0.0000 | — |
-| transfer_hin_to_tel | Indo-Aryan->Dravidian | ok | 1 | 0.9667 | 0.5526 | 0.4142 ± 0.0000 | — |
-| transfer_hin_to_mal | Indo-Aryan->Dravidian | ok | 1 | 0.9667 | 0.6200 | 0.3468 ± 0.0000 | — |
+| transfer_hin_to_ben | Indo-Aryan->Indo-Aryan | ok | 3 | 0.9535 | 0.5058 | 0.4477 ± 0.0716 | no |
+| transfer_hin_to_tel | Indo-Aryan->Dravidian | ok | 3 | 0.9535 | 0.5009 | 0.4526 ± 0.0380 | no |
+| transfer_hin_to_mal | Indo-Aryan->Dravidian | ok | 3 | 0.9535 | 0.5667 | 0.3868 ± 0.0574 | no |
 | transfer_ben_to_hin | Indo-Aryan->Indo-Aryan | blocked | 0 | — | — | — | — |
 | transfer_ben_to_tel | Indo-Aryan->Dravidian | blocked | 0 | — | — | — | — |
 | transfer_ben_to_mal | Indo-Aryan->Dravidian | blocked | 0 | — | — | — | — |
@@ -36,8 +36,8 @@ Gap = source (in-language, same items) − target, XTREME convention (§T-304). 
 
 | quadrant | n cells (of 3) | mean gap | cells |
 |---|---|---|---|
-| Indo-Aryan->Indo-Aryan | 1 | 0.3709 | transfer_hin_to_ben |
-| Indo-Aryan->Dravidian | 2 | 0.3805 | transfer_hin_to_tel, transfer_hin_to_mal |
+| Indo-Aryan->Indo-Aryan | 1 | 0.4477 | transfer_hin_to_ben |
+| Indo-Aryan->Dravidian | 2 | 0.4197 | transfer_hin_to_tel, transfer_hin_to_mal |
 | Dravidian->Indo-Aryan | 0 | — | — |
 | Dravidian->Dravidian | 0 | — | — |
 
@@ -63,9 +63,9 @@ _no `translationese_tel` prediction log on disk yet._
 
 | condition | quadrant | status | n seeds | source | target | gap (mean±std) | within seed noise? |
 |---|---|---|---|---|---|---|---|
-| transfer_hin_to_ben | Indo-Aryan->Indo-Aryan | ok | 1 | 0.7537 | 0.0871 | 0.6666 ± 0.0000 | — |
-| transfer_hin_to_tel | Indo-Aryan->Dravidian | ok | 1 | 0.7537 | 0.0704 | 0.6833 ± 0.0000 | — |
-| transfer_hin_to_mal | Indo-Aryan->Dravidian | ok | 1 | 0.7537 | 0.0684 | 0.6852 ± 0.0000 | — |
+| transfer_hin_to_ben | Indo-Aryan->Indo-Aryan | ok | 3 | 0.5958 | 0.0862 | 0.5096 ± 0.1676 | no |
+| transfer_hin_to_tel | Indo-Aryan->Dravidian | ok | 3 | 0.5958 | 0.0817 | 0.5141 ± 0.1701 | no |
+| transfer_hin_to_mal | Indo-Aryan->Dravidian | ok | 3 | 0.5958 | 0.0923 | 0.5035 ± 0.1843 | no |
 | transfer_ben_to_hin | Indo-Aryan->Indo-Aryan | blocked | 0 | — | — | — | — |
 | transfer_ben_to_tel | Indo-Aryan->Dravidian | blocked | 0 | — | — | — | — |
 | transfer_ben_to_mal | Indo-Aryan->Dravidian | blocked | 0 | — | — | — | — |
@@ -91,8 +91,8 @@ _no `translationese_tel` prediction log on disk yet._
 
 | quadrant | n cells (of 3) | mean gap | cells |
 |---|---|---|---|
-| Indo-Aryan->Indo-Aryan | 1 | 0.6666 | transfer_hin_to_ben |
-| Indo-Aryan->Dravidian | 2 | 0.6843 | transfer_hin_to_tel, transfer_hin_to_mal |
+| Indo-Aryan->Indo-Aryan | 1 | 0.5096 | transfer_hin_to_ben |
+| Indo-Aryan->Dravidian | 2 | 0.5088 | transfer_hin_to_tel, transfer_hin_to_mal |
 | Dravidian->Indo-Aryan | 0 | — | — |
 | Dravidian->Dravidian | 0 | — | — |
 
