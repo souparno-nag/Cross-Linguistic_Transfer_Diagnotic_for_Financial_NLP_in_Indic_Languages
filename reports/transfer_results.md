@@ -22,9 +22,9 @@ Gap = source (in-language, same items) − target, XTREME convention (§T-304). 
 
 | condition | quadrant | status | n seeds | source | target | gap (mean±std) | within seed noise? |
 |---|---|---|---|---|---|---|---|
-| transfer_hin_to_ben_mt | Indo-Aryan->Indo-Aryan | ok | 1 | 0.9684 | 0.5909 | 0.3774 ± 0.0000 | — |
-| transfer_hin_to_tel_mt | Indo-Aryan->Dravidian | ok | 1 | 0.9684 | 0.5323 | 0.4361 ± 0.0000 | — |
-| transfer_hin_to_mal_mt | Indo-Aryan->Dravidian | ok | 1 | 0.9684 | 0.6351 | 0.3333 ± 0.0000 | — |
+| transfer_hin_to_ben_mt | Indo-Aryan->Indo-Aryan | ok | 3 | 0.9526 | 0.4869 | 0.4656 ± 0.0883 | no |
+| transfer_hin_to_tel_mt | Indo-Aryan->Dravidian | ok | 3 | 0.9526 | 0.4881 | 0.4645 ± 0.0246 | no |
+| transfer_hin_to_mal_mt | Indo-Aryan->Dravidian | ok | 3 | 0.9526 | 0.5683 | 0.3842 ± 0.0686 | no |
 | transfer_ben_to_hin_mt | Indo-Aryan->Indo-Aryan | blocked | 0 | — | — | — | — |
 | transfer_ben_to_tel_mt | Indo-Aryan->Dravidian | blocked | 0 | — | — | — | — |
 | transfer_ben_to_mal_mt | Indo-Aryan->Dravidian | blocked | 0 | — | — | — | — |
@@ -77,9 +77,9 @@ _no `translationese_tel` prediction log on disk yet._
 
 | condition | quadrant | status | n seeds | source | target | gap (mean±std) | within seed noise? |
 |---|---|---|---|---|---|---|---|
-| transfer_hin_to_ben_mt | Indo-Aryan->Indo-Aryan | ok | 1 | 0.7537 | 0.0886 | 0.6651 ± 0.0000 | — |
-| transfer_hin_to_tel_mt | Indo-Aryan->Dravidian | ok | 1 | 0.7537 | 0.0708 | 0.6829 ± 0.0000 | — |
-| transfer_hin_to_mal_mt | Indo-Aryan->Dravidian | ok | 1 | 0.7537 | 0.0607 | 0.6930 ± 0.0000 | — |
+| transfer_hin_to_ben_mt | Indo-Aryan->Indo-Aryan | ok | 3 | 0.5958 | 0.0955 | 0.5003 ± 0.1671 | no |
+| transfer_hin_to_tel_mt | Indo-Aryan->Dravidian | ok | 3 | 0.5958 | 0.0843 | 0.5115 ± 0.1742 | no |
+| transfer_hin_to_mal_mt | Indo-Aryan->Dravidian | ok | 3 | 0.5958 | 0.0803 | 0.5155 ± 0.1887 | no |
 | transfer_ben_to_hin_mt | Indo-Aryan->Indo-Aryan | blocked | 0 | — | — | — | — |
 | transfer_ben_to_tel_mt | Indo-Aryan->Dravidian | blocked | 0 | — | — | — | — |
 | transfer_ben_to_mal_mt | Indo-Aryan->Dravidian | blocked | 0 | — | — | — | — |
