@@ -89,6 +89,7 @@ def prediction_log_from_loaded(
     seed: int,
     *,
     batch_size: int = 32,
+    item_filter=None,
 ) -> pd.DataFrame:
     """Like `prediction_log`, but reuses an already-loaded checkpoint.
 
@@ -96,8 +97,21 @@ def prediction_log_from_loaded(
     arms of one condition) from the same checkpoint; reloading the encoder
     for each one would be correct but wasteful. Callers that only need one
     prediction still go through `prediction_log`.
+
+    `item_filter`, if given, is a ``str -> bool`` predicate applied to
+    `item_id` before tokenising -- this is how T-305 restricts a `transfer`/
+    `transfer_mt` condition to its `eval_items: "partition:eval"` half rather
+    than predicting over the whole split, some of which the model's own
+    training language literally trained on (tasks 2/3 share `item_id` across
+    languages for an aligned item, T-102b).
     """
     frame = load_split(task, block, lang, origin)
+    if item_filter is not None:
+        frame = frame[frame["item_id"].map(item_filter)].reset_index(drop=True)
+        if frame.empty:
+            raise ValueError(
+                f"item_filter left zero rows for task_{task}/{block}/{lang}/{origin}"
+            )
     tokenizer = get_tokenizer(loaded.run_config.encoder)
     dataset = SplitDataset(frame, tokenizer, max_len=loaded.run_config.max_len)
     result = predict(loaded, dataset, batch_size=batch_size)

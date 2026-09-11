@@ -28,6 +28,8 @@ from dataclasses import dataclass
 
 from . import checkpoints
 from .audit import config_hash as _hash_dict
+from .conditions import DEFAULT_SEED as CONDITIONS_SEED
+from .conditions import partition_of
 from .data import num_labels
 from .download_dataset.paths import REPO_ROOT
 from .experiments import RESULTS_PATH, log_run
@@ -62,6 +64,24 @@ def _split_lang(split: str) -> tuple[str, str]:
 
 def _origin_for(block: str, lang: str) -> str:
     return "native" if BLOCK_NATIVE_LANG[block] == lang else "mt"
+
+
+def _item_filter_for(condition: dict, partition_seed: int):
+    """A `str -> bool` predicate restricting a condition's arm to its own
+    `eval_items` -- `None` (no filtering) unless the condition says
+    `"partition:eval"` (`transfer`/`transfer_mt` on a partitioned task, T-113).
+
+    Evaluating the *unfiltered* split would include items whose `item_id` was
+    in the model's own training half in another language -- for tasks 2/3
+    that item_id is shared across languages (T-102b), so that half is not
+    zero-shot at all, just the same content relayed through a script change.
+    `translationese` conditions set `eval_items: "all"` deliberately (their
+    native arm *is* the training text, labelled explicitly per hard rule 4)
+    and are correctly left unfiltered here.
+    """
+    if condition.get("eval_items") != "partition:eval":
+        return None
+    return lambda item_id: partition_of(item_id, seed=partition_seed) == "eval"
 
 
 def _model_lang(condition: dict) -> str:
@@ -143,20 +163,27 @@ def run_condition(
     batch_size: int = 32,
     n_boot: int = DEFAULT_N_BOOT,
     results_path=RESULTS_PATH,
+    partition_seed: int = CONDITIONS_SEED,
 ) -> list[dict]:
     """Predict every arm of one condition from one checkpoint, write the
     prediction log, bootstrap each arm's macro-F1, and log a row per arm to
     `experiments.csv`. Returns the logged rows.
+
+    `partition_seed` must match whatever seed built `eval_conditions.json`
+    (T-113) -- it is what turns `condition["eval_items"] ==
+    "partition:eval"` into an actual item filter (`_item_filter_for`).
     """
     loaded = load_frozen_model(run_id, device=device)
     arms = condition["eval"] if isinstance(condition["eval"], list) else [condition["eval"]]
     labels = num_labels(task)
+    item_filter = _item_filter_for(condition, partition_seed)
     rows = []
     for arm in arms:
         block, lang = _split_lang(arm)
         origin = _origin_for(block, lang)
         frame = prediction_log_from_loaded(
-            loaded, condition["name"], task, block, lang, origin, seed, batch_size=batch_size
+            loaded, condition["name"], task, block, lang, origin, seed,
+            batch_size=batch_size, item_filter=item_filter,
         )
         write_prediction_log(frame, task, condition["name"])
 
@@ -216,6 +243,7 @@ def run_all(
         rows = run_condition(
             task, conditions_by_name[entry["condition"]], entry["run_id"], entry["seed"],
             device=device, batch_size=batch_size, n_boot=n_boot, results_path=results_path,
+            partition_seed=matrix["seed"],
         )
         ran.extend(rows)
         say(f"ran {entry['condition']} seed{entry['seed']}: {len(rows)} arm(s)")

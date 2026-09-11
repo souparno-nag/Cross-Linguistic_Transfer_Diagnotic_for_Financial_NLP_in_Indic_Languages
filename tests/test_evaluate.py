@@ -57,6 +57,37 @@ def test_model_lang_for_translationese_is_the_languages_own_native_arm():
     assert E._model_lang(condition) == "hin"
 
 
+def test_item_filter_is_none_for_a_condition_evaluated_on_the_whole_split():
+    """`translationese`'s `eval_items: "all"` is deliberate (its native arm
+    is the training text, labelled explicitly per hard rule 4) and must not
+    be filtered."""
+    condition = {"kind": "translationese", "eval_items": "all"}
+    assert E._item_filter_for(condition, 12345) is None
+
+
+def test_item_filter_restricts_to_the_eval_half_of_the_partition():
+    """Regression: run_condition used to predict over a transfer/transfer_mt
+    condition's *entire* split, including items whose item_id was in the
+    model's own training half (tasks 2/3 share item_id across languages for
+    an aligned item, T-102b) -- silently contaminating every "zero-shot"
+    number with items the model had effectively already seen."""
+    from src.conditions import partition_of
+
+    condition = {"kind": "transfer", "eval_items": "partition:eval"}
+    keep = E._item_filter_for(condition, 999)
+    assert keep is not None
+    sample_ids = [f"t2_{i:06d}" for i in range(200)]
+    for item_id in sample_ids:
+        assert keep(item_id) == (partition_of(item_id, seed=999) == "eval")
+    # and it actually excludes some items, not a no-op filter
+    assert any(not keep(i) for i in sample_ids)
+
+
+def test_item_filter_is_none_for_an_unpartitioned_task():
+    condition = {"kind": "transfer", "eval_items": "all"}
+    assert E._item_filter_for(condition, 1) is None
+
+
 def test_plan_covers_every_condition_times_every_seed():
     matrix = E.load_matrix(3)
     entries = E.plan(3, matrix, seeds=(0, 1, 2))
@@ -141,3 +172,42 @@ def test_a_runnable_condition_logs_a_row_and_a_prediction_file(tmp_path, monkeyp
     log = predictions.read_prediction_log(3, "test_transfer_tel_to_ben")
     assert len(log) > 0
     assert (log["block_id"] == "B").all() and (log["lang"] == "ben").all()
+
+
+@pytest.mark.slow
+def test_a_partitioned_condition_only_predicts_the_eval_half(tmp_path, monkeypatch):
+    """Regression for the item-partition leak: a `transfer` condition with
+    `eval_items: "partition:eval"` must predict strictly fewer rows than the
+    full target split, and every item_id it does predict must actually fall
+    in the eval half."""
+    from src import checkpoints, predictions
+    from src.config import RunConfig, run_training
+    from src.conditions import partition_of
+    from src.data import load_native
+
+    run = RunConfig(
+        encoder=ENCODER, task=3, lang="tel", max_len=64, epochs=1, patience=1,
+        dev_fraction=0.2, seed=0,
+    )
+    checkpoints_root = tmp_path / "checkpoints"
+    run_training(run, device="cpu", work_dir=checkpoints_root / "task3_tel_indicbert_seed0")
+    monkeypatch.setattr(checkpoints, "CHECKPOINT_ROOT", checkpoints_root)
+    monkeypatch.setattr(predictions, "PREDICTIONS_ROOT", tmp_path / "predictions")
+
+    condition = {
+        "name": "test_partitioned_transfer_tel_to_ben",
+        "kind": "transfer",
+        "train": "task_3/T/tel",
+        "eval": "task_3/B/ben",
+        "eval_items": "partition:eval",
+    }
+    E.run_condition(
+        3, condition, "task3_tel_indicbert_seed0", 0,
+        device="cpu", n_boot=50, results_path=tmp_path / "experiments.csv",
+        partition_seed=999,
+    )
+
+    log = predictions.read_prediction_log(3, "test_partitioned_transfer_tel_to_ben")
+    full_split = load_native(3, "ben")
+    assert 0 < len(log) < len(full_split)
+    assert all(partition_of(i, seed=999) == "eval" for i in log["item_id"])
