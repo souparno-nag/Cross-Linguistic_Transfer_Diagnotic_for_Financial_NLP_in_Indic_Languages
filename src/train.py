@@ -271,7 +271,14 @@ def train(
     since_improve = 0
 
     if ckpt_path and resume and ckpt_path.exists():
-        blob = torch.load(ckpt_path, map_location=device, weights_only=False)
+        # Always load to CPU first. The RNG snapshot (`rng`) must stay a CPU
+        # ByteTensor — torch.set_rng_state / cuda.set_rng_state_all both require
+        # that regardless of which device trained it — and map_location=device
+        # would silently move it to the GPU and break resume with a cryptic
+        # "RNG state must be a torch.ByteTensor". Model/optimizer/scheduler
+        # tensors relocate correctly on their own when load_state_dict runs
+        # against the already-on-`device` model and optimizer below.
+        blob = torch.load(ckpt_path, map_location="cpu", weights_only=False)
         if blob["config_hash"] != config.hash():
             raise ValueError(
                 f"checkpoint at {ckpt_path} was written for config "

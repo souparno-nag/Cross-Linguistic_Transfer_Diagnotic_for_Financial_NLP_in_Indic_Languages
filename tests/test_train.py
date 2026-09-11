@@ -144,6 +144,27 @@ def test_training_resumes_from_a_checkpoint(tmp_path):
 
 
 @pytest.mark.slow
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="no CUDA device")
+def test_resume_on_cuda_does_not_corrupt_the_rng_state(tmp_path):
+    """Regression: map_location=device on resume moved the RNG snapshot onto
+    the GPU, and torch.set_rng_state / cuda.set_rng_state_all both require a
+    CPU ByteTensor regardless of which device trained it — that raised
+    "RNG state must be a torch.ByteTensor" on every resumed CUDA run."""
+    from src.data import num_labels
+
+    dataset = _tiny_dataset()
+    cfg = T.TrainConfig(
+        encoder=ENCODER, num_labels=num_labels(2), epochs=2, patience=99, seed=0,
+        batch_size=4,
+    )
+    T.train(T.build_model(cfg, "cuda"), dataset, dataset, cfg, device="cuda", work_dir=tmp_path)
+    # A second call resumes from the (now complete) checkpoint; this alone
+    # exercises the RNG restore path even with no further epochs to run.
+    result = T.train(T.build_model(cfg, "cuda"), dataset, dataset, cfg, device="cuda", work_dir=tmp_path)
+    assert result.epochs_run == 2
+
+
+@pytest.mark.slow
 def test_a_checkpoint_for_another_config_is_refused(tmp_path):
     from src.data import SplitDataset, get_tokenizer, load_native, num_labels
 
