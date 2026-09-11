@@ -24,7 +24,7 @@ import pandas as pd
 from .data import SplitDataset, get_tokenizer, load_split
 from .download_dataset.paths import REPO_ROOT
 from .ids import join_languages
-from .inference import load_frozen_model, predict
+from .inference import LoadedRun, load_frozen_model, predict
 
 PREDICTIONS_ROOT = REPO_ROOT / "data" / "predictions"
 
@@ -79,6 +79,40 @@ def _prediction_rows(
     return rows[PREDICTION_COLUMNS]
 
 
+def prediction_log_from_loaded(
+    loaded: LoadedRun,
+    condition_id: str,
+    task: int,
+    block: str,
+    lang: str,
+    origin: str,
+    seed: int,
+    *,
+    batch_size: int = 32,
+) -> pd.DataFrame:
+    """Like `prediction_log`, but reuses an already-loaded checkpoint.
+
+    T-305 evaluates several conditions (and, for `translationese`, several
+    arms of one condition) from the same checkpoint; reloading the encoder
+    for each one would be correct but wasteful. Callers that only need one
+    prediction still go through `prediction_log`.
+    """
+    frame = load_split(task, block, lang, origin)
+    tokenizer = get_tokenizer(loaded.run_config.encoder)
+    dataset = SplitDataset(frame, tokenizer, max_len=loaded.run_config.max_len)
+    result = predict(loaded, dataset, batch_size=batch_size)
+    return _prediction_rows(
+        result,
+        frame,
+        condition_id=condition_id,
+        run_id=loaded.run_id,
+        block=block,
+        lang=lang,
+        origin=origin,
+        seed=seed,
+    )
+
+
 def prediction_log(
     condition_id: str,
     run_id: str,
@@ -100,20 +134,9 @@ def prediction_log(
     since it has no opinion on which conditions exist, only on the fixed shape
     every condition's log must have.
     """
-    frame = load_split(task, block, lang, origin)
     loaded = load_frozen_model(run_id, device=device)
-    tokenizer = get_tokenizer(loaded.run_config.encoder)
-    dataset = SplitDataset(frame, tokenizer, max_len=loaded.run_config.max_len)
-    result = predict(loaded, dataset, batch_size=batch_size)
-    return _prediction_rows(
-        result,
-        frame,
-        condition_id=condition_id,
-        run_id=run_id,
-        block=block,
-        lang=lang,
-        origin=origin,
-        seed=seed,
+    return prediction_log_from_loaded(
+        loaded, condition_id, task, block, lang, origin, seed, batch_size=batch_size
     )
 
 
@@ -142,14 +165,18 @@ def write_prediction_log(
 
     T-305 runs 3 seeds per condition (hard rule 5), so calls for the same
     condition accumulate rather than overwrite. Keyed on `(item_id, seed,
-    run_id)`: re-running one seed replaces just that seed's rows instead of
-    duplicating them or losing the others.
+    run_id, block_id, lang, origin)`: re-running one seed/arm replaces just
+    those rows instead of duplicating them or losing the others. The arm
+    columns matter because a `translationese` condition writes three arms
+    (native plus two MT provenances) that all share `item_id` -- keying on
+    `item_id` alone would make the second and third arm's rows look like
+    stale duplicates of the first and silently drop them.
     """
     path = log_path(task, condition_id, root=root)
     path.parent.mkdir(parents=True, exist_ok=True)
     if path.exists():
         existing = pd.read_parquet(path)
-        key = ["item_id", "seed", "run_id"]
+        key = ["item_id", "seed", "run_id", "block_id", "lang", "origin"]
         stale = existing.set_index(key).index.isin(frame.set_index(key).index)
         frame = pd.concat([existing.loc[~stale], frame], ignore_index=True)
     frame.to_parquet(path, index=False)

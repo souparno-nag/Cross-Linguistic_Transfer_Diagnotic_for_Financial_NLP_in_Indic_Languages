@@ -116,6 +116,25 @@ def test_rewriting_the_same_seed_replaces_it_instead_of_duplicating(tmp_path):
     assert combined["pred"].tolist() == [0, 0, 0, 0]  # the new run wins
 
 
+def test_multiple_arms_of_one_condition_coexist_even_when_item_ids_match(tmp_path):
+    """A `translationese` condition writes three arms that share item_id --
+    the upsert key must not treat the second arm as a stale duplicate of the
+    first just because the items line up."""
+    native = P._prediction_rows(
+        _fake_result(n=3), _fake_frame(n=3), condition_id="translationese_hin",
+        run_id="r", block="H", lang="hin", origin="native", seed=0,
+    )
+    from_ben = P._prediction_rows(
+        _fake_result(n=3), _fake_frame(n=3, src_lang="ben"), condition_id="translationese_hin",
+        run_id="r", block="B", lang="hin", origin="mt", seed=0,
+    )
+    P.write_prediction_log(native, 2, "translationese_hin", root=tmp_path)
+    P.write_prediction_log(from_ben, 2, "translationese_hin", root=tmp_path)
+    combined = P.read_prediction_log(2, "translationese_hin", root=tmp_path)
+    assert len(combined) == len(native) + len(from_ben)
+    assert sorted(combined["block_id"].unique().tolist()) == ["B", "H"]
+
+
 def test_block_join_succeeds_with_shared_item_ids_and_no_nulls():
     hin = P._prediction_rows(
         _fake_result(n=3), _fake_frame(n=3), condition_id="hin_native_ceiling",
