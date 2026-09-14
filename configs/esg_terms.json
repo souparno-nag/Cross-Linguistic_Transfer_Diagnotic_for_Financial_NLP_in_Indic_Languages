@@ -1,25 +1,133 @@
 {
   "_comment": "Root ESG term lexicon for the morphological-masking (T-603) and terminology-gap (T-604) diagnostic modules. Curated by hand in Hindi only -- the one language this project's owner can verify -- per CLAUDE4.md's morphological masking design and the plan approved for Phase 6. `ben`/`tel`/`mal` are populated mechanically by `scripts/t603_esg_terms.py`, which calls the same frozen IndicTrans2 model used to build the corpus, and are documented as machine-derived rather than human-verified. Until that script is run (it needs the gated `ai4bharat/indictrans2-indic-indic-1B` weights and HF auth per CLAUDE.md 3.1, unavailable in this build environment), those fields are null and the diagnostics modules skip any concept whose target-language form is missing for the language in question -- never fabricated.",
-  "source_model": null,
-  "source_revision": null,
+  "source_model": "ai4bharat/indictrans2-indic-indic-1B",
+  "source_revision": "main",
   "concepts": [
-    {"id": "sustainable",  "hin": "टिकाऊ",        "ben": null, "tel": null, "mal": null},
-    {"id": "emission",     "hin": "उत्सर्जन",      "ben": null, "tel": null, "mal": null},
-    {"id": "carbon",       "hin": "कार्बन",         "ben": null, "tel": null, "mal": null},
-    {"id": "pollution",    "hin": "प्रदूषण",       "ben": null, "tel": null, "mal": null},
-    {"id": "waste",        "hin": "अपशिष्ट",       "ben": null, "tel": null, "mal": null},
-    {"id": "renewable",    "hin": "नवीकरणीय",     "ben": null, "tel": null, "mal": null},
-    {"id": "environment",  "hin": "पर्यावरण",      "ben": null, "tel": null, "mal": null},
-    {"id": "energy",       "hin": "ऊर्जा",          "ben": null, "tel": null, "mal": null},
-    {"id": "resource",     "hin": "संसाधन",        "ben": null, "tel": null, "mal": null},
-    {"id": "recycling",    "hin": "पुनर्चक्रण",    "ben": null, "tel": null, "mal": null},
-    {"id": "biodiversity", "hin": "जैव विविधता",  "ben": null, "tel": null, "mal": null},
-    {"id": "deforestation","hin": "वनों की कटाई", "ben": null, "tel": null, "mal": null},
-    {"id": "greenhouse",   "hin": "ग्रीनहाउस",     "ben": null, "tel": null, "mal": null},
-    {"id": "climate",      "hin": "जलवायु",        "ben": null, "tel": null, "mal": null},
-    {"id": "conservation", "hin": "संरक्षण",       "ben": null, "tel": null, "mal": null},
-    {"id": "water",        "hin": "जल",            "ben": null, "tel": null, "mal": null},
-    {"id": "plastic",      "hin": "प्लास्टिक",     "ben": null, "tel": null, "mal": null},
-    {"id": "fossil_fuel",  "hin": "जीवाश्म ईंधन", "ben": null, "tel": null, "mal": null}
+    {
+      "id": "sustainable",
+      "hin": "टिकाऊ",
+      "ben": "টেকসই",
+      "tel": "నిలకడగా ఉండటం",
+      "mal": "സുസ്ഥിരമായത്"
+    },
+    {
+      "id": "emission",
+      "hin": "उत्सर्जन",
+      "ben": "নির্গমন",
+      "tel": "ఉద్గారాలు",
+      "mal": "ഉദ്വമനം"
+    },
+    {
+      "id": "carbon",
+      "hin": "कार्बन",
+      "ben": "কার্বন",
+      "tel": "కార్బన్",
+      "mal": "കാർബൺ"
+    },
+    {
+      "id": "pollution",
+      "hin": "प्रदूषण",
+      "ben": "দূষণ",
+      "tel": "కాలుష్యం",
+      "mal": "മലിനീകരണം"
+    },
+    {
+      "id": "waste",
+      "hin": "अपशिष्ट",
+      "ben": "বর্জ্য।",
+      "tel": "వ్యర్థాలు",
+      "mal": "മാലിന്യങ്ങൾ"
+    },
+    {
+      "id": "renewable",
+      "hin": "नवीकरणीय",
+      "ben": "পুনর্নবীকরণযোগ্য",
+      "tel": "పునరుత్పాదకం",
+      "mal": "പുനരുപയോഗിക്കാവുന്നവ"
+    },
+    {
+      "id": "environment",
+      "hin": "पर्यावरण",
+      "ben": "পরিবেশ",
+      "tel": "పర్యావరణం",
+      "mal": "പരിസ്ഥിതി"
+    },
+    {
+      "id": "energy",
+      "hin": "ऊर्जा",
+      "ben": "শক্তি",
+      "tel": "శక్తి",
+      "mal": "ഊർജ്ജം"
+    },
+    {
+      "id": "resource",
+      "hin": "संसाधन",
+      "ben": "সম্পদ",
+      "tel": "వనరులు",
+      "mal": "വിഭവങ്ങൾ"
+    },
+    {
+      "id": "recycling",
+      "hin": "पुनर्चक्रण",
+      "ben": "পুনর্ব্যবহারযোগ্য",
+      "tel": "రీసైక్లింగ్",
+      "mal": "റീസൈക്ലിംഗ്"
+    },
+    {
+      "id": "biodiversity",
+      "hin": "जैव विविधता",
+      "ben": "জীববৈচিত্র্য",
+      "tel": "జీవవైవిధ్యం",
+      "mal": "ജൈവവൈവിധ്യം"
+    },
+    {
+      "id": "deforestation",
+      "hin": "वनों की कटाई",
+      "ben": "বন উজাড়",
+      "tel": "అటవీ నిర్మూలన",
+      "mal": "വനനശീകരണം"
+    },
+    {
+      "id": "greenhouse",
+      "hin": "ग्रीनहाउस",
+      "ben": "গ্রিনহাউস",
+      "tel": "గ్రీన్హౌస్",
+      "mal": "ഹരിതഗൃഹം"
+    },
+    {
+      "id": "climate",
+      "hin": "जलवायु",
+      "ben": "জলবায়ু",
+      "tel": "వాతావరణం.",
+      "mal": "കാലാവസ്ഥ"
+    },
+    {
+      "id": "conservation",
+      "hin": "संरक्षण",
+      "ben": "সংরক্ষণ",
+      "tel": "పరిరక్షణ",
+      "mal": "സംരക്ഷണം"
+    },
+    {
+      "id": "water",
+      "hin": "जल",
+      "ben": "জল",
+      "tel": "నీరు",
+      "mal": "വെള്ളം"
+    },
+    {
+      "id": "plastic",
+      "hin": "प्लास्टिक",
+      "ben": "প্লাস্টিক",
+      "tel": "ప్లాస్టిక్",
+      "mal": "പ്ലാസ്റ്റിക്"
+    },
+    {
+      "id": "fossil_fuel",
+      "hin": "जीवाश्म ईंधन",
+      "ben": "জীবাশ্ম জ্বালানি",
+      "tel": "శిలాజ ఇంధనాలు",
+      "mal": "ഫോസിൽ ഇന്ധനങ്ങൾ"
+    }
   ]
 }
