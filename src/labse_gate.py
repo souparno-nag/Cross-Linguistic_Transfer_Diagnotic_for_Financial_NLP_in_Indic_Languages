@@ -169,6 +169,60 @@ def score_pair(
     )
 
 
+def score_items(
+    embedder, task: int, src_block: str, src_lang: str, tgt_block: str, tgt_lang: str,
+    item_ids, progress=print,
+):
+    """Similarity for a specific list of items, not an entire split.
+
+    :func:`score_pair` requires **every** row of the target split to have a
+    source match — correct for the same-block MT case (an MT split is
+    translated from every one of its source rows by construction, so a gap
+    there is a corpus bug), but wrong for Phase 6's cross-block,
+    native-family conditions (CLAUDE4.md), where `src_block != tgt_block`
+    and the two native splits are only *partially* aligned by construction:
+    T-102b aligns 1769 of ~2200 task_2 items three ways and keeps the rest,
+    unaligned, per hard rule 1. Scanning the whole target split there would
+    raise on every legitimately-unaligned row, most of which were never
+    going to appear in a failure set at all.
+
+    This scores only the items actually asked for — which, coming from a
+    failure log, are already known to exist on both sides (the mismatch
+    join itself requires a matching source *and* target prediction for the
+    same `item_id`) — and still raises if one of *those* is missing, since
+    that would be a real bug, not an expected gap.
+    """
+    source = read_split(task, src_block, src_lang)
+    target = read_split(task, tgt_block, tgt_lang)
+    src_vectors = embed_split(embedder, task, src_block, src_lang, progress)
+    tgt_vectors = embed_split(embedder, task, tgt_block, tgt_lang, progress)
+
+    src_index = {item: i for i, item in enumerate(source["item_id"])}
+    tgt_index = {item: i for i, item in enumerate(target["item_id"])}
+
+    wanted = list(dict.fromkeys(item_ids))  # de-duplicate, preserve order
+    missing = [item for item in wanted if item not in src_index or item not in tgt_index]
+    if missing:
+        raise ValueError(
+            f"{len(missing)} of {len(wanted)} requested items are missing from "
+            f"{src_block}/{src_lang} or {tgt_block}/{tgt_lang}, e.g. {missing[:3]} — "
+            "these came from a failure log, so both sides should already exist"
+        )
+
+    src_rows = np.array([src_index[item] for item in wanted])
+    tgt_rows = np.array([tgt_index[item] for item in wanted])
+    scores = cosine(src_vectors[src_rows], tgt_vectors[tgt_rows])
+    return pd.DataFrame(
+        {
+            "block_id": tgt_block,
+            "item_id": wanted,
+            "src_lang": src_lang,
+            "tgt_lang": tgt_lang,
+            "labse_sim": scores.astype(float),
+        }
+    )
+
+
 def score_direction(embedder, task: int, block: str, src_lang: str, tgt_lang: str, progress=print):
     """Similarity for every MT row in one direction, against its source row.
 

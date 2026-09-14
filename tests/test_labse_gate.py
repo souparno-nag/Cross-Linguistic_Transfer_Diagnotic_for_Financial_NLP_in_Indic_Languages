@@ -63,6 +63,42 @@ def test_cached_embeddings_are_reused_when_they_match(tmp_path, monkeypatch):
     assert L.embed_split(None, 1, "H", "ben", progress=lambda *_: None).shape == (2, 4)
 
 
+def test_score_items_only_requires_the_requested_items(monkeypatch):
+    """Unlike `score_pair`, `score_items` must not raise over an unrelated
+    row elsewhere in the split that never aligned across blocks (T-102b:
+    real native-family conditions carry exactly this shape) -- only a
+    *requested* item missing on either side is a bug worth raising over."""
+    source = pd.DataFrame({"item_id": ["shared", "src_only"]})
+    target = pd.DataFrame({"item_id": ["shared", "tgt_only_unaligned"]})
+
+    def fake_read_split(task, block, lang):
+        return source if block == "H" else target
+
+    monkeypatch.setattr(L, "read_split", fake_read_split)
+    monkeypatch.setattr(
+        L, "embed_split",
+        lambda embedder, task, block, lang, progress=print: (
+            np.array([[1.0, 0.0], [0.0, 1.0]]) if block == "H" else np.array([[1.0, 0.0], [0.0, 1.0]])
+        ),
+    )
+
+    result = L.score_items(None, 2, "H", "hin", "B", "ben", ["shared"])
+    assert result["item_id"].tolist() == ["shared"]
+    assert result["labse_sim"].iloc[0] == pytest.approx(1.0)
+
+
+def test_score_items_raises_only_when_a_requested_item_is_missing(monkeypatch):
+    source = pd.DataFrame({"item_id": ["shared"]})
+    target = pd.DataFrame({"item_id": ["shared"]})
+    monkeypatch.setattr(L, "read_split", lambda task, block, lang: source if block == "H" else target)
+    monkeypatch.setattr(
+        L, "embed_split", lambda embedder, task, block, lang, progress=print: np.array([[1.0, 0.0]])
+    )
+
+    with pytest.raises(ValueError, match="requested items are missing"):
+        L.score_items(None, 2, "H", "hin", "B", "ben", ["shared", "does_not_exist"])
+
+
 @pytest.mark.slow
 def test_known_similar_and_dissimilar_pairs_fall_the_right_side_of_tau(config):
     """§10's requirement, on the real model."""

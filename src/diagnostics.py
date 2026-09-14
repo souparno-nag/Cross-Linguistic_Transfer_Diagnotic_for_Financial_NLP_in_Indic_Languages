@@ -14,8 +14,12 @@ out of scope for this build (explicit instruction) and is simply absent from
 
 This module owns orchestration and I/O; the actual per-module logic lives in
 `src.fragmentation`, `src.morphology` and `src.saliency`, and the gate reuses
-`src.labse_gate.score_pair` rather than reimplementing it (CLAUDE4.md's
-explicit instruction).
+`src.labse_gate.score_items` rather than reimplementing it (CLAUDE4.md's
+explicit instruction). `score_items`, not `score_pair`, because a
+native-family condition's two blocks are only *partially* aligned by
+construction (T-102b) — scoring a failure set's specific items, not an
+entire split, is what keeps a legitimately-unaligned row elsewhere in the
+corpus from raising here.
 """
 
 from __future__ import annotations
@@ -240,7 +244,9 @@ def diagnose_condition(
     config = labse.load_config()
     tau = tau if tau is not None else labse.tau_for(config, task)
     embedder = labse.Embedder(config, device=device)
-    sims = labse.score_pair(embedder, task, block_src, lang_src, block_tgt, lang_tgt)
+    sims = labse.score_items(
+        embedder, task, block_src, lang_src, block_tgt, lang_tgt, failures["item_id"].tolist()
+    )
     sim_by_item = dict(zip(sims["item_id"], sims["labse_sim"]))
     missing = [item for item in failures["item_id"] if item not in sim_by_item]
     if missing:
