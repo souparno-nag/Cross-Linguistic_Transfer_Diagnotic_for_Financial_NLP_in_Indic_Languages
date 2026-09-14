@@ -129,32 +129,54 @@ def cosine(left: np.ndarray, right: np.ndarray) -> np.ndarray:
     return np.einsum("ij,ij->i", left, right)
 
 
-def score_direction(embedder, task: int, block: str, src_lang: str, tgt_lang: str, progress=print):
-    """Similarity for every MT row in one direction, against its source row."""
-    source = read_split(task, block, src_lang)
-    target = read_split(task, block, tgt_lang)
-    src_vectors = embed_split(embedder, task, block, src_lang, progress)
-    tgt_vectors = embed_split(embedder, task, block, tgt_lang, progress)
+def score_pair(
+    embedder, task: int, src_block: str, src_lang: str, tgt_block: str, tgt_lang: str, progress=print
+):
+    """Similarity for every row in one split, against its aligned row in another.
+
+    Generalises :func:`score_direction` to a source and target that live in
+    *different* blocks. That is exactly the case Phase 6 (CLAUDE4.md) needs:
+    its native-family transfer conditions pair block H's Hindi source against
+    block B's Bengali native row for the same `item_id`, not against another
+    row in block H — the two rows have different `item_id` sets before the
+    join, aligned only through the id itself (T-102b), never by position.
+    `score_direction` is the same-block special case, kept as a thin wrapper
+    so its existing callers and tests stay unchanged.
+    """
+    source = read_split(task, src_block, src_lang)
+    target = read_split(task, tgt_block, tgt_lang)
+    src_vectors = embed_split(embedder, task, src_block, src_lang, progress)
+    tgt_vectors = embed_split(embedder, task, tgt_block, tgt_lang, progress)
 
     src_index = {item: i for i, item in enumerate(source["item_id"])}
     missing = [item for item in target["item_id"] if item not in src_index]
     if missing:
         raise ValueError(
-            f"{len(missing)} MT rows in {block} {src_lang}->{tgt_lang} have no source "
-            f"row, e.g. {missing[:3]} — the split is not row-aligned"
+            f"{len(missing)} rows in {tgt_block} {src_lang}->{tgt_lang} have no source "
+            f"row in {src_block}, e.g. {missing[:3]} — the two splits do not share ids"
         )
 
     rows = np.array([src_index[item] for item in target["item_id"]])
     scores = cosine(src_vectors[rows], tgt_vectors)
     return pd.DataFrame(
         {
-            "block_id": block,
+            "block_id": tgt_block,
             "item_id": target["item_id"].to_numpy(),
             "src_lang": src_lang,
             "tgt_lang": tgt_lang,
             "labse_sim": scores.astype(float),
         }
     )
+
+
+def score_direction(embedder, task: int, block: str, src_lang: str, tgt_lang: str, progress=print):
+    """Similarity for every MT row in one direction, against its source row.
+
+    Same-block case of :func:`score_pair` — every T-108 caller has source and
+    target in one block (an MT split is translated *within* its native
+    block), so this stays the entry point they already use.
+    """
+    return score_pair(embedder, task, block, src_lang, block, tgt_lang, progress)
 
 
 def score_task(embedder, task: int, progress=print) -> pd.DataFrame:

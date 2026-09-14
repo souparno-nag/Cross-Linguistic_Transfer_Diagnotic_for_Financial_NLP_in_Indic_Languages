@@ -35,5 +35,18 @@ PyYAML            # T-204 config system: seed, LR, batch size, max_len, epochs, 
 ipykernel
 nbformat
 
+# Diagnostic pipeline (Phase 6, CLAUDE4.md). captum is the Integrated
+# Gradients module's (T-604) only new dependency. indic-nlp-library is the
+# morphological masking module's (T-603) rung-1 analyser -- distinct from
+# the already-pinned `IndicTransToolkit`-bundled `indic-nlp-library-itt`
+# fork, which lacks the `morph` submodule. Live-confirmed during Phase 6
+# planning: needs `indicnlp.common.init()` called explicitly (it does not
+# read $INDIC_RESOURCES_PATH on import) and a one-time fetch of
+# `anoopkunchukuttan/indic_nlp_resources`'s `morph/morfessor/{hi,bn,te,ml}.model`
+# files, pointed at by that environment variable, before rung 1 can load.
+captum
+indic-nlp-library
+morfessor
+
 # Tests (CLAUDE.md §10).
 pytest

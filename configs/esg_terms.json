@@ -1,0 +1,25 @@
+{
+  "_comment": "Root ESG term lexicon for the morphological-masking (T-603) and terminology-gap (T-604) diagnostic modules. Curated by hand in Hindi only -- the one language this project's owner can verify -- per CLAUDE4.md's morphological masking design and the plan approved for Phase 6. `ben`/`tel`/`mal` are populated mechanically by `scripts/t603_esg_terms.py`, which calls the same frozen IndicTrans2 model used to build the corpus, and are documented as machine-derived rather than human-verified. Until that script is run (it needs the gated `ai4bharat/indictrans2-indic-indic-1B` weights and HF auth per CLAUDE.md 3.1, unavailable in this build environment), those fields are null and the diagnostics modules skip any concept whose target-language form is missing for the language in question -- never fabricated.",
+  "source_model": null,
+  "source_revision": null,
+  "concepts": [
+    {"id": "sustainable",  "hin": "टिकाऊ",        "ben": null, "tel": null, "mal": null},
+    {"id": "emission",     "hin": "उत्सर्जन",      "ben": null, "tel": null, "mal": null},
+    {"id": "carbon",       "hin": "कार्बन",         "ben": null, "tel": null, "mal": null},
+    {"id": "pollution",    "hin": "प्रदूषण",       "ben": null, "tel": null, "mal": null},
+    {"id": "waste",        "hin": "अपशिष्ट",       "ben": null, "tel": null, "mal": null},
+    {"id": "renewable",    "hin": "नवीकरणीय",     "ben": null, "tel": null, "mal": null},
+    {"id": "environment",  "hin": "पर्यावरण",      "ben": null, "tel": null, "mal": null},
+    {"id": "energy",       "hin": "ऊर्जा",          "ben": null, "tel": null, "mal": null},
+    {"id": "resource",     "hin": "संसाधन",        "ben": null, "tel": null, "mal": null},
+    {"id": "recycling",    "hin": "पुनर्चक्रण",    "ben": null, "tel": null, "mal": null},
+    {"id": "biodiversity", "hin": "जैव विविधता",  "ben": null, "tel": null, "mal": null},
+    {"id": "deforestation","hin": "वनों की कटाई", "ben": null, "tel": null, "mal": null},
+    {"id": "greenhouse",   "hin": "ग्रीनहाउस",     "ben": null, "tel": null, "mal": null},
+    {"id": "climate",      "hin": "जलवायु",        "ben": null, "tel": null, "mal": null},
+    {"id": "conservation", "hin": "संरक्षण",       "ben": null, "tel": null, "mal": null},
+    {"id": "water",        "hin": "जल",            "ben": null, "tel": null, "mal": null},
+    {"id": "plastic",      "hin": "प्लास्टिक",     "ben": null, "tel": null, "mal": null},
+    {"id": "fossil_fuel",  "hin": "जीवाश्म ईंधन", "ben": null, "tel": null, "mal": null}
+  ]
+}
