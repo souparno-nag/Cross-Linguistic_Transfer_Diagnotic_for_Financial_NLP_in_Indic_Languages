@@ -316,3 +316,9 @@ task3_ben_indicbert_seed1__translationese_ben__ben,indicbert-v2,translationese_b
 task3_ben_indicbert_seed2__translationese_ben__ben,indicbert-v2,translationese_ben::task_3/B/ben,2,00e4ccf701c0f6dc,0.663534,0.531208,2026-09-15T17:17:24+00:00
 task3_ben_indicbert_seed2__translationese_ben__ben,indicbert-v2,translationese_ben::task_3/H/ben,2,ed4a1c4f49bc56a3,0.351504,0.248405,2026-09-15T17:17:28+00:00
 task3_ben_indicbert_seed2__translationese_ben__ben,indicbert-v2,translationese_ben::task_3/T/ben,2,1348ccf5dfadcde4,0.332707,0.238999,2026-09-15T17:17:33+00:00
+task2_tel_indicbert_seed0,indicbert-v2,task2/T/tel/native,0,a9fc72e2fde5ef1a,0.826923,0.824588,2026-09-15T18:00:58+00:00
+task2_tel_indicbert_seed1,indicbert-v2,task2/T/tel/native,1,59aebb02078c3b64,0.802885,0.802332,2026-09-15T18:09:37+00:00
+task2_tel_indicbert_seed2,indicbert-v2,task2/T/tel/native,2,68d300ede60ae4e4,0.831731,0.830315,2026-09-15T18:15:43+00:00
+task3_tel_indicbert_seed0,indicbert-v2,task3/T/tel/native,0,56cfaefa3f5dd099,0.1875,0.068163,2026-09-15T18:16:38+00:00
+task3_tel_indicbert_seed1,indicbert-v2,task3/T/tel/native,1,e3a3b19fbfab35d5,0.2,0.149661,2026-09-15T18:18:40+00:00
+task3_tel_indicbert_seed2,indicbert-v2,task3/T/tel/native,2,c44b75f6d10924a5,0.225,0.067787,2026-09-15T18:19:38+00:00

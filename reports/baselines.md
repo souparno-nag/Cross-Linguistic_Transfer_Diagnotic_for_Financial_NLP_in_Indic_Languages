@@ -13,9 +13,11 @@ T-207's gate compares only the configs named in `configs/published_baselines.jso
 | task2_ben_indicbert.yaml | indicbert-v2 | task2/B/ben/native | 16 × 1 | 16 | 0,1,2 | 0.8201 ± 0.0279 | all seeds converged | 0.8206 ± 0.0280 |
 | task2_hin_indicbert.yaml | indicbert-v2 | task2/H/hin/native | 16 × 1 | 16 | 0,1,2 | 0.8226 ± 0.0044 | all seeds converged | 0.8244 ± 0.0052 |
 | task2_hin_mbert.yaml | mbert-base | task2/H/hin/native | 8 × 2 | 16 | 0,1,2 | 0.8742 ± 0.0170 | all seeds converged | 0.8765 ± 0.0169 |
+| task2_tel_indicbert.yaml | indicbert-v2 | task2/T/tel/native | 16 × 1 | 16 | 0,1,2 | 0.8191 ± 0.0148 | all seeds converged | 0.8205 ± 0.0155 |
 | task3_ben_indicbert.yaml | indicbert-v2 | task3/B/ben/native | 16 × 1 | 16 | 0,1,2 | 0.1269 ± 0.0549 | **0.1585 ± 0.0013** (n=2) | 0.2167 ± 0.0072 |
 | task3_hin_indicbert.yaml | indicbert-v2 | task3/H/hin/native | 16 × 1 | 16 | 0,1,2 | 0.1526 ± 0.0249 | all seeds converged | 0.2250 ± 0.0331 |
 | task3_hin_mbert.yaml | mbert-base | task3/H/hin/native | 16 × 1 | 16 | 0,1,2 | 0.3354 ± 0.0417 | all seeds converged | 0.4167 ± 0.0361 |
+| task3_tel_indicbert.yaml | indicbert-v2 | task3/T/tel/native | 16 × 1 | 16 | 0,1,2 | 0.0952 ± 0.0472 | **0.1497 ± 0.0000** (n=1) | 0.2042 ± 0.0191 |
 
 ## Runs that did not fit their training data
 
@@ -24,6 +26,8 @@ These completed and logged a number without the optimisation ever getting going.
 | run | peak train macro-F1 | test macro-F1 | epochs | verdict |
 |---|---|---|---|---|
 | `task3_ben_indicbert_seed0` | 0.1519 | 0.0635 | 13 | below 0.5 — did not train |
+| `task3_tel_indicbert_seed0` | 0.4692 | 0.0682 | 15 | below 0.5 — did not train |
+| `task3_tel_indicbert_seed2` | 0.1260 | 0.0678 | 16 | below 0.5 — did not train |
 
 ## Per-seed macro-F1
 
@@ -40,6 +44,9 @@ These completed and logged a number without the optimisation ever getting going.
 | task2_hin_mbert.yaml | mbert-base | 0 | 0.8809 | 0.8839 | 1.0000 | yes |
 | task2_hin_mbert.yaml | mbert-base | 1 | 0.8549 | 0.8571 | 0.9994 | yes |
 | task2_hin_mbert.yaml | mbert-base | 2 | 0.8870 | 0.8884 | 1.0000 | yes |
+| task2_tel_indicbert.yaml | indicbert-v2 | 0 | 0.8246 | 0.8269 | 0.9976 | yes |
+| task2_tel_indicbert.yaml | indicbert-v2 | 1 | 0.8023 | 0.8029 | 0.9964 | yes |
+| task2_tel_indicbert.yaml | indicbert-v2 | 2 | 0.8303 | 0.8317 | 0.9964 | yes |
 | task3_ben_indicbert.yaml | indicbert-v2 | 0 | 0.0635 | 0.2125 | 0.1519 | **no** |
 | task3_ben_indicbert.yaml | indicbert-v2 | 1 | 0.1576 | 0.2125 | 0.9968 | yes |
 | task3_ben_indicbert.yaml | indicbert-v2 | 2 | 0.1595 | 0.2250 | 0.6882 | yes |
@@ -49,3 +56,6 @@ These completed and logged a number without the optimisation ever getting going.
 | task3_hin_mbert.yaml | mbert-base | 0 | 0.3291 | 0.4375 | 1.0000 | yes |
 | task3_hin_mbert.yaml | mbert-base | 1 | 0.2971 | 0.3750 | 1.0000 | yes |
 | task3_hin_mbert.yaml | mbert-base | 2 | 0.3798 | 0.4375 | 1.0000 | yes |
+| task3_tel_indicbert.yaml | indicbert-v2 | 0 | 0.0682 | 0.1875 | 0.4692 | **no** |
+| task3_tel_indicbert.yaml | indicbert-v2 | 1 | 0.1497 | 0.2000 | 0.9645 | yes |
+| task3_tel_indicbert.yaml | indicbert-v2 | 2 | 0.0678 | 0.2250 | 0.1260 | **no** |

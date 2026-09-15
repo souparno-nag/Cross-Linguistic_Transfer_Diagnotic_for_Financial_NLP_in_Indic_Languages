@@ -62,17 +62,58 @@ def test_a_weak_but_real_run_is_not_flagged():
     assert C.converged(_history([0.03, 0.3, 0.5154])) is True
 
 
-def test_threshold_is_not_a_knife_edge_for_the_observed_runs():
-    """Every run in the project sits well clear of the threshold on one side
-    or the other, so the verdict does not depend on the exact value. If this
-    ever fails, a run has landed in the ambiguous band and needs reading by
-    hand rather than a nudged constant (`hard rule 3`)."""
-    observed_peaks = [0.1519, 0.5154, 0.6882, 0.9705, 0.9955, 0.9968]
-    for peak in observed_peaks:
-        assert not (0.16 < peak < 0.51), (
-            f"peak {peak} is inside the band where the threshold choice would "
-            "decide the outcome"
-        )
+def test_threshold_is_not_a_knife_edge_for_the_real_runs():
+    """Every run on disk should sit well clear of the threshold on one side or
+    the other, so the verdict does not depend on the exact value.
+
+    **This reads the actual checkpoints.** An earlier version asserted against
+    a hardcoded list of the peaks observed when it was written, which made it
+    incapable of ever firing — and it duly stayed green when
+    `task3_tel_indicbert_seed0` landed at 0.4692, right in the middle of the
+    band it was supposed to be watching. A guard that cannot observe new data
+    is not a guard.
+
+    Skips when no checkpoints are present: `checkpoints/` is gitignored and
+    prunable (T-208), so their absence is "nothing to check", not a failure.
+
+    When this fails, do **not** move `MIN_TRAIN_MACRO_F1` to make it pass —
+    that is `hard rule 3` exactly. Read the run by hand and report what it
+    shows.
+    """
+    from pathlib import Path
+
+    from src.download_dataset.paths import REPO_ROOT
+
+    root = REPO_ROOT / "checkpoints"
+    if not root.exists():
+        pytest.skip("no checkpoints on disk")
+
+    # Smoke checkpoints are deliberately one epoch on a 200-row subset
+    # (T-401/T-500), so "did it converge" is not a meaningful question for
+    # them. Excluding them scopes the guard to runs where convergence is a
+    # claim; it does not move the threshold.
+    checked, ambiguous = 0, []
+    for run_dir in sorted(p for p in root.iterdir() if p.is_dir()):
+        if run_dir.name.startswith(("t500_smoke__", "t401_smoke__")):
+            continue
+        if not (run_dir / "checkpoint.pt").exists():
+            continue
+        peak = C.peak_train_macro_f1(C.history_for(run_dir.name))
+        if peak is None:
+            continue
+        checked += 1
+        if 0.16 < peak < 0.51:
+            ambiguous.append((run_dir.name, round(peak, 4)))
+
+    if checked == 0:
+        pytest.skip("no readable baseline checkpoints on disk")
+
+    assert not ambiguous, (
+        f"{len(ambiguous)} run(s) sit in the band where the threshold decides "
+        f"the outcome: {ambiguous}. The threshold has stopped being informative "
+        "for these; read them by hand and report what they show. Do NOT nudge "
+        "MIN_TRAIN_MACRO_F1 to make this pass."
+    )
 
 
 @pytest.mark.parametrize("threshold", [0.2, 0.3, 0.4, 0.5])
