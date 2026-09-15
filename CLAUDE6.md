@@ -218,6 +218,36 @@ IndicBERT-v2 → Hindi, Malayalam, Telugu, plus the in-language ceiling and the 
 translationese conditions (`B_nat` vs `Bn←H` vs `Bn←T`).
 **Done:** all conditions logged; per-instance predictions written.
 
+**Run the sweeps with `HF_HUB_OFFLINE=1`.** `transformers` 4.57.6 makes a live
+Hub request inside every `AutoTokenizer.from_pretrained` for a non-local repo id
+(`_patch_mistral_regex` calls `model_info` to ask whether the repo is a base Mistral
+model), and it does so even when every file is cached. A dropped connection there
+killed a 42-pair sweep three conditions in. `data.get_tokenizer` is now cached per
+model id, which removes ~70 of those requests per sweep, and `run_all` reports a
+failed pair and continues instead of aborting; the environment variable closes the
+last one, because `is_offline_mode()` short-circuits the same hook.
+
+**The Mistral warning that appears under that flag is spurious — verified, not
+assumed.** Offline, `_is_local` is forced true, so the check enters a branch it
+otherwise skips; `ai4bharat/indic-bert`'s `config.json` has `model_type: albert` but
+carries **no `transformers_version`**, so `transformers` cannot take its fast path to
+rule the model out, sets `mistral_config_detected` and warns "This will lead to
+incorrect tokenization". It does not: the warning branch only sets a bookkeeping
+attribute, and the branch that actually rewrites the pre-tokenizer regex needs
+`fix_mistral_regex=True`, which nothing here passes.
+
+Checked two independent ways, because a warning about *incorrect tokenization* is not
+something to wave away by reading the source:
+
+| check | online | offline | result |
+|---|---|---|---|
+| token ids, 300 real Hindi sentences | 18418 tokens | 18418 tokens | **identical ids** |
+| `transfer_hin_to_ben`, 3294 predictions | — | — | **0 differ, max probability delta 0.0** |
+
+The only thing that changes is the value of `tokenizer.fix_mistral_regex` — `unset`
+online, `False` offline. The corpus artefacts produced with and without the flag are
+byte-comparable, so `hard rule 1`'s identical protocol holds across it.
+
 ### T-405 — Telugu-source zero-shot evaluation
 
 Same for block T, including `Te→Ml`.
