@@ -27,6 +27,7 @@ up with 1117 correct seed-0 rows next to 2238 unfiltered seed-1/2 rows).
 
 from __future__ import annotations
 
+from src.data import DEFAULT_ENCODER
 from src.download_dataset.paths import REPO_ROOT
 from src.ids import targets_for_block
 from src.inference import load_run_config_for
@@ -46,6 +47,13 @@ def main(argv: list[str] | None = None) -> int:
     run = load_run_config_for(args.run_id)
     block = run.resolved_block()
     native = run.lang
+    # Taken from the checkpoint rather than a flag: the encoder is a property
+    # of the run being loaded, so it cannot disagree with it. The default
+    # encoder keeps the original un-namespaced path (predictions.log_path).
+    path_encoder = None if run.encoder == DEFAULT_ENCODER else run.encoder
+    print(f"encoder {run.encoder} -> predictions under "
+          f"data/predictions/task_{args.task}/"
+          f"{'' if path_encoder is None else path_encoder + '/'}")
 
     arms = [(native, "native")] + [(lang, "mt") for lang in targets_for_block(block)]
     logs: dict[str, "object"] = {}
@@ -65,7 +73,9 @@ def main(argv: list[str] | None = None) -> int:
             device=args.device, batch_size=args.batch_size,
         )
         if origin == "native":
-            path = write_prediction_log(frame, args.task, condition_id)
+            path = write_prediction_log(
+                frame, args.task, condition_id, encoder=path_encoder
+            )
             print(f"wrote {len(frame)} rows -> {path.relative_to(REPO_ROOT)}")
         else:
             print(f"predicted {len(frame)} rows for {lang} (join check only, not written)")

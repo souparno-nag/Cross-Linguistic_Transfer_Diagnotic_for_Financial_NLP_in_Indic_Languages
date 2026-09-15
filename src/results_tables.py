@@ -27,6 +27,7 @@ from .data import num_labels
 from .evaluate import _split_lang, load_matrix
 from .metrics import classification_metrics
 from .mismatch import join_source_target
+from .data import DEFAULT_ENCODER
 from .predictions import read_prediction_log
 from .transfer import DEFAULT_N_BOOT, bootstrap_metric, transfer_gap
 
@@ -43,14 +44,27 @@ def _source_id_for(condition: dict) -> str:
     return f"{block}_{lang}_native_ceiling"
 
 
+def _path_encoder(encoder: str | None) -> str | None:
+    """The encoder level a prediction log lives under, or `None` for the
+    default encoder, whose logs keep the original un-namespaced path
+    (`predictions.log_path`)."""
+    return None if encoder in (None, DEFAULT_ENCODER) else encoder
+
+
 def condition_seed_gap(
-    task: int, condition: dict, seed: int, *, n_boot: int = DEFAULT_N_BOOT
+    task: int,
+    condition: dict,
+    seed: int,
+    *,
+    n_boot: int = DEFAULT_N_BOOT,
+    encoder: str | None = None,
 ) -> dict | None:
     """One (condition, seed)'s paired gap. `None` if either log, or their
     paired-item overlap, is empty -- the caller reports that as blocked."""
     try:
-        source = read_prediction_log(task, _source_id_for(condition))
-        target = read_prediction_log(task, condition["name"])
+        enc = _path_encoder(encoder)
+        source = read_prediction_log(task, _source_id_for(condition), encoder=enc)
+        target = read_prediction_log(task, condition["name"], encoder=enc)
     except FileNotFoundError:
         return None
     source = source[source["seed"] == seed]
@@ -69,11 +83,19 @@ def condition_seed_gap(
 
 
 def condition_summary(
-    task: int, condition: dict, *, seeds: tuple[int, ...] = (0, 1, 2), n_boot: int = DEFAULT_N_BOOT
+    task: int,
+    condition: dict,
+    *,
+    seeds: tuple[int, ...] = (0, 1, 2),
+    n_boot: int = DEFAULT_N_BOOT,
+    encoder: str | None = None,
 ) -> dict:
     """Mean +/- sample-std over seeds (hard rule 3), plus whether the gap is
     smaller than that seed-to-seed spread (hard rule 5: not a finding then)."""
-    per_seed = [condition_seed_gap(task, condition, s, n_boot=n_boot) for s in seeds]
+    per_seed = [
+        condition_seed_gap(task, condition, s, n_boot=n_boot, encoder=encoder)
+        for s in seeds
+    ]
     available = [r for r in per_seed if r is not None]
     base = {
         "condition": condition["name"],
@@ -98,21 +120,29 @@ def condition_summary(
     }
 
 
-def condition_matrix(task: int, kind: str, *, n_boot: int = DEFAULT_N_BOOT) -> pd.DataFrame:
+def condition_matrix(
+    task: int, kind: str, *, n_boot: int = DEFAULT_N_BOOT, encoder: str | None = None
+) -> pd.DataFrame:
     """Every condition of one `kind` ("transfer" or "transfer_mt"), blocked
     or not -- the shape is always the full 9 cells."""
     matrix = load_matrix(task)
     rows = [
-        condition_summary(task, c, n_boot=n_boot)
+        condition_summary(task, c, n_boot=n_boot, encoder=encoder)
         for c in matrix["conditions"]
         if c["kind"] == kind
     ]
     return pd.DataFrame(rows)
 
 
-def quadrant_summary(task: int, kind: str = "transfer", *, n_boot: int = DEFAULT_N_BOOT) -> pd.DataFrame:
+def quadrant_summary(
+    task: int,
+    kind: str = "transfer",
+    *,
+    n_boot: int = DEFAULT_N_BOOT,
+    encoder: str | None = None,
+) -> pd.DataFrame:
     """Mean gap per typological quadrant, over whichever cells are runnable."""
-    df = condition_matrix(task, kind, n_boot=n_boot)
+    df = condition_matrix(task, kind, n_boot=n_boot, encoder=encoder)
     ok = df[df["status"] == "ok"] if not df.empty else df
     rows = []
     for quadrant in QUADRANTS:
@@ -132,13 +162,15 @@ def quadrant_summary(task: int, kind: str = "transfer", *, n_boot: int = DEFAULT
 
 
 def translationese_comparison(
-    task: int, lang: str, *, seeds: tuple[int, ...] = (0, 1, 2)
+    task: int, lang: str, *, seeds: tuple[int, ...] = (0, 1, 2), encoder: str | None = None
 ) -> pd.DataFrame:
     """Per-arm macro-F1, mean +/- std over seeds, and the delta from the
     native arm -- isolates the effect of translation provenance alone,
     holding language and label constant (T-113 §8)."""
     try:
-        log = read_prediction_log(task, f"translationese_{lang}")
+        log = read_prediction_log(
+            task, f"translationese_{lang}", encoder=_path_encoder(encoder)
+        )
     except FileNotFoundError:
         return pd.DataFrame()
 

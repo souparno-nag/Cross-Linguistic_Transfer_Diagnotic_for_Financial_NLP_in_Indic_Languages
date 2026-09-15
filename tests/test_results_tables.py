@@ -40,7 +40,7 @@ def _condition(name="transfer_hin_to_ben", quadrant="Indo-Aryan->Indo-Aryan", ki
 
 
 def test_condition_seed_gap_is_none_when_a_log_is_missing(monkeypatch):
-    def fake_read(task, condition_id):
+    def fake_read(task, condition_id, **kwargs):
         raise FileNotFoundError(condition_id)
 
     monkeypatch.setattr(R, "read_prediction_log", fake_read)
@@ -51,7 +51,7 @@ def test_condition_seed_gap_is_none_when_the_seed_has_no_rows(monkeypatch):
     source = _log(["a"], gold=[0], pred=[0], condition_id="H_hin_native_ceiling", block="H", lang="hin", origin="native", seed=1)
     target = _log(["a"], gold=[0], pred=[0], condition_id="transfer_hin_to_ben", seed=1)
 
-    def fake_read(task, condition_id):
+    def fake_read(task, condition_id, **kwargs):
         return source if "ceiling" in condition_id else target
 
     monkeypatch.setattr(R, "read_prediction_log", fake_read)
@@ -65,7 +65,7 @@ def test_condition_seed_gap_computes_source_minus_target(monkeypatch):
     source = _log(items, gold=gold, pred=gold, condition_id="H_hin_native_ceiling", block="H", lang="hin", origin="native", seed=0)
     target = _log(items, gold=gold, pred=[1 - g for g in gold], condition_id="transfer_hin_to_ben", seed=0)
 
-    def fake_read(task, condition_id):
+    def fake_read(task, condition_id, **kwargs):
         return source if "ceiling" in condition_id else target
 
     monkeypatch.setattr(R, "read_prediction_log", fake_read)
@@ -82,7 +82,7 @@ def test_condition_seed_gap_computes_source_minus_target(monkeypatch):
 
 
 def test_condition_summary_is_blocked_when_no_seed_has_data(monkeypatch):
-    monkeypatch.setattr(R, "read_prediction_log", lambda *a: (_ for _ in ()).throw(FileNotFoundError()))
+    monkeypatch.setattr(R, "read_prediction_log", lambda *a, **k: (_ for _ in ()).throw(FileNotFoundError()))
     summary = R.condition_summary(2, _condition())
     assert summary["status"] == "blocked"
     assert summary["n_seeds"] == 0
@@ -110,7 +110,7 @@ def test_condition_summary_aggregates_across_seeds(monkeypatch):
 
     target = pd.concat([make_target_seed(s) for s in (0, 1, 2)], ignore_index=True)
 
-    def fake_read2(task, condition_id):
+    def fake_read2(task, condition_id, **kwargs):
         return ceiling if "ceiling" in condition_id else target
 
     monkeypatch.setattr(R, "read_prediction_log", fake_read2)
@@ -152,7 +152,7 @@ def test_condition_matrix_keeps_blocked_cells_rather_than_dropping_them(monkeypa
         ]
     }
     monkeypatch.setattr(R, "load_matrix", lambda task: matrix)
-    monkeypatch.setattr(R, "read_prediction_log", lambda *a: (_ for _ in ()).throw(FileNotFoundError()))
+    monkeypatch.setattr(R, "read_prediction_log", lambda *a, **k: (_ for _ in ()).throw(FileNotFoundError()))
     df = R.condition_matrix(2, "transfer")
     assert len(df) == 2
     assert set(df["status"]) == {"blocked"}
@@ -172,7 +172,7 @@ def test_quadrant_summary_only_averages_ok_cells(monkeypatch):
     }
     monkeypatch.setattr(R, "load_matrix", lambda task: matrix)
 
-    def fake_read(task, condition_id):
+    def fake_read(task, condition_id, **kwargs):
         if condition_id == "transfer_ben_to_hin" or condition_id == "B_ben_native_ceiling":
             raise FileNotFoundError(condition_id)
         return ceiling if "ceiling" in condition_id else good_target
@@ -199,7 +199,7 @@ def test_translationese_comparison_reports_delta_from_native(monkeypatch):
     from_ben = _log(items, gold=gold, pred=[1 - g for g in gold], condition_id="translationese_hin", block="B", lang="hin", origin="mt", seed=0)
     log = pd.concat([native, from_ben], ignore_index=True)
 
-    monkeypatch.setattr(R, "read_prediction_log", lambda task, cid: log)
+    monkeypatch.setattr(R, "read_prediction_log", lambda task, cid, **k: log)
     df = R.translationese_comparison(2, "hin", seeds=(0,))
     native_row = df[df["origin"] == "native"].iloc[0]
     ben_row = df[df["block"] == "B"].iloc[0]
@@ -209,7 +209,7 @@ def test_translationese_comparison_reports_delta_from_native(monkeypatch):
 
 
 def test_translationese_comparison_returns_empty_frame_when_missing(monkeypatch):
-    monkeypatch.setattr(R, "read_prediction_log", lambda *a: (_ for _ in ()).throw(FileNotFoundError()))
+    monkeypatch.setattr(R, "read_prediction_log", lambda *a, **k: (_ for _ in ()).throw(FileNotFoundError()))
     df = R.translationese_comparison(2, "ben")
     assert df.empty
 
