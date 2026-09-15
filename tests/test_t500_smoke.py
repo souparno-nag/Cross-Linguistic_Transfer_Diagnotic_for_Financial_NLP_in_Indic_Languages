@@ -102,9 +102,9 @@ def test_checkpoint_naming_check_passes_for_indicbert():
 
 
 def test_audit_returns_one_entry_per_check_with_the_expected_shape():
-    audit = T.run_audit(TRAIN_CONFIG_DIR / "task2_hin_xlmr.yaml")
-    # registry, protocol parity, checkpoint naming, and three artefact checks
-    assert len(audit) == 6
+    audit = T.run_audit(TRAIN_CONFIG_DIR / "task2_hin_xlmr.yaml", device="cpu")
+    # registry, parity, VRAM floor, checkpoint naming, three artefact checks
+    assert len(audit) == 7
     for check in audit:
         assert set(check) == {"name", "ok", "blocker", "detail"}
         assert isinstance(check["ok"], bool)
@@ -117,9 +117,47 @@ def test_audit_judges_the_shipped_yaml_not_the_smoke_overrides():
     Caught for real the first time this script ran."""
     path = TRAIN_CONFIG_DIR / "task2_hin_xlmr.yaml"
     parity = next(
-        c for c in T.run_audit(path) if c["name"] == "protocol parity vs IndicBERT"
+        c
+        for c in T.run_audit(path, device="cpu")
+        if c["name"] == "protocol parity vs IndicBERT"
     )
     assert parity["ok"], parity["detail"]
+
+
+# --------------------------------------------------------------------------
+# The VRAM floor — fixed parameter cost, which a batch-size sweep cannot see
+# --------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "encoder,expected_millions",
+    [("indicbert-v2", 34), ("xlm-r-base", 279), ("mbert-base", 179)],
+)
+def test_parameter_budget_matches_the_published_model_size(encoder, expected_millions):
+    """Built on the `meta` device, so this needs no weights and no GPU. The
+    counts are the published ones; a mismatch means the registry points at a
+    different checkpoint than we think."""
+    budget = T.parameter_budget(encoder)
+    assert budget["n_params"] / 1e6 == pytest.approx(expected_millions, abs=1.5)
+    # 16 bytes per parameter: fp32 weights + fp32 grads + two AdamW moments.
+    assert budget["floor_gib"] == pytest.approx(budget["n_params"] * 16 / 1024**3)
+
+
+def test_xlmr_full_finetune_does_not_fit_a_4gb_card():
+    """The T-500 finding, pinned so a later change cannot quietly un-find it.
+
+    XLM-R's fixed parameter cost alone exceeds this project's card, which is
+    why the OOM is not a batch-size problem and T-503 exists.
+    """
+    assert T.parameter_budget("xlm-r-base")["floor_gib"] > 4.0
+    assert T.parameter_budget("indicbert-v2")["floor_gib"] < 1.0
+
+
+def test_vram_check_is_inconclusive_rather_than_falsely_green_without_cuda():
+    run = load_run_config(TRAIN_CONFIG_DIR / "task2_hin_xlmr.yaml")
+    check = T.check_optimizer_fits(run, "cpu")
+    assert check["ok"] and not check["blocker"]
+    assert "not compared" in check["detail"]
 
 
 def test_subset_is_stratified_and_reproducible():

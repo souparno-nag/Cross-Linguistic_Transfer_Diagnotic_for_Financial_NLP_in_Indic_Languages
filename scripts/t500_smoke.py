@@ -221,7 +221,90 @@ def check_artefacts_carry_encoder() -> list[dict]:
     return out
 
 
-def run_audit(path: Path, *, seed: int = 0) -> list[dict]:
+def parameter_budget(encoder: str) -> dict:
+    """Bytes a full fine-tune needs for parameters alone, before activations.
+
+    Built on the `meta` device from the model's config, so it allocates
+    nothing and downloads no weights. Under AMP the master weights stay
+    fp32 and AdamW keeps two fp32 moments per parameter, so a full
+    fine-tune costs **16 bytes per parameter** — 4 weights + 4 gradient +
+    8 optimizer state — none of which depends on batch size or sequence
+    length. That is the part a batch-size sweep cannot measure and cannot
+    shrink.
+    """
+    import torch
+    from transformers import AutoConfig, AutoModel
+
+    from src.data import resolve_encoder
+
+    hf_id = resolve_encoder(encoder).hf_id
+    config = AutoConfig.from_pretrained(hf_id)
+    with torch.device("meta"):
+        model = AutoModel.from_config(config)
+    n_params = sum(p.numel() for p in model.parameters())
+    largest = max(model.parameters(), key=lambda p: p.numel()).numel()
+    gib = 1024**3
+    return {
+        "hf_id": hf_id,
+        "n_params": n_params,
+        "weights_gib": n_params * 4 / gib,
+        "grads_gib": n_params * 4 / gib,
+        "adamw_gib": n_params * 8 / gib,
+        "floor_gib": n_params * 16 / gib,
+        "largest_tensor_mib": largest * 4 / 1024**2,
+    }
+
+
+def check_optimizer_fits(run: RunConfig, device: str) -> dict:
+    """Will a full fine-tune of this encoder fit at all, at any batch size?
+
+    T-205's budget table answers "largest batch that fits", which is a
+    question about *activations*. It cannot see the fixed cost of weights,
+    gradients and AdamW state, and for XLM-R that fixed cost alone exceeds
+    this card. Checking it here means the answer arrives in the audit
+    instead of eight minutes into a run.
+    """
+    import torch
+
+    budget = parameter_budget(run.encoder)
+    detail = (
+        f"{budget['n_params'] / 1e6:.0f}M params -> {budget['weights_gib']:.2f} GiB "
+        f"weights + {budget['grads_gib']:.2f} grads + {budget['adamw_gib']:.2f} AdamW "
+        f"= {budget['floor_gib']:.2f} GiB fixed, before any activation "
+        f"(largest single tensor {budget['largest_tensor_mib']:.0f} MiB per copy)"
+    )
+    if not (device.startswith("cuda") and torch.cuda.is_available()):
+        return {
+            "name": "full fine-tune fits in VRAM",
+            "ok": True,
+            "blocker": False,
+            "detail": f"{detail}; no CUDA device visible, so not compared against one",
+        }
+
+    total_gib = torch.cuda.get_device_properties(0).total_memory / 1024**3
+    if budget["floor_gib"] < total_gib:
+        return {
+            "name": "full fine-tune fits in VRAM",
+            "ok": True,
+            "blocker": True,
+            "detail": f"{detail}; card has {total_gib:.2f} GiB total",
+        }
+    return {
+        "name": "full fine-tune fits in VRAM",
+        "ok": False,
+        "blocker": True,
+        "detail": (
+            f"{detail}. The card has {total_gib:.2f} GiB total, so this does not fit "
+            "at batch size 1 with a single token. VRAM-BLOCKED — this is fixed "
+            "parameter cost, not activation cost, so reducing batch size, max_len or "
+            "using gradient checkpointing cannot help. CLAUDE5.md hard rule 6: report "
+            "the config, do not silently shrink it. T-503 is the sanctioned "
+            "contingency."
+        ),
+    }
+
+
+def run_audit(path: Path, *, seed: int = 0, device: str = "cuda") -> list[dict]:
     """Audit the config **as shipped**, not as the smoke run overrides it.
 
     Leg B loads the same YAML with `epochs=1, patience=1` so one epoch on a
@@ -233,6 +316,7 @@ def run_audit(path: Path, *, seed: int = 0) -> list[dict]:
     return [
         check_registry(shipped),
         check_protocol_parity(shipped, path),
+        check_optimizer_fits(shipped, device),
         check_checkpoint_naming(shipped, path),
         *check_artefacts_carry_encoder(),
     ]
@@ -403,6 +487,11 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="also run the real config.run_training on the whole split (slow)",
     )
+    parser.add_argument(
+        "--force-smoke",
+        action="store_true",
+        help="run Leg B even when the audit has proven it cannot fit in VRAM",
+    )
     args = parser.parse_args(argv)
 
     run = load_run_config(args.encoder_config, seed=args.seed, epochs=1, patience=1)
@@ -410,17 +499,29 @@ def main(argv: list[str] | None = None) -> int:
     print(f"encoder {run.encoder} | task {run.task} | {run.split_id()}\n")
 
     print("Leg A — static audit (no model loaded)")
-    audit = run_audit(args.encoder_config, seed=args.seed)
+    audit = run_audit(args.encoder_config, seed=args.seed, device=args.device)
     for check in audit:
         print(f"  [{'PASS' if check['ok'] else 'FAIL'}] {check['name']}")
         print(f"         {check['detail']}")
     blockers = [c for c in audit if not c["ok"] and c["blocker"]]
     print()
 
+    vram_blocked = any(
+        not c["ok"] and c["name"] == "full fine-tune fits in VRAM" for c in audit
+    )
+
     smoke_ok = True
+    leg_b_ran = False
     if args.audit_only:
         print("Leg B — skipped (--audit-only)\n")
+    elif vram_blocked and not args.force_smoke:
+        print(
+            "Leg B — skipped: the audit proved this encoder's fixed parameter cost\n"
+            "  exceeds the card, so the run can only OOM. Re-run with --force-smoke\n"
+            "  to see it fail on the device anyway.\n"
+        )
     else:
+        leg_b_ran = True
         print(f"Leg B — end-to-end smoke ({args.rows} rows, 1 epoch, {args.device})")
         try:
             summary = run_smoke(
@@ -455,7 +556,7 @@ def main(argv: list[str] | None = None) -> int:
         print()
 
     print("=" * 72)
-    if smoke_ok and not args.audit_only:
+    if smoke_ok and leg_b_ran:
         print(
             "Leg B PASSED: training and inference are encoder-agnostic — this "
             "encoder ran end to end through the shipped Phase 2/3 entry points "
