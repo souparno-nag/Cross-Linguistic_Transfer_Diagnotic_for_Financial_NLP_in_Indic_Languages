@@ -45,14 +45,23 @@ def _write_report(rows: list[dict], epoch_rows: list[dict]) -> None:
         "Largest batch that survives forward → backward → optimiser step, "
         "`attention_mask` all ones (worst case).",
         "",
-        "| encoder | max_len | fp16 | max batch | peak GiB | note |",
-        "|---|---|---|---|---|---|",
+        "**floor** is the fixed cost of fp32 weights + gradients + AdamW's two "
+        "moments — 16 bytes per parameter, independent of batch size and "
+        "sequence length. **activations** is what the measured peak leaves over "
+        "it, and is the only part a batch sweep can move. A peak *below* the "
+        "floor is impossible for a completed optimiser step and means the "
+        "measurement is wrong (see `src/vram.py`, the T-500 note).",
+        "",
+        "| encoder | max_len | fp16 | max batch | peak GiB | floor GiB | activations GiB | note |",
+        "|---|---|---|---|---|---|---|---|",
     ]
     for r in rows:
         peak = "—" if r["peak_gib"] is None else f"{r['peak_gib']:.2f}"
+        floor = "—" if r.get("floor_gib") is None else f"{r['floor_gib']:.2f}"
+        act = "—" if r.get("activation_gib") is None else f"{r['activation_gib']:.2f}"
         lines.append(
             f"| {r['encoder']} | {r['max_len']} | {r['fp16']} | "
-            f"{r['max_batch']} | {peak} | {r['note']} |"
+            f"{r['max_batch']} | {peak} | {floor} | {act} | {r['note']} |"
         )
 
     if epoch_rows:
