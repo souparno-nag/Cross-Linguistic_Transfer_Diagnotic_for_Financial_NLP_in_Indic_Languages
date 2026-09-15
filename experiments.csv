@@ -139,3 +139,17 @@ task3_hin_indicbert_seed1__translationese_hin__hin,indicbert-v2,translationese_h
 task3_hin_indicbert_seed2__translationese_hin__hin,indicbert-v2,translationese_hin::task_3/H/hin,2,ca6702fb7c0d900e,0.597744,0.399333,2026-09-11T18:21:42+00:00
 task3_hin_indicbert_seed2__translationese_hin__hin,indicbert-v2,translationese_hin::task_3/B/hin,2,672c4c2e4d6e74a2,0.37218,0.240519,2026-09-11T18:22:02+00:00
 task3_hin_indicbert_seed2__translationese_hin__hin,indicbert-v2,translationese_hin::task_3/T/hin,2,a6a4a4b34ad3b778,0.400376,0.257439,2026-09-11T18:22:21+00:00
+task3_hin_mbert_seed0,mbert-base,task3/H/hin/native,0,62eec5d41166beff,0.4375,0.32915,2026-09-15T11:43:44+00:00
+task3_hin_mbert_seed1,mbert-base,task3/H/hin/native,1,ad4b9fe067c34718,0.375,0.29714,2026-09-15T11:46:23+00:00
+task3_hin_mbert_seed2,mbert-base,task3/H/hin/native,2,a3ada9d3aeeae45d,0.4375,0.379784,2026-09-15T11:51:29+00:00
+task2_hin_mbert_seed0,mbert-base,task2/H/hin/native,0,0e47f32ff4338a61,0.883929,0.880851,2026-09-15T12:03:56+00:00
+task2_hin_mbert_seed1,mbert-base,task2/H/hin/native,1,0e22d7e5fe442df7,0.857143,0.854875,2026-09-15T12:11:03+00:00
+task2_hin_mbert_seed2,mbert-base,task2/H/hin/native,2,418ea8964e17f3d3,0.888393,0.886985,2026-09-15T12:18:10+00:00
+task3_hin_mbert_seed0__transfer_hin_to_ben__ben,mbert-base,transfer_hin_to_ben::task_3/B/ben,0,47d3baa5d1974f85,0.350365,0.266253,2026-09-15T12:41:56+00:00
+task3_hin_mbert_seed1__transfer_hin_to_ben__ben,mbert-base,transfer_hin_to_ben::task_3/B/ben,1,7e2da2cd3187debe,0.361314,0.252992,2026-09-15T12:42:08+00:00
+task3_hin_mbert_seed2__transfer_hin_to_ben__ben,mbert-base,transfer_hin_to_ben::task_3/B/ben,2,bf8a795119dc4acb,0.40146,0.349966,2026-09-15T12:42:20+00:00
+task3_hin_mbert_seed0__transfer_hin_to_tel__tel,mbert-base,transfer_hin_to_tel::task_3/T/tel,0,a7e88547c3387028,0.368613,0.327928,2026-09-15T12:42:31+00:00
+task3_hin_mbert_seed1__transfer_hin_to_tel__tel,mbert-base,transfer_hin_to_tel::task_3/T/tel,1,251ef0b982c68585,0.273723,0.211351,2026-09-15T12:42:43+00:00
+task3_hin_mbert_seed2__transfer_hin_to_tel__tel,mbert-base,transfer_hin_to_tel::task_3/T/tel,2,020a36b83500f26c,0.368613,0.32829,2026-09-15T12:42:55+00:00
+task3_hin_mbert_seed0__transfer_hin_to_mal__mal,mbert-base,transfer_hin_to_mal::task_3/B/mal,0,ca019c6445807bd4,0.317518,0.260611,2026-09-15T12:43:06+00:00
+task3_hin_mbert_seed1__transfer_hin_to_mal__mal,mbert-base,transfer_hin_to_mal::task_3/B/mal,1,6ed90eb88ee32b59,0.277372,0.191727,2026-09-15T12:43:17+00:00
