@@ -137,3 +137,54 @@ def test_write_report_emits_md_and_parquet(tmp_path):
     assert "macro-F1 (mean ± std)" in md
     assert "a.yaml" in md
     assert len(pd.read_parquet(tmp_path / "baselines.parquet")) == 2
+
+
+# --------------------------------------------------------------------------
+# The report describes what is actually in it (CLAUDE5.md T-502)
+# --------------------------------------------------------------------------
+
+
+def _rec(config, encoder, **kw):
+    base = dict(
+        config=config, run_id=f"{config}0", seed=0, split="task2/H/hin/native",
+        encoder=encoder, batch_size=16, grad_accum=1, effective_batch=16,
+        macro_f1=0.8, accuracy=0.9,
+    )
+    base.update(kw)
+    return base
+
+
+def test_header_names_every_encoder_present(tmp_path):
+    """The header used to hardcode "IndicBERT-v2" and would have kept claiming
+    it after Phase 5 added a second encoder."""
+    records = [
+        _rec("task2_hin_indicbert.yaml", "indicbert-v2"),
+        _rec("task2_hin_mbert.yaml", "mbert-base", batch_size=8, grad_accum=2),
+    ]
+    B.write_report(B.summarise(records), records, tmp_path)
+    md = (tmp_path / "baselines.md").read_text()
+    assert "indicbert-v2 and mbert-base" in md
+    assert "IndicBERT-v2 fine-tuned" not in md
+
+
+def test_header_reads_naturally_with_a_single_encoder(tmp_path):
+    records = [_rec("task2_hin_indicbert.yaml", "indicbert-v2")]
+    B.write_report(B.summarise(records), records, tmp_path)
+    md = (tmp_path / "baselines.md").read_text()
+    assert "indicbert-v2 fine-tuned on each native split" in md
+    assert " and " not in md.splitlines()[2]
+
+
+def test_report_shows_the_batch_shape_and_effective_batch(tmp_path):
+    """The mBERT micro-batching difference has to be visible where the two
+    encoders' numbers first sit side by side, not only in T-504."""
+    records = [
+        _rec("task2_hin_indicbert.yaml", "indicbert-v2"),
+        _rec("task2_hin_mbert.yaml", "mbert-base", batch_size=8, grad_accum=2),
+    ]
+    B.write_report(B.summarise(records), records, tmp_path)
+    md = (tmp_path / "baselines.md").read_text()
+    assert "16 × 1" in md and "8 × 2" in md
+    assert "effective batch" in md
+    # Same effective batch on both rows is the point being shown.
+    assert md.count("| 16 |") >= 2

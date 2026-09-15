@@ -80,6 +80,9 @@ def report_records(config_paths, seeds, results_path) -> list[dict]:
                     "seed": seed,
                     "split": run.split_id(),
                     "encoder": run.encoder,
+                    "batch_size": run.batch_size,
+                    "grad_accum": run.grad_accum,
+                    "effective_batch": run.batch_size * run.grad_accum,
                     "macro_f1": float(row["macro_f1"]),
                     "accuracy": float(row["accuracy"]),
                 }
@@ -125,6 +128,9 @@ def summarise(records: list[dict]) -> list[dict]:
                 "config": config,
                 "split": group[0]["split"],
                 "encoder": group[0]["encoder"],
+                "batch_size": group[0].get("batch_size"),
+                "grad_accum": group[0].get("grad_accum"),
+                "effective_batch": group[0].get("effective_batch"),
                 "seeds": sorted(r["seed"] for r in group),
                 "n": len(group),
                 "macro_f1_mean": statistics.mean(f1s),
@@ -141,27 +147,60 @@ def write_report(summary: list[dict], records: list[dict], report_dir: Path) -> 
     report_dir.mkdir(parents=True, exist_ok=True)
     pd.DataFrame(records).to_parquet(report_dir / "baselines.parquet", index=False)
 
+    # Derived from the table, never asserted over it. This line used to read
+    # "IndicBERT-v2 fine-tuned on each native Hindi split", which stopped being
+    # true the moment Phase 5 added a second encoder to configs/train/
+    # (CLAUDE5.md T-502) — and it would have gone on claiming it, because
+    # nobody re-reads a sentence that already looks finished.
+    encoders = sorted({s["encoder"] for s in summary})
+    encoder_phrase = (
+        encoders[0]
+        if len(encoders) == 1
+        else ", ".join(encoders[:-1]) + f" and {encoders[-1]}"
+    )
     lines = [
         "# In-language baselines — T-206",
         "",
-        "IndicBERT-v2 fine-tuned on each native Hindi split, three seeds. "
-        "Numbers are on the held-out **test** fold. Compared against IndicFinNLP's "
-        "published monolingual baseline in T-207.",
+        f"{encoder_phrase} fine-tuned on each native split, three seeds. "
+        "Numbers are on the held-out **test** fold.",
         "",
-        "| config | split | seeds | macro-F1 (mean ± std) | accuracy (mean ± std) |",
-        "|---|---|---|---|---|",
+        "T-207's gate compares only the configs named in "
+        "`configs/published_baselines.json`. IndicFinNLP publishes an IndicBERT "
+        "number and nothing to compare another encoder against, so a Phase 5 "
+        "encoder appears in this table without being gated against a published "
+        "value. Comparing encoders to each other is T-504's job, not this "
+        "report's.",
+        "",
+        "**Effective batch is shown because it has to match for a cross-encoder "
+        "comparison to mean anything** (CLAUDE5.md hard rule 1). Where two rows "
+        "share an effective batch but differ in `batch × accum`, one was "
+        "re-shaped because it did not fit in VRAM: that changes how many rows "
+        "sit on the card at once, not the gradient, since the loss is a mean.",
+        "",
+        "| config | encoder | split | batch × accum | effective batch | seeds "
+        "| macro-F1 (mean ± std) | accuracy (mean ± std) |",
+        "|---|---|---|---|---|---|---|---|",
     ]
     for s in summary:
         seeds = ",".join(str(x) for x in s["seeds"])
         lines.append(
-            f"| {s['config']} | {s['split']} | {seeds} | "
+            f"| {s['config']} | {s['encoder']} | {s['split']} | "
+            f"{s['batch_size']} × {s['grad_accum']} | {s['effective_batch']} | "
+            f"{seeds} | "
             f"{s['macro_f1_mean']:.4f} ± {s['macro_f1_std']:.4f} | "
             f"{s['accuracy_mean']:.4f} ± {s['accuracy_std']:.4f} |"
         )
-    lines += ["", "## Per-seed macro-F1", "", "| config | seed | macro-F1 | accuracy |", "|---|---|---|---|"]
+    lines += [
+        "",
+        "## Per-seed macro-F1",
+        "",
+        "| config | encoder | seed | macro-F1 | accuracy |",
+        "|---|---|---|---|---|",
+    ]
     for r in sorted(records, key=lambda r: (r["config"], r["seed"])):
         lines.append(
-            f"| {r['config']} | {r['seed']} | {r['macro_f1']:.4f} | {r['accuracy']:.4f} |"
+            f"| {r['config']} | {r['encoder']} | {r['seed']} | "
+            f"{r['macro_f1']:.4f} | {r['accuracy']:.4f} |"
         )
     lines.append("")
     (report_dir / "baselines.md").write_text("\n".join(lines))
