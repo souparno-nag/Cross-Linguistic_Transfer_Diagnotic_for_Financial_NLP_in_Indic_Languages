@@ -8,7 +8,7 @@ on the way. Financial text was chosen because it is unusually easy to check for 
 a translated sentence either kept its numbers, currency symbols and percentages intact or
 it did not, which gives an objective check that plain sentence quality does not.
 
-The project has three completed phases:
+The project has four completed phases:
 
 1. **Corpus construction** — build a parallel corpus across Hindi, Bengali, Telugu and
    Malayalam, where "parallel" means the same underlying content exists in every
@@ -19,11 +19,15 @@ The project has three completed phases:
 3. **Zero-shot transfer evaluation** — run that frozen Hindi model on the other languages
    with no further training, measure how much accuracy is lost, and log every individual
    prediction so a later phase can investigate *why* specific items failed.
+4. **Encoder comparison** — repeat the whole training and evaluation protocol on a
+   second encoder, to check whether the choice of a specifically Indic model was the
+   right one. It was not: a general-purpose multilingual model (mBERT) beat it on every
+   measure. Why it beat it is not settled — see below.
 
-A fourth phase (diagnosing *why* the model fails on specific items — e.g. does it lose
-numerals, named entities, or long sentences disproportionately) is planned but not yet
-started; nothing in this repository claims to explain a cause yet, only to measure the
-size of the effect.
+A fifth phase (diagnosing *why* the model fails on specific items — e.g. does it lose
+numerals, named entities, or long sentences disproportionately) is in progress
+separately; nothing in this repository claims to explain a cause yet, only to measure
+the size of the effect.
 
 ## Why this exists
 
@@ -67,17 +71,17 @@ the human version becomes a free quality ceiling for judging the machine one.
 ## Repository layout
 
 ```
-CLAUDE.md, CLAUDE2.md, CLAUDE3.md   Phase-scoped specifications (corpus / training / transfer)
+CLAUDE*.md                           Phase-scoped specifications (corpus / training / transfer / diagnostics / encoders)
 docs/                                Detailed per-phase documentation (this repo's write-up)
 src/                                 All importable pipeline logic, flat per phase
-scripts/                             Thin CLI entry points, one per task (t1xx = Phase 1, t2xx = Phase 2, t3xx = Phase 3)
+scripts/                             Thin CLI entry points, one per task (t1xx = Phase 1, t2xx = Phase 2, t3xx = Phase 3, t5xx = encoder comparison)
 configs/                             Frozen configs: labels, translation/verification settings, eval conditions, training YAMLs
 data/
   base_paper/     upstream IndicFinNLP release, committed as-is with checksums
   raw/            per-task, per-block corpus splits before freezing
   v1.0/           the frozen, immutable release corpus + DATASHEET.md
   verification/   LaBSE embeddings, similarity scores, alignment maps
-  predictions/    per-instance model predictions (Phase 3)
+  predictions/    per-instance model predictions (Phase 3), namespaced per encoder
   failures/       the subset of predictions that are genuine transfer failures (Phase 3)
 reports/          generated audit/quality/results reports (Markdown + Parquet), one directory per task
 checkpoints/      trained model weights (gitignored; regenerate with scripts/t206_baseline.py)
@@ -198,7 +202,18 @@ for the generated tables.
 - **No diagnostic/causal analysis yet.** Phase 3 identifies *which* individual predictions
   flip from correct to wrong when moving to another language and exports that set; it
   does not yet say *why* (numeral loss, entity loss, sentence length, etc.). That is the
-  planned next phase.
+  next phase, in progress separately.
+- **The encoder comparison has two models, not three.** XLM-R could not be fine-tuned
+  on the available 4 GB GPU — its weights, gradients and optimiser state need 4.14 GB
+  before a single sentence is loaded — so it is deferred rather than run. That matters
+  more than losing one data point: XLM-R and mBERT have *identical-sized* transformer
+  bodies and differ mainly in vocabulary and pretraining breadth, which made that pair
+  the one controlled test of whether breadth or size explains the result. The question
+  is therefore recorded as open, not answered.
+- **Why mBERT wins is not established.** It is 179M parameters to IndicBERT-v2's 34M,
+  and because IndicBERT reuses one layer's weights across all twelve, the gap in the
+  part that does the computation is 11×, not 5×. Size and multilinguality move together
+  here and this design cannot separate them.
 
 ## Environment
 
@@ -226,10 +241,15 @@ availability. The code is built to checkpoint and resume rather than to be babys
 - `docs/phase1.md` — corpus construction, task by task (T-101–T-114)
 - `docs/phase2.md` — training pipeline and Hindi baselines (T-201–T-208)
 - `docs/phase3.md` — zero-shot transfer evaluation (T-301–T-308)
+- `docs/phase5.md` — encoder comparison and the capacity-dilution question (T-500–T-505)
 - `data/v1.0/DATASHEET.md` — the released corpus's datasheet (composition, per-direction
   translation quality, licensing), auto-generated from the frozen artifacts
-- `CLAUDE.md`, `CLAUDE2.md`, `CLAUDE3.md` — the original phase specifications this work
-  was built against, including the hard rules and working agreements each phase follows
+- `reports/encoder_comparison.md` — every encoder on identical conditions, with gaps
+  and confidence intervals
+- `reports/capacity_dilution.md` — does the Indic-specialised encoder win, and where?
+- `CLAUDE.md`, `CLAUDE2.md`, `CLAUDE3.md`, `CLAUDE4.md`, `CLAUDE5.md` — the original
+  phase specifications this work was built against, including the hard rules and
+  working agreements each phase follows
 
 ## License
 
