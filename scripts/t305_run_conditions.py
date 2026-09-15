@@ -53,13 +53,36 @@ def main(argv: list[str] | None = None) -> int:
         args.task, device=args.device, batch_size=args.batch_size, n_boot=args.n_boot,
         progress=print, encoder=args.encoder,
     )
-    print(f"\nran {len(result['ran'])} rows, blocked {len(result['blocked'])} (condition, seed) pairs.")
+    print(
+        f"\nran {len(result['ran'])} rows, blocked {len(result['blocked'])} "
+        f"(condition, seed) pairs, failed {len(result['failed'])}."
+    )
     if result["blocked"]:
         blocked_conditions = sorted({b["condition"] for b in result["blocked"]})
         print(
             f"blocked conditions (missing checkpoint): {blocked_conditions}",
             file=sys.stderr,
         )
+    if result["failed"]:
+        # Distinct from blocked: blocked means the checkpoint does not exist
+        # yet and the cell is simply not run. Failed means it exists and the
+        # pair broke, which needs looking at rather than waiting for.
+        print(f"\n{len(result['failed'])} (condition, seed) pair(s) FAILED:", file=sys.stderr)
+        for item in result["failed"]:
+            print(
+                f"  {item['condition']} seed{item['seed']} ({item['run_id']}): "
+                f"{item['error']}",
+                file=sys.stderr,
+            )
+        print(
+            "\nRe-running is safe and idempotent: prediction logs replace rows "
+            "keyed on (item_id, seed, run_id, block_id, lang, origin), so the "
+            "pairs that succeeded are not redone incorrectly. If the errors are "
+            "network ones, set HF_HUB_OFFLINE=1 first — everything is cached "
+            "once a baseline has trained.",
+            file=sys.stderr,
+        )
+        return 1
     return 0
 
 

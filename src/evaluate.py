@@ -254,24 +254,47 @@ def run_all(
 ) -> dict:
     """Run every runnable (condition, seed) pair for one task.
 
-    Returns `{"ran": [...], "blocked": [...]}` -- `blocked` entries name the
-    checkpoint that would be needed, so the gap is visible rather than silent.
+    Returns `{"ran": [...], "blocked": [...], "failed": [...]}`. `blocked`
+    entries name the checkpoint that would be needed, so the gap is visible
+    rather than silent; `failed` entries name the condition and the error, so
+    one bad pair does not cost the whole sweep.
+
+    **A failing pair is reported and skipped, not raised** (§11: "if a
+    direction fails, report and continue"). This used to propagate, and a
+    single dropped Hub connection — `transformers` makes a live request inside
+    every uncached `from_pretrained` (`data.get_tokenizer`) — aborted a sweep
+    three conditions in, discarding the rest of the run. Re-running is cheap
+    and idempotent (prediction logs replace rows keyed on `(item_id, seed,
+    run_id, block_id, lang, origin)`, and `experiments.csv` is append-only
+    with last-write-wins on read), so finishing the other forty pairs and
+    reporting the one that broke is strictly better than stopping.
+
+    `KeyboardInterrupt` is deliberately not caught: Ctrl+C must still stop the
+    sweep immediately.
     """
     say = progress or (lambda _msg: None)
     matrix = load_matrix(task)
     conditions_by_name = {c["name"]: c for c in matrix["conditions"]}
 
-    ran, blocked = [], []
+    ran, blocked, failed = [], [], []
     for entry in plan(task, matrix, encoder=encoder):
         if not entry["runnable"]:
             blocked.append(entry)
             say(f"BLOCKED {entry['condition']} seed{entry['seed']}: no checkpoint {entry['run_id']}")
             continue
-        rows = run_condition(
-            task, conditions_by_name[entry["condition"]], entry["run_id"], entry["seed"],
-            device=device, batch_size=batch_size, n_boot=n_boot, results_path=results_path,
-            partition_seed=matrix["seed"], encoder=encoder,
-        )
+        try:
+            rows = run_condition(
+                task, conditions_by_name[entry["condition"]], entry["run_id"], entry["seed"],
+                device=device, batch_size=batch_size, n_boot=n_boot, results_path=results_path,
+                partition_seed=matrix["seed"], encoder=encoder,
+            )
+        except Exception as exc:  # report and continue (§11)
+            failed.append({**entry, "error": f"{type(exc).__name__}: {exc}"})
+            say(
+                f"FAILED {entry['condition']} seed{entry['seed']}: "
+                f"{type(exc).__name__}: {exc}"
+            )
+            continue
         ran.extend(rows)
         say(f"ran {entry['condition']} seed{entry['seed']}: {len(rows)} arm(s)")
-    return {"ran": ran, "blocked": blocked}
+    return {"ran": ran, "blocked": blocked, "failed": failed}

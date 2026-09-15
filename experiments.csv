@@ -205,3 +205,6 @@ task2_ben_indicbert_seed2,indicbert-v2,task2/B/ben/native,2,4759c7ed9510a5a7,0.7
 task3_ben_indicbert_seed0,indicbert-v2,task3/B/ben/native,0,2d4f8996a3c844d1,0.2125,0.063515,2026-09-15T16:31:24+00:00
 task3_ben_indicbert_seed1,indicbert-v2,task3/B/ben/native,1,7ebfe380c6902062,0.2125,0.157616,2026-09-15T16:33:26+00:00
 task3_ben_indicbert_seed2,indicbert-v2,task3/B/ben/native,2,2e7c9879e49c0585,0.225,0.159455,2026-09-15T16:35:50+00:00
+task2_hin_indicbert_seed0__transfer_hin_to_ben__ben,indicbert-v2,transfer_hin_to_ben::task_2/B/ben,0,267fc4680ec357da,0.607468,0.599275,2026-09-15T16:56:30+00:00
+task2_hin_indicbert_seed1__transfer_hin_to_ben__ben,indicbert-v2,transfer_hin_to_ben::task_2/B/ben,1,b5e7ff7f6763c76b,0.541894,0.479931,2026-09-15T16:56:47+00:00
+task2_hin_indicbert_seed2__transfer_hin_to_ben__ben,indicbert-v2,transfer_hin_to_ben::task_2/B/ben,2,16f426ad1346802d,0.519126,0.443831,2026-09-15T16:57:04+00:00

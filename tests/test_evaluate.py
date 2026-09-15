@@ -258,3 +258,132 @@ def test_shipped_config_stems_match_the_run_id_convention():
         assert expected == f"{path.stem}_seed{run.seed}", (
             f"{path.name} does not follow task{{n}}_{{lang}}_{{slug}}.yaml"
         )
+
+
+# --------------------------------------------------------------------------
+# One bad pair must not cost the whole sweep (§11, T-404)
+# --------------------------------------------------------------------------
+
+
+def test_run_all_reports_a_failed_pair_and_keeps_going(monkeypatch, tmp_path):
+    """A dropped Hub connection three conditions into a 42-pair sweep used to
+    abort the run and discard everything after it. transformers makes a live
+    `model_info` request inside every uncached `from_pretrained`, so this is a
+    transient that will recur — the sweep has to survive it."""
+    from src import evaluate as E
+
+    matrix = {
+        "task": 2,
+        "seed": 999,
+        "conditions": [
+            {"name": "c_ok_1", "kind": "transfer", "train": "task_2/H/hin",
+             "eval": "task_2/B/ben", "eval_items": "all"},
+            {"name": "c_boom", "kind": "transfer", "train": "task_2/H/hin",
+             "eval": "task_2/T/tel", "eval_items": "all"},
+            {"name": "c_ok_2", "kind": "transfer", "train": "task_2/H/hin",
+             "eval": "task_2/B/mal", "eval_items": "all"},
+        ],
+    }
+    monkeypatch.setattr(E, "load_matrix", lambda task: matrix)
+    monkeypatch.setattr(
+        E, "plan",
+        lambda task, m=None, seeds=(0,), encoder=None: [
+            {"condition": c["name"], "kind": c["kind"], "encoder": "indicbert-v2",
+             "model_lang": "hin", "seed": 0, "run_id": "rid", "runnable": True}
+            for c in matrix["conditions"]
+        ],
+    )
+
+    calls = []
+
+    def fake_run_condition(task, condition, run_id, seed, **kw):
+        calls.append(condition["name"])
+        if condition["name"] == "c_boom":
+            raise ConnectionError("Remote end closed connection without response")
+        return [{"condition": condition["name"]}]
+
+    monkeypatch.setattr(E, "run_condition", fake_run_condition)
+
+    result = E.run_all(2, results_path=tmp_path / "e.csv")
+
+    assert calls == ["c_ok_1", "c_boom", "c_ok_2"], "the sweep must continue past the failure"
+    assert len(result["ran"]) == 2
+    assert len(result["failed"]) == 1
+    assert result["failed"][0]["condition"] == "c_boom"
+    assert "ConnectionError" in result["failed"][0]["error"]
+    assert "Remote end closed" in result["failed"][0]["error"]
+
+
+def test_run_all_still_separates_blocked_from_failed(monkeypatch, tmp_path):
+    """Blocked means the checkpoint does not exist and the cell was never run;
+    failed means it exists and broke. Collapsing them would make a missing
+    Telugu baseline look like a bug and a real bug look like schedule."""
+    from src import evaluate as E
+
+    matrix = {"task": 2, "seed": 999, "conditions": [
+        {"name": "c_blocked", "kind": "transfer", "train": "task_2/H/hin",
+         "eval": "task_2/B/ben", "eval_items": "all"},
+    ]}
+    monkeypatch.setattr(E, "load_matrix", lambda task: matrix)
+    monkeypatch.setattr(
+        E, "plan",
+        lambda task, m=None, seeds=(0,), encoder=None: [
+            {"condition": "c_blocked", "kind": "transfer", "encoder": "indicbert-v2",
+             "model_lang": "tel", "seed": 0, "run_id": "missing", "runnable": False}
+        ],
+    )
+    result = E.run_all(2, results_path=tmp_path / "e.csv")
+    assert len(result["blocked"]) == 1
+    assert result["failed"] == []
+    assert result["ran"] == []
+
+
+def test_keyboard_interrupt_is_not_swallowed(monkeypatch, tmp_path):
+    """Ctrl+C must still stop a long sweep immediately."""
+    from src import evaluate as E
+
+    matrix = {"task": 2, "seed": 999, "conditions": [
+        {"name": "c", "kind": "transfer", "train": "task_2/H/hin",
+         "eval": "task_2/B/ben", "eval_items": "all"},
+    ]}
+    monkeypatch.setattr(E, "load_matrix", lambda task: matrix)
+    monkeypatch.setattr(
+        E, "plan",
+        lambda task, m=None, seeds=(0,), encoder=None: [
+            {"condition": "c", "kind": "transfer", "encoder": "indicbert-v2",
+             "model_lang": "hin", "seed": 0, "run_id": "rid", "runnable": True}
+        ],
+    )
+
+    def interrupted(*a, **kw):
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr(E, "run_condition", interrupted)
+    with pytest.raises(KeyboardInterrupt):
+        E.run_all(2, results_path=tmp_path / "e.csv")
+
+
+def test_get_tokenizer_is_cached_per_encoder(monkeypatch):
+    """Every uncached `from_pretrained` costs a live Hub request in
+    transformers 4.57.6, and the sweep calls this once per condition arm."""
+    from src import data as D
+
+    D._load_tokenizer.cache_clear()
+    loads = []
+
+    class FakeAuto:
+        @staticmethod
+        def from_pretrained(hf_id):
+            loads.append(hf_id)
+            return object()
+
+    import transformers
+
+    monkeypatch.setattr(transformers, "AutoTokenizer", FakeAuto)
+    first = D.get_tokenizer("indicbert-v2")
+    second = D.get_tokenizer("indicbert-v2")
+    third = D.get_tokenizer(D.resolve_encoder("indicbert-v2"))
+
+    assert loads == ["ai4bharat/indic-bert"], f"loaded {len(loads)} times, expected 1"
+    assert first is second is third
+    D._load_tokenizer.cache_clear()

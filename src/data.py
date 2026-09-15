@@ -19,6 +19,7 @@ Design notes:
 from __future__ import annotations
 
 from dataclasses import dataclass
+from functools import lru_cache
 
 import pandas as pd
 
@@ -215,12 +216,35 @@ def stratified_split(
 # --------------------------------------------------------------------------
 
 
-def get_tokenizer(encoder: str | Encoder):
-    """Load the encoder's tokeniser. Needs a model download on first use."""
+@lru_cache(maxsize=None)
+def _load_tokenizer(hf_id: str):
     from transformers import AutoTokenizer
 
-    enc = resolve_encoder(encoder)
-    return AutoTokenizer.from_pretrained(enc.hf_id)
+    return AutoTokenizer.from_pretrained(hf_id)
+
+
+def get_tokenizer(encoder: str | Encoder):
+    """Load the encoder's tokeniser. Needs a model download on first use.
+
+    **Cached per `hf_id`, and that is a correctness fix rather than a speed
+    one.** `transformers` 4.57.6 calls `huggingface_hub.model_info()` inside
+    `from_pretrained` — a live network request — for any non-local repo id,
+    purely to decide whether the repo is a base Mistral model
+    (`tokenization_utils_base._patch_mistral_regex`). It does that even when
+    every file is already cached locally.
+
+    `predictions.prediction_log_from_loaded` calls this once per condition
+    *arm*, so a full T-305 sweep made seventy-odd of those requests, and one
+    dropped connection took down a sweep that had already run for minutes
+    (`RemoteDisconnected` mid-run, T-404). Loading once per encoder removes
+    the repeated round-trips at the source; `HF_HUB_OFFLINE=1` removes the
+    remaining one, since `is_offline_mode()` short-circuits the same hook.
+
+    Sharing one tokeniser instance is safe here: nothing in this project
+    mutates it, and every use is a stateless encode plus a `pad_token_id`
+    read on a single thread.
+    """
+    return _load_tokenizer(resolve_encoder(encoder).hf_id)
 
 
 class SplitDataset:
