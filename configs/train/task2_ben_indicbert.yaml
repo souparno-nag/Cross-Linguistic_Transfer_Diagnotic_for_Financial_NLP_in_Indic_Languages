@@ -1,0 +1,34 @@
+# Phase 4 source-block extension (CLAUDE6.md T-402/T-403): sustainability
+# (binary) on native Bengali, IndicBERT-v2. This is block B, the
+# Bengali-source arm of the transfer grid, and its whole purpose is to be
+# compared against the Hindi-source arm.
+#
+# Every field below is copied from task2_hin_indicbert.yaml unchanged; only
+# `lang` differs. CLAUDE6.md hard rule 1 ("identical protocol to Phases 2/3
+# and 5") and hard rule 6 ("no hyperparameter tuning per block") make the
+# source-selection comparison valid only if nothing but the source block
+# moved — a schedule tuned for Bengali would leave every gap in T-408's
+# table confounded with that tuning. tests/test_t401_smoke.py asserts the
+# parity so these files cannot silently drift apart.
+#
+# The Hindi sibling's own settings were chosen at T-207 to close a gap against
+# the published baseline; they are inherited here as-is rather than re-derived.
+
+encoder: indicbert-v2
+task: 2
+lang: ben
+origin: native
+
+max_len: 192
+batch_size: 16
+grad_accum: 1
+lr: 2.0e-5
+weight_decay: 0.01
+epochs: 20
+warmup_ratio: 0.1
+patience: 5
+seed: 0
+fp16: true
+
+dev_fraction: 0.1
+test_fraction: 0.1

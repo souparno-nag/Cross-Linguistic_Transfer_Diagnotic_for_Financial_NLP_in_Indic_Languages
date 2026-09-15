@@ -1,0 +1,29 @@
+# Phase 4 source-block extension (CLAUDE6.md T-402/T-403): ESG themes
+# (10-class) on native Telugu, IndicBERT-v2. Block T.
+#
+# Every field below is copied from task3_hin_indicbert.yaml unchanged; only
+# `lang` differs (CLAUDE6.md hard rules 1 and 6).
+#
+# Task 3 has 532 rows over 10 classes in every language, so this inherits the
+# same data-scarcity regime Hindi hit at T-206: the ceiling is the data, not
+# the schedule. A low score here is that ceiling rather than a Telugu
+# failure, and T-408 must read it that way.
+
+encoder: indicbert-v2
+task: 3
+lang: tel
+origin: native
+
+max_len: 64
+batch_size: 16
+grad_accum: 1
+lr: 3.0e-5
+weight_decay: 0.01
+epochs: 40
+warmup_ratio: 0.1
+patience: 8
+seed: 0
+fp16: true
+
+dev_fraction: 0.15
+test_fraction: 0.15

@@ -1,0 +1,36 @@
+# Phase 4 source-block extension (CLAUDE6.md T-406): sustainability (binary)
+# on native Bengali, mBERT base. Block B.
+#
+# Two parities have to hold at once here, and they are different claims:
+#   * against task2_ben_indicbert.yaml — only `encoder` may differ, so the
+#     cross-encoder comparison within block B is valid (CLAUDE5.md rule 1);
+#   * against task2_hin_mbert.yaml — only `lang` may differ, so the
+#     cross-block comparison within mBERT is valid (CLAUDE6.md rule 1).
+# tests/test_t401_smoke.py and tests/test_t500_smoke.py assert one each.
+#
+# `batch_size` 8 with `grad_accum` 2 is inherited from the Hindi mBERT
+# sibling, not chosen for Bengali. mBERT cannot hold 16 rows of max_len 192
+# on this 4 GB card (measured at T-502, reproduced in a clean process), and the
+# effective batch is 16 either way: because the loss is a mean, two
+# micro-batches of 8 produce the same gradient as one batch of 16. Carrying it
+# across unchanged is what hard rule 6 requires — tuning the batch per block
+# would make T-408's Bengali-vs-Hindi gap partly a batching artefact.
+
+encoder: mbert-base
+task: 2
+lang: ben
+origin: native
+
+max_len: 192
+batch_size: 8
+grad_accum: 2
+lr: 2.0e-5
+weight_decay: 0.01
+epochs: 20
+warmup_ratio: 0.1
+patience: 5
+seed: 0
+fp16: true
+
+dev_fraction: 0.1
+test_fraction: 0.1

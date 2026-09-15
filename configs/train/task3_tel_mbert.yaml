@@ -1,0 +1,29 @@
+# Phase 4 source-block extension (CLAUDE6.md T-406): ESG themes (10-class) on
+# native Telugu, mBERT base. Block T.
+#
+# Copied field-for-field from task3_hin_mbert.yaml except `lang`, and from
+# task3_tel_indicbert.yaml except `encoder` — the two parities CLAUDE6.md
+# rule 1 and CLAUDE5.md rule 1 each require, asserted by the T-401 and T-500
+# tests respectively.
+#
+# Task 3 needs no VRAM re-shaping at max_len 64: batch 16 / grad_accum 1 fits,
+# as it does for Hindi.
+
+encoder: mbert-base
+task: 3
+lang: tel
+origin: native
+
+max_len: 64
+batch_size: 16
+grad_accum: 1
+lr: 3.0e-5
+weight_decay: 0.01
+epochs: 40
+warmup_ratio: 0.1
+patience: 8
+seed: 0
+fp16: true
+
+dev_fraction: 0.15
+test_fraction: 0.15
