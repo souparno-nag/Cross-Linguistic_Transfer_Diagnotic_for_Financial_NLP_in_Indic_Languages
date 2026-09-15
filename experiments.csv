@@ -484,3 +484,5 @@ task3_tel_indicbert_seed1__translationese_tel__tel,indicbert-v2,translationese_t
 task3_tel_indicbert_seed2__translationese_tel__tel,indicbert-v2,translationese_tel::task_3/T/tel,2,699abbe886f05ed2,0.233083,0.069623,2026-09-15T19:08:09+00:00
 task3_tel_indicbert_seed2__translationese_tel__tel,indicbert-v2,translationese_tel::task_3/H/tel,2,472bd60d96630b3d,0.227444,0.068239,2026-09-15T19:08:13+00:00
 task3_tel_indicbert_seed2__translationese_tel__tel,indicbert-v2,translationese_tel::task_3/B/tel,2,1362ae5fcb5aea83,0.240602,0.07182,2026-09-15T19:08:17+00:00
+task2_ben_mbert_seed0,mbert-base,task2/B/ben/native,0,50670cf03bf650d6,0.874439,0.873316,2026-09-15T19:21:22+00:00
+task2_ben_mbert_seed1,mbert-base,task2/B/ben/native,1,c64af56e19814438,0.856502,0.85585,2026-09-15T19:28:17+00:00

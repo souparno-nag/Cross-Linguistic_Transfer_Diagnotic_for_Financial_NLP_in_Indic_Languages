@@ -14,9 +14,9 @@ Gap = source (in-language, same items) − target, XTREME convention (§T-304). 
 | transfer_ben_to_hin | Indo-Aryan->Indo-Aryan | ok | 3 | 0.9558 | 0.6927 | 0.2631 ± 0.0530 | no |
 | transfer_ben_to_tel | Indo-Aryan->Dravidian | ok | 3 | 0.9558 | 0.5518 | 0.4040 ± 0.0148 | no |
 | transfer_ben_to_mal | Indo-Aryan->Dravidian | ok | 3 | 0.9558 | 0.5885 | 0.3673 ± 0.0432 | no |
-| transfer_tel_to_hin | Dravidian->Indo-Aryan | blocked | 0 | — | — | — | — |
-| transfer_tel_to_ben | Dravidian->Indo-Aryan | blocked | 0 | — | — | — | — |
-| transfer_tel_to_mal | Dravidian->Dravidian | blocked | 0 | — | — | — | — |
+| transfer_tel_to_hin | Dravidian->Indo-Aryan | ok | 3 | 0.9573 | 0.5962 | 0.3610 ± 0.1054 | no |
+| transfer_tel_to_ben | Dravidian->Indo-Aryan | ok | 3 | 0.9573 | 0.6338 | 0.3234 ± 0.0471 | no |
+| transfer_tel_to_mal | Dravidian->Dravidian | ok | 3 | 0.9573 | 0.5405 | 0.4167 ± 0.0050 | no |
 
 ### Transfer matrix — same-source MT targets
 
@@ -28,9 +28,9 @@ Gap = source (in-language, same items) − target, XTREME convention (§T-304). 
 | transfer_ben_to_hin_mt | Indo-Aryan->Indo-Aryan | ok | 3 | 0.9578 | 0.7016 | 0.2563 ± 0.0388 | no |
 | transfer_ben_to_tel_mt | Indo-Aryan->Dravidian | ok | 3 | 0.9578 | 0.5661 | 0.3917 ± 0.0176 | no |
 | transfer_ben_to_mal_mt | Indo-Aryan->Dravidian | ok | 3 | 0.9578 | 0.6037 | 0.3541 ± 0.0214 | no |
-| transfer_tel_to_hin_mt | Dravidian->Indo-Aryan | blocked | 0 | — | — | — | — |
-| transfer_tel_to_ben_mt | Dravidian->Indo-Aryan | blocked | 0 | — | — | — | — |
-| transfer_tel_to_mal_mt | Dravidian->Dravidian | blocked | 0 | — | — | — | — |
+| transfer_tel_to_hin_mt | Dravidian->Indo-Aryan | ok | 3 | 0.9604 | 0.6043 | 0.3561 ± 0.0916 | no |
+| transfer_tel_to_ben_mt | Dravidian->Indo-Aryan | ok | 3 | 0.9604 | 0.6471 | 0.3134 ± 0.0219 | no |
+| transfer_tel_to_mal_mt | Dravidian->Dravidian | ok | 3 | 0.9604 | 0.5439 | 0.4166 ± 0.0042 | no |
 
 ### Quadrant summary
 
@@ -38,8 +38,8 @@ Gap = source (in-language, same items) − target, XTREME convention (§T-304). 
 |---|---|---|---|
 | Indo-Aryan->Indo-Aryan | 2 | 0.3554 | transfer_hin_to_ben, transfer_ben_to_hin |
 | Indo-Aryan->Dravidian | 4 | 0.4027 | transfer_hin_to_tel, transfer_hin_to_mal, transfer_ben_to_tel, transfer_ben_to_mal |
-| Dravidian->Indo-Aryan | 0 | — | — |
-| Dravidian->Dravidian | 0 | — | — |
+| Dravidian->Indo-Aryan | 2 | 0.3422 | transfer_tel_to_hin, transfer_tel_to_ben |
+| Dravidian->Dravidian | 1 | 0.4167 | transfer_tel_to_mal |
 
 ### Translationese comparison — hin
 
@@ -59,7 +59,11 @@ Gap = source (in-language, same items) − target, XTREME convention (§T-304). 
 
 ### Translationese comparison — tel
 
-_no `translationese_tel` prediction log on disk yet._
+| block | origin | src_lang | n seeds | macro-F1 (mean±std) | Δ vs native |
+|---|---|---|---|---|---|
+| B | mt | ben | 3 | 0.8837 ± 0.0051 | -0.0784 |
+| H | mt | hin | 3 | 0.9006 ± 0.0072 | -0.0615 |
+| T | native | nan | 3 | 0.9621 ± 0.0034 | 0.0000 |
 
 ## Task 3
 
@@ -73,9 +77,9 @@ _no `translationese_tel` prediction log on disk yet._
 | transfer_ben_to_hin | Indo-Aryan->Indo-Aryan | ok | 3 | 0.4175 | 0.0596 | 0.3579 ± 0.3083 | no |
 | transfer_ben_to_tel | Indo-Aryan->Dravidian | ok | 3 | 0.4175 | 0.0739 | 0.3436 ± 0.2934 | no |
 | transfer_ben_to_mal | Indo-Aryan->Dravidian | ok | 3 | 0.4175 | 0.0726 | 0.3449 ± 0.3055 | no |
-| transfer_tel_to_hin | Dravidian->Indo-Aryan | blocked | 0 | — | — | — | — |
-| transfer_tel_to_ben | Dravidian->Indo-Aryan | blocked | 0 | — | — | — | — |
-| transfer_tel_to_mal | Dravidian->Dravidian | blocked | 0 | — | — | — | — |
+| transfer_tel_to_hin | Dravidian->Indo-Aryan | ok | 3 | 0.2548 | 0.0811 | 0.1737 ± 0.2634 | yes |
+| transfer_tel_to_ben | Dravidian->Indo-Aryan | ok | 3 | 0.2548 | 0.0822 | 0.1726 ± 0.2644 | yes |
+| transfer_tel_to_mal | Dravidian->Dravidian | ok | 3 | 0.2548 | 0.0910 | 0.1638 ± 0.2533 | yes |
 
 ### Transfer matrix — same-source MT targets
 
@@ -87,9 +91,9 @@ _no `translationese_tel` prediction log on disk yet._
 | transfer_ben_to_hin_mt | Indo-Aryan->Indo-Aryan | ok | 3 | 0.4175 | 0.0618 | 0.3557 ± 0.3038 | no |
 | transfer_ben_to_tel_mt | Indo-Aryan->Dravidian | ok | 3 | 0.4175 | 0.0631 | 0.3543 ± 0.3021 | no |
 | transfer_ben_to_mal_mt | Indo-Aryan->Dravidian | ok | 3 | 0.4175 | 0.0737 | 0.3438 ± 0.3033 | no |
-| transfer_tel_to_hin_mt | Dravidian->Indo-Aryan | blocked | 0 | — | — | — | — |
-| transfer_tel_to_ben_mt | Dravidian->Indo-Aryan | blocked | 0 | — | — | — | — |
-| transfer_tel_to_mal_mt | Dravidian->Dravidian | blocked | 0 | — | — | — | — |
+| transfer_tel_to_hin_mt | Dravidian->Indo-Aryan | ok | 3 | 0.2548 | 0.0858 | 0.1690 ± 0.2525 | yes |
+| transfer_tel_to_ben_mt | Dravidian->Indo-Aryan | ok | 3 | 0.2548 | 0.0756 | 0.1792 ± 0.2646 | yes |
+| transfer_tel_to_mal_mt | Dravidian->Dravidian | ok | 3 | 0.2548 | 0.0868 | 0.1680 ± 0.2577 | yes |
 
 ### Quadrant summary
 
@@ -97,8 +101,8 @@ _no `translationese_tel` prediction log on disk yet._
 |---|---|---|---|
 | Indo-Aryan->Indo-Aryan | 2 | 0.4338 | transfer_hin_to_ben, transfer_ben_to_hin |
 | Indo-Aryan->Dravidian | 4 | 0.4265 | transfer_hin_to_tel, transfer_hin_to_mal, transfer_ben_to_tel, transfer_ben_to_mal |
-| Dravidian->Indo-Aryan | 0 | — | — |
-| Dravidian->Dravidian | 0 | — | — |
+| Dravidian->Indo-Aryan | 2 | 0.1732 | transfer_tel_to_hin, transfer_tel_to_ben |
+| Dravidian->Dravidian | 1 | 0.1638 | transfer_tel_to_mal |
 
 ### Translationese comparison — hin
 
@@ -118,5 +122,9 @@ _no `translationese_tel` prediction log on disk yet._
 
 ### Translationese comparison — tel
 
-_no `translationese_tel` prediction log on disk yet._
+| block | origin | src_lang | n seeds | macro-F1 (mean±std) | Δ vs native |
+|---|---|---|---|---|---|
+| B | mt | ben | 3 | 0.1488 ± 0.1130 | -0.1004 |
+| H | mt | hin | 3 | 0.1614 ± 0.1407 | -0.0878 |
+| T | native | nan | 3 | 0.2492 ± 0.2765 | 0.0000 |
 
