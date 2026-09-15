@@ -22,6 +22,7 @@ import sys
 
 import pandas as pd
 
+from src.data import DEFAULT_ENCODER
 from src.evaluate import plan, run_all
 
 
@@ -32,9 +33,15 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--n-boot", type=int, default=1000)
     parser.add_argument("--plan-only", action="store_true")
+    parser.add_argument(
+        "--encoder",
+        default=DEFAULT_ENCODER,
+        help="which encoder's checkpoints to evaluate (CLAUDE5.md). Non-default "
+        "encoders write their prediction logs under their own path level.",
+    )
     args = parser.parse_args(argv)
 
-    entries = plan(args.task)
+    entries = plan(args.task, encoder=args.encoder)
     print(pd.DataFrame(entries).to_string(index=False))
     n_runnable = sum(e["runnable"] for e in entries)
     print(f"\n{n_runnable}/{len(entries)} (condition, seed) pairs are runnable today.")
@@ -44,7 +51,7 @@ def main(argv: list[str] | None = None) -> int:
 
     result = run_all(
         args.task, device=args.device, batch_size=args.batch_size, n_boot=args.n_boot,
-        progress=print,
+        progress=print, encoder=args.encoder,
     )
     print(f"\nran {len(result['ran'])} rows, blocked {len(result['blocked'])} (condition, seed) pairs.")
     if result["blocked"]:

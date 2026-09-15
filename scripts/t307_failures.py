@@ -29,6 +29,7 @@ import random
 import pandas as pd
 
 from src.corpus_io import read_split
+from src.data import DEFAULT_ENCODER
 from src.download_dataset.paths import REPO_ROOT
 from src.evaluate import _split_lang, load_matrix
 from src.failures import export_failures
@@ -54,9 +55,13 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--task", type=int, required=True)
     parser.add_argument("--sample", type=int, default=20)
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--encoder", default=DEFAULT_ENCODER)
     args = parser.parse_args(argv)
 
     matrix = load_matrix(args.task)
+    # The default encoder keeps the un-namespaced paths its committed artefacts
+    # already occupy, and that Phase 6 reads from; others get their own level.
+    path_encoder = None if args.encoder == DEFAULT_ENCODER else args.encoder
     exported = []
     all_failures = []
     for condition in matrix["conditions"]:
@@ -66,13 +71,15 @@ def main(argv: list[str] | None = None) -> int:
         source_id = f"{block}_{lang}_native_ceiling"
         target_id = condition["name"]
         try:
-            source = read_prediction_log(args.task, source_id)
-            target = read_prediction_log(args.task, target_id)
+            source = read_prediction_log(args.task, source_id, encoder=path_encoder)
+            target = read_prediction_log(args.task, target_id, encoder=path_encoder)
         except FileNotFoundError as e:
             print(f"skipping {target_id}: {e}")
             continue
 
-        path, written = export_failures(args.task, target_id, source, target)
+        path, written = export_failures(
+            args.task, target_id, source, target, encoder=path_encoder
+        )
         exported.append({"condition": target_id, "n_failures": len(written), "path": str(path)})
         print(f"{target_id}: {len(written)} failures -> {path}")
         if len(written):
@@ -132,7 +139,8 @@ def main(argv: list[str] | None = None) -> int:
 
     out_dir = REPORTS_DIR / f"task_{args.task}"
     out_dir.mkdir(parents=True, exist_ok=True)
-    out_path = out_dir / "t307_audit.md"
+    suffix = "" if path_encoder is None else f"_{args.encoder}"
+    out_path = out_dir / f"t307_audit{suffix}.md"
     out_path.write_text("\n".join(lines) + "\n")
     print(f"\nwrote {out_path}")
     return 0

@@ -34,19 +34,34 @@ from .unicode_ranges import normalise_lang
 
 @dataclass(frozen=True)
 class Encoder:
-    """An encoder Phase 2 can fine-tune. ``hf_id`` is the tokeniser source."""
+    """An encoder Phase 2 can fine-tune. ``hf_id`` is the tokeniser source.
+
+    ``slug`` is the short form that appears in filenames — a training config is
+    ``configs/train/task{n}_{lang}_{slug}.yaml`` and its checkpoint is
+    ``checkpoints/task{n}_{lang}_{slug}_seed{s}/``. It exists because the
+    Phase 3 condition sweep has to *construct* the name of a checkpoint it has
+    not seen, to report a missing one as blocked rather than crashing
+    (``evaluate.plan``). Keeping the slug here makes that one convention with
+    one owner; ``tests/test_data.py`` asserts every shipped config obeys it.
+    """
 
     key: str
     hf_id: str
+    slug: str
 
 
 # CLAUDE2.md "Encoders". IndicBERT-v2 is all Phase 2 needs working; the other
-# two are kept wired so the Phase 5 extension costs nothing.
+# two are the Phase 5 extension (CLAUDE5.md). xlm-r-base is registered but
+# deferred at T-500 — it cannot be fully fine-tuned on this project's 4 GB card
+# (see configs/train/deferred/README.md); it stays here because the tokeniser
+# and the VRAM arithmetic are still wanted.
 ENCODERS: dict[str, Encoder] = {
-    "indicbert-v2": Encoder("indicbert-v2", "ai4bharat/indic-bert"),
-    "xlm-r-base": Encoder("xlm-r-base", "xlm-roberta-base"),
-    "mbert-base": Encoder("mbert-base", "bert-base-multilingual-cased"),
+    "indicbert-v2": Encoder("indicbert-v2", "ai4bharat/indic-bert", "indicbert"),
+    "xlm-r-base": Encoder("xlm-r-base", "xlm-roberta-base", "xlmr"),
+    "mbert-base": Encoder("mbert-base", "bert-base-multilingual-cased", "mbert"),
 }
+
+DEFAULT_ENCODER = "indicbert-v2"
 
 
 def resolve_encoder(encoder: str | Encoder) -> Encoder:

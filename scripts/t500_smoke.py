@@ -193,7 +193,7 @@ def check_checkpoint_naming(run: RunConfig, path: Path) -> dict:
     from src.evaluate import run_id_for
 
     actual = f"{path.stem}_seed{run.seed}"
-    expected = run_id_for(run.task, run.lang, run.seed)
+    expected = run_id_for(run.task, run.lang, run.seed, run.encoder)
     if actual == expected:
         return {
             "name": "condition sweep can find the checkpoint",
@@ -207,10 +207,11 @@ def check_checkpoint_naming(run: RunConfig, path: Path) -> dict:
         "blocker": True,
         "detail": (
             f"evaluate.run_id_for(...) returns {expected!r} but T-206 writes this "
-            f"config's checkpoint as {actual!r}. src/evaluate.py:run_id_for pastes "
-            "'indicbert' into the name literally, so `plan()` reports every "
-            "condition as blocked for any other encoder and T-501 would evaluate "
-            "nothing. HARDCODED — fix before T-501."
+            f"config's checkpoint as {actual!r}, so `plan()` would report every "
+            f"condition blocked for {run.encoder!r} and the sweep would evaluate "
+            "nothing. Either the config is not named "
+            "`task{n}_{lang}_{slug}.yaml` or the encoder's `slug` in src/data.py "
+            "disagrees with it. Fix before running the sweep."
         ),
     }
 

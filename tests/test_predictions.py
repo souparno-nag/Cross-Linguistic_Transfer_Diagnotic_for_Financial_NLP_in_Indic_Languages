@@ -44,7 +44,7 @@ def test_prediction_rows_has_the_fixed_column_shape_and_order():
         _fake_result(),
         _fake_frame(src_lang="hin"),
         condition_id="c1",
-        run_id="r1",
+        encoder_id="indicbert-v2", run_id="r1",
         block="H",
         lang="ben",
         origin="mt",
@@ -61,7 +61,7 @@ def test_prediction_rows_looks_up_src_lang_per_item_not_a_single_value():
     frame = _fake_frame(n=2)
     frame["src_lang"] = ["hin", "ben"]  # deliberately not uniform
     rows = P._prediction_rows(
-        _fake_result(n=2), frame, condition_id="c", run_id="r",
+        _fake_result(n=2), frame, condition_id="c", encoder_id="indicbert-v2", run_id="r",
         block="H", lang="mal", origin="mt", seed=1,
     )
     assert rows["src_lang"].tolist() == ["hin", "ben"]
@@ -69,7 +69,7 @@ def test_prediction_rows_looks_up_src_lang_per_item_not_a_single_value():
 
 def test_write_then_read_round_trips(tmp_path):
     rows = P._prediction_rows(
-        _fake_result(), _fake_frame(src_lang="hin"), condition_id="c1", run_id="r1",
+        _fake_result(), _fake_frame(src_lang="hin"), condition_id="c1", encoder_id="indicbert-v2", run_id="r1",
         block="H", lang="ben", origin="mt", seed=0,
     )
     P.write_prediction_log(rows, 3, "c1", root=tmp_path)
@@ -86,11 +86,11 @@ def test_read_missing_log_raises(tmp_path):
 
 def test_writing_a_second_seed_accumulates_rather_than_overwrites(tmp_path):
     seed0 = P._prediction_rows(
-        _fake_result(), _fake_frame(src_lang="hin"), condition_id="c1", run_id="r1",
+        _fake_result(), _fake_frame(src_lang="hin"), condition_id="c1", encoder_id="indicbert-v2", run_id="r1",
         block="H", lang="ben", origin="mt", seed=0,
     )
     seed1 = P._prediction_rows(
-        _fake_result(), _fake_frame(src_lang="hin"), condition_id="c1", run_id="r1",
+        _fake_result(), _fake_frame(src_lang="hin"), condition_id="c1", encoder_id="indicbert-v2", run_id="r1",
         block="H", lang="ben", origin="mt", seed=1,
     )
     P.write_prediction_log(seed0, 3, "c1", root=tmp_path)
@@ -102,7 +102,7 @@ def test_writing_a_second_seed_accumulates_rather_than_overwrites(tmp_path):
 
 def test_rewriting_the_same_seed_replaces_it_instead_of_duplicating(tmp_path):
     original = P._prediction_rows(
-        _fake_result(), _fake_frame(src_lang="hin"), condition_id="c1", run_id="r1",
+        _fake_result(), _fake_frame(src_lang="hin"), condition_id="c1", encoder_id="indicbert-v2", run_id="r1",
         block="H", lang="ben", origin="mt", seed=0,
     )
     P.write_prediction_log(original, 3, "c1", root=tmp_path)
@@ -122,11 +122,11 @@ def test_multiple_arms_of_one_condition_coexist_even_when_item_ids_match(tmp_pat
     first just because the items line up."""
     native = P._prediction_rows(
         _fake_result(n=3), _fake_frame(n=3), condition_id="translationese_hin",
-        run_id="r", block="H", lang="hin", origin="native", seed=0,
+        encoder_id="indicbert-v2", run_id="r", block="H", lang="hin", origin="native", seed=0,
     )
     from_ben = P._prediction_rows(
         _fake_result(n=3), _fake_frame(n=3, src_lang="ben"), condition_id="translationese_hin",
-        run_id="r", block="B", lang="hin", origin="mt", seed=0,
+        encoder_id="indicbert-v2", run_id="r", block="B", lang="hin", origin="mt", seed=0,
     )
     P.write_prediction_log(native, 2, "translationese_hin", root=tmp_path)
     P.write_prediction_log(from_ben, 2, "translationese_hin", root=tmp_path)
@@ -138,11 +138,11 @@ def test_multiple_arms_of_one_condition_coexist_even_when_item_ids_match(tmp_pat
 def test_block_join_succeeds_with_shared_item_ids_and_no_nulls():
     hin = P._prediction_rows(
         _fake_result(n=3), _fake_frame(n=3), condition_id="hin_native_ceiling",
-        run_id="r", block="H", lang="hin", origin="native", seed=0,
+        encoder_id="indicbert-v2", run_id="r", block="H", lang="hin", origin="native", seed=0,
     )
     ben = P._prediction_rows(
         _fake_result(n=3), _fake_frame(n=3, src_lang="hin"), condition_id="hin_to_ben_mt",
-        run_id="r", block="H", lang="ben", origin="mt", seed=0,
+        encoder_id="indicbert-v2", run_id="r", block="H", lang="ben", origin="mt", seed=0,
     )
     joined = P.check_block_join({"hin": hin, "ben": ben})
     assert len(joined) == 3
@@ -153,7 +153,7 @@ def test_block_join_succeeds_with_shared_item_ids_and_no_nulls():
 
 def test_block_join_raises_when_an_arm_shares_no_items():
     hin = P._prediction_rows(
-        _fake_result(n=3), _fake_frame(n=3), condition_id="a", run_id="r",
+        _fake_result(n=3), _fake_frame(n=3), condition_id="a", encoder_id="indicbert-v2", run_id="r",
         block="H", lang="hin", origin="native", seed=0,
     )
     other = hin.copy()
@@ -164,7 +164,7 @@ def test_block_join_raises_when_an_arm_shares_no_items():
 
 def test_block_join_raises_on_a_stray_null():
     hin = P._prediction_rows(
-        _fake_result(n=3), _fake_frame(n=3), condition_id="a", run_id="r",
+        _fake_result(n=3), _fake_frame(n=3), condition_id="a", encoder_id="indicbert-v2", run_id="r",
         block="H", lang="hin", origin="native", seed=0,
     )
     ben = hin.copy()
@@ -208,3 +208,50 @@ def test_a_real_blocks_four_arms_join_with_zero_nulls(tmp_path, monkeypatch):
 
     joined = P.check_block_join(logs)
     assert len(joined) > 0
+
+
+# --------------------------------------------------------------------------
+# Encoder namespacing (CLAUDE5.md rule 1)
+# --------------------------------------------------------------------------
+
+
+def test_encoder_adds_a_path_level_and_none_keeps_the_original(tmp_path):
+    legacy = P.log_path(2, "transfer_hin_to_ben", root=tmp_path)
+    namespaced = P.log_path(2, "transfer_hin_to_ben", root=tmp_path, encoder="mbert-base")
+    assert legacy == tmp_path / "task_2" / "transfer_hin_to_ben.parquet"
+    assert namespaced == tmp_path / "task_2" / "mbert-base" / "transfer_hin_to_ben.parquet"
+    assert legacy != namespaced
+
+
+def test_two_encoders_do_not_share_a_file(tmp_path):
+    """The collision this exists to prevent: without a level, the second
+    encoder's rows merge into the first's file, and results_tables joins on
+    (item_id, seed) with no encoder filter."""
+    rows = P._prediction_rows(
+        _fake_result(n=3), _fake_frame(n=3), condition_id="c",
+        encoder_id="indicbert-v2", run_id="r_ib",
+        block="H", lang="hin", origin="native", seed=0,
+    )
+    other = P._prediction_rows(
+        _fake_result(n=3), _fake_frame(n=3), condition_id="c",
+        encoder_id="mbert-base", run_id="r_mb",
+        block="H", lang="hin", origin="native", seed=0,
+    )
+    P.write_prediction_log(rows, 2, "c", root=tmp_path)
+    P.write_prediction_log(other, 2, "c", root=tmp_path, encoder="mbert-base")
+
+    first = P.read_prediction_log(2, "c", root=tmp_path)
+    second = P.read_prediction_log(2, "c", root=tmp_path, encoder="mbert-base")
+    assert len(first) == 3 and len(second) == 3
+    assert set(first["encoder_id"]) == {"indicbert-v2"}
+    assert set(second["encoder_id"]) == {"mbert-base"}
+
+
+def test_encoder_id_is_carried_on_every_row():
+    rows = P._prediction_rows(
+        _fake_result(n=4), _fake_frame(n=4), condition_id="c",
+        encoder_id="mbert-base", run_id="r",
+        block="H", lang="hin", origin="native", seed=1,
+    )
+    assert list(rows.columns) == P.PREDICTION_COLUMNS
+    assert (rows["encoder_id"] == "mbert-base").all()

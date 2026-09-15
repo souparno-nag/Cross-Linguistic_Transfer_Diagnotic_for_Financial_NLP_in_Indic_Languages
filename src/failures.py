@@ -26,9 +26,29 @@ from .mismatch import filter_mismatches, join_source_target
 FAILURES_ROOT = REPO_ROOT / "data" / "failures"
 
 
-def failure_path(task: int, condition_id: str, *, root: Path | None = None) -> Path:
+def failure_path(
+    task: int,
+    condition_id: str,
+    *,
+    root: Path | None = None,
+    encoder: str | None = None,
+) -> Path:
+    """`data/failures/task_{n}/[{encoder}/]{condition_id}.parquet`.
+
+    `encoder` namespaces the file per CLAUDE5.md rule 1. Unlike the prediction
+    log, `export_failures` *overwrites* rather than merging, so without this a
+    second encoder's run would not merely mix rows in — it would delete the
+    first encoder's failure set outright, which is Phase 6's input.
+
+    `encoder=None` keeps the original path, where IndicBERT's committed sets
+    live and where `src.diagnostics` reads them from. See `predictions.log_path`
+    for why the default encoder is not moved into a level of its own.
+    """
     root = root if root is not None else FAILURES_ROOT
-    return root / f"task_{task}" / f"{condition_id}.parquet"
+    base = root / f"task_{task}"
+    if encoder is not None:
+        base = base / encoder
+    return base / f"{condition_id}.parquet"
 
 
 def export_failures(
@@ -38,6 +58,7 @@ def export_failures(
     target: pd.DataFrame,
     *,
     root: Path | None = None,
+    encoder: str | None = None,
 ) -> tuple[Path, pd.DataFrame]:
     """Join, filter to mismatches, and write. Returns the path and the frame
     written (empty if the condition has zero mismatches -- writing an empty
@@ -45,14 +66,16 @@ def export_failures(
     rather than leaving silence indistinguishable from "not yet run")."""
     joined = join_source_target(source, target)
     failures = filter_mismatches(joined)
-    path = failure_path(task, condition_id, root=root)
+    path = failure_path(task, condition_id, root=root, encoder=encoder)
     path.parent.mkdir(parents=True, exist_ok=True)
     failures.to_parquet(path, index=False)
     return path, failures
 
 
-def read_failures(task: int, condition_id: str, *, root: Path | None = None) -> pd.DataFrame:
-    path = failure_path(task, condition_id, root=root)
+def read_failures(
+    task: int, condition_id: str, *, root: Path | None = None, encoder: str | None = None
+) -> pd.DataFrame:
+    path = failure_path(task, condition_id, root=root, encoder=encoder)
     if not path.exists():
         raise FileNotFoundError(f"no failure set for condition {condition_id!r} at {path}")
     return pd.read_parquet(path)

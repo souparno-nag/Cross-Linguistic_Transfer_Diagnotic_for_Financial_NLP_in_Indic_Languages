@@ -211,3 +211,50 @@ def test_a_partitioned_condition_only_predicts_the_eval_half(tmp_path, monkeypat
     full_split = load_native(3, "ben")
     assert 0 < len(log) < len(full_split)
     assert all(partition_of(i, seed=999) == "eval" for i in log["item_id"])
+
+
+# --------------------------------------------------------------------------
+# Encoder-addressable checkpoints (CLAUDE5.md T-500)
+# --------------------------------------------------------------------------
+
+
+def test_run_id_uses_the_encoder_slug_not_a_literal():
+    """The T-500 blocker: `run_id_for` pasted 'indicbert' in literally, so
+    `plan` reported every condition blocked for any other encoder."""
+    assert E.run_id_for(2, "hin", 0, "mbert-base") == "task2_hin_mbert_seed0"
+    assert E.run_id_for(3, "tel", 2, "xlm-r-base") == "task3_tel_xlmr_seed2"
+
+
+def test_run_id_default_is_unchanged_for_indicbert():
+    """Phase 2/3's committed checkpoints must keep resolving to their names."""
+    assert E.run_id_for(2, "hin", 0) == "task2_hin_indicbert_seed0"
+
+
+def test_run_id_rejects_an_unknown_encoder():
+    with pytest.raises(ValueError, match="unknown encoder"):
+        E.run_id_for(2, "hin", 0, "not-an-encoder")
+
+
+def test_plan_names_the_requested_encoders_checkpoints():
+    entries = E.plan(2, encoder="mbert-base")
+    assert entries
+    assert all(e["encoder"] == "mbert-base" for e in entries)
+    assert all("_mbert_seed" in e["run_id"] for e in entries)
+
+
+def test_shipped_config_stems_match_the_run_id_convention():
+    """`checkpoints._current_hashes` maps a run_id back to
+    `configs/train/<stem>.yaml`, so the convention has to hold in both
+    directions or retention classifies every checkpoint as an orphan."""
+    from src.config import TRAIN_CONFIG_DIR, load_run_config
+
+    paths = sorted(TRAIN_CONFIG_DIR.glob("*.yaml")) + sorted(
+        (TRAIN_CONFIG_DIR / "deferred").glob("*.yaml")
+    )
+    assert paths
+    for path in paths:
+        run = load_run_config(path)
+        expected = E.run_id_for(run.task, run.lang, run.seed, run.encoder)
+        assert expected == f"{path.stem}_seed{run.seed}", (
+            f"{path.name} does not follow task{{n}}_{{lang}}_{{slug}}.yaml"
+        )

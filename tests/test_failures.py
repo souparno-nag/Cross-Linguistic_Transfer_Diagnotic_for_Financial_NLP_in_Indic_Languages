@@ -81,3 +81,30 @@ def test_export_raises_on_conflicting_gold_the_same_way_the_join_does(tmp_path):
     target = _log(["a"], gold=[1], pred=[1], condition_id="tgt", run_id="r")
     with pytest.raises(ValueError, match="different gold label"):
         F.export_failures(2, "broken", source, target, root=tmp_path)
+
+
+def test_failure_path_is_namespaced_by_encoder(tmp_path):
+    legacy = F.failure_path(2, "transfer_hin_to_ben", root=tmp_path)
+    namespaced = F.failure_path(2, "transfer_hin_to_ben", root=tmp_path, encoder="mbert-base")
+    assert legacy == tmp_path / "task_2" / "transfer_hin_to_ben.parquet"
+    assert namespaced == tmp_path / "task_2" / "mbert-base" / "transfer_hin_to_ben.parquet"
+
+
+def test_a_second_encoder_does_not_destroy_the_first_failure_set(tmp_path):
+    """export_failures overwrites rather than merging, so sharing a path would
+    delete Phase 6's input rather than merely muddling it."""
+    source = _log(
+        ["a", "b"], gold=[0, 1], pred=[0, 1],
+        condition_id="H_hin_native_ceiling", run_id="r_seed0",
+        block="H", lang="hin", origin="native",
+    )
+    target = _log(
+        ["a", "b"], gold=[0, 1], pred=[1, 1],
+        condition_id="transfer_hin_to_ben", run_id="r_seed0",
+    )
+    first, kept = F.export_failures(2, "c", source, target, root=tmp_path)
+    second, _ = F.export_failures(2, "c", source, target, root=tmp_path, encoder="mbert-base")
+    assert first != second
+    assert first.exists() and second.exists()
+    # The IndicBERT set is still readable and unchanged after the mBERT write.
+    assert F.read_failures(2, "c", root=tmp_path)["item_id"].tolist() == kept["item_id"].tolist()

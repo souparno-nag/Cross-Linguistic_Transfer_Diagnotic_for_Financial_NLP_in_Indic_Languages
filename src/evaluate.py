@@ -7,7 +7,8 @@ a condition whose checkpoint does not exist yet is *blocked*, not skipped
 silently: `plan()` reports every condition either way, and running the plan
 only executes the ones whose checkpoint is on disk.
 
-One checkpoint, `task{N}_{lang}_indicbert_seed{S}`, serves every condition
+One checkpoint, `task{N}_{lang}_{slug}_seed{S}` where `slug` is the encoder's
+short name (`src.data`), serves every condition
 whose model is "the one trained on `lang`" — the `transfer`/`transfer_mt`
 family (train language named directly) and `translationese_{lang}` (the
 model at home in that language, evaluated on its own three provenances). It
@@ -30,7 +31,7 @@ from . import checkpoints
 from .audit import config_hash as _hash_dict
 from .conditions import DEFAULT_SEED as CONDITIONS_SEED
 from .conditions import partition_of
-from .data import num_labels
+from .data import DEFAULT_ENCODER, num_labels, resolve_encoder
 from .download_dataset.paths import REPO_ROOT
 from .experiments import RESULTS_PATH, log_run
 from .ids import BLOCK_NATIVE_LANG
@@ -39,7 +40,7 @@ from .predictions import prediction_log_from_loaded, write_prediction_log
 from .transfer import DEFAULT_N_BOOT, bootstrap_metric
 
 CONDITIONS_PATH = REPO_ROOT / "configs" / "eval_conditions.json"
-ENCODER_KEY = "indicbert-v2"
+ENCODER_KEY = DEFAULT_ENCODER
 SEEDS = (0, 1, 2)
 
 
@@ -52,8 +53,16 @@ def load_matrix(task: int) -> dict:
     return all_matrices[key]
 
 
-def run_id_for(task: int, lang: str, seed: int) -> str:
-    return f"task{task}_{lang}_indicbert_seed{seed}"
+def run_id_for(task: int, lang: str, seed: int, encoder: str = ENCODER_KEY) -> str:
+    """The checkpoint name T-206 writes for this (task, lang, encoder, seed).
+
+    Built from the encoder's ``slug`` (``src.data``) rather than a literal, so
+    a second encoder's checkpoints are addressable. This function is called for
+    languages that have *no* checkpoint — Bengali and Telugu baselines are
+    deferred (CLAUDE2.md) — and must still return the name that *would* be used
+    so `plan` can report the condition as blocked instead of raising.
+    """
+    return f"task{task}_{lang}_{resolve_encoder(encoder).slug}_seed{seed}"
 
 
 def _split_lang(split: str) -> tuple[str, str]:
@@ -103,7 +112,13 @@ def _model_lang(condition: dict) -> str:
 # --------------------------------------------------------------------------
 
 
-def plan(task: int, matrix: dict | None = None, *, seeds: tuple[int, ...] = SEEDS) -> list[dict]:
+def plan(
+    task: int,
+    matrix: dict | None = None,
+    *,
+    seeds: tuple[int, ...] = SEEDS,
+    encoder: str = ENCODER_KEY,
+) -> list[dict]:
     """Every (condition, seed) pair the matrix calls for.
 
     Each entry names the checkpoint it needs and whether that checkpoint
@@ -117,11 +132,12 @@ def plan(task: int, matrix: dict | None = None, *, seeds: tuple[int, ...] = SEED
     for condition in matrix["conditions"]:
         lang = _model_lang(condition)
         for seed in seeds:
-            run_id = run_id_for(task, lang, seed)
+            run_id = run_id_for(task, lang, seed, encoder)
             out.append(
                 {
                     "condition": condition["name"],
                     "kind": condition["kind"],
+                    "encoder": encoder,
                     "model_lang": lang,
                     "seed": seed,
                     "run_id": run_id,
@@ -164,6 +180,7 @@ def run_condition(
     n_boot: int = DEFAULT_N_BOOT,
     results_path=RESULTS_PATH,
     partition_seed: int = CONDITIONS_SEED,
+    encoder: str = ENCODER_KEY,
 ) -> list[dict]:
     """Predict every arm of one condition from one checkpoint, write the
     prediction log, bootstrap each arm's macro-F1, and log a row per arm to
@@ -174,6 +191,15 @@ def run_condition(
     "partition:eval"` into an actual item filter (`_item_filter_for`).
     """
     loaded = load_frozen_model(run_id, device=device)
+    if loaded.run_config.encoder != encoder:
+        raise ValueError(
+            f"checkpoint {run_id!r} was trained with encoder "
+            f"{loaded.run_config.encoder!r}, not the requested {encoder!r} -- "
+            "refusing to file its predictions under the wrong encoder"
+        )
+    # The default encoder keeps the un-namespaced path its committed artefacts
+    # already occupy; every other encoder gets its own level (predictions.log_path).
+    path_encoder = None if encoder == DEFAULT_ENCODER else encoder
     arms = condition["eval"] if isinstance(condition["eval"], list) else [condition["eval"]]
     labels = num_labels(task)
     item_filter = _item_filter_for(condition, partition_seed)
@@ -185,7 +211,7 @@ def run_condition(
             loaded, condition["name"], task, block, lang, origin, seed,
             batch_size=batch_size, item_filter=item_filter,
         )
-        write_prediction_log(frame, task, condition["name"])
+        write_prediction_log(frame, task, condition["name"], encoder=path_encoder)
 
         boot = bootstrap_metric(
             frame["gold"].tolist(), frame["pred"].tolist(), labels,
@@ -224,6 +250,7 @@ def run_all(
     n_boot: int = DEFAULT_N_BOOT,
     results_path=RESULTS_PATH,
     progress=None,
+    encoder: str = ENCODER_KEY,
 ) -> dict:
     """Run every runnable (condition, seed) pair for one task.
 
@@ -235,7 +262,7 @@ def run_all(
     conditions_by_name = {c["name"]: c for c in matrix["conditions"]}
 
     ran, blocked = [], []
-    for entry in plan(task, matrix):
+    for entry in plan(task, matrix, encoder=encoder):
         if not entry["runnable"]:
             blocked.append(entry)
             say(f"BLOCKED {entry['condition']} seed{entry['seed']}: no checkpoint {entry['run_id']}")
@@ -243,7 +270,7 @@ def run_all(
         rows = run_condition(
             task, conditions_by_name[entry["condition"]], entry["run_id"], entry["seed"],
             device=device, batch_size=batch_size, n_boot=n_boot, results_path=results_path,
-            partition_seed=matrix["seed"],
+            partition_seed=matrix["seed"], encoder=encoder,
         )
         ran.extend(rows)
         say(f"ran {entry['condition']} seed{entry['seed']}: {len(rows)} arm(s)")

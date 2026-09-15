@@ -5,10 +5,11 @@ not summary metrics, so it can filter for the specific mismatch pattern
 (correct in the source language, wrong in the target) that T-306 defines.
 Losing a row here is not recoverable by re-running an aggregate.
 
-Row schema, fixed by CLAUDE3.md's Outputs table:
+Row schema, fixed by CLAUDE3.md's Outputs table, plus `encoder_id` which
+CLAUDE5.md requires on every row of every artefact:
 
-    condition_id, run_id, item_id, block_id, lang, origin, src_lang,
-    gold, pred, probs, seed
+    condition_id, encoder_id, run_id, item_id, block_id, lang, origin,
+    src_lang, gold, pred, probs, seed
 
 `_prediction_rows` is the pure assembly step (no model or corpus access), so
 it is cheap to test on its own; `prediction_log` is the thin wrapper that
@@ -30,6 +31,7 @@ PREDICTIONS_ROOT = REPO_ROOT / "data" / "predictions"
 
 PREDICTION_COLUMNS = [
     "condition_id",
+    "encoder_id",
     "run_id",
     "item_id",
     "block_id",
@@ -48,6 +50,7 @@ def _prediction_rows(
     frame: pd.DataFrame,
     *,
     condition_id: str,
+    encoder_id: str,
     run_id: str,
     block: str,
     lang: str,
@@ -64,6 +67,7 @@ def _prediction_rows(
     rows = pd.DataFrame(
         {
             "condition_id": [condition_id] * n,
+            "encoder_id": [encoder_id] * n,
             "run_id": [run_id] * n,
             "item_id": result["item_id"],
             "block_id": [block] * n,
@@ -119,6 +123,7 @@ def prediction_log_from_loaded(
         result,
         frame,
         condition_id=condition_id,
+        encoder_id=loaded.run_config.encoder,
         run_id=loaded.run_id,
         block=block,
         lang=lang,
@@ -159,21 +164,50 @@ def prediction_log(
 # --------------------------------------------------------------------------
 
 
-def log_path(task: int, condition_id: str, *, root: Path | None = None) -> Path:
-    """`data/predictions/task_{n}/{condition_id}.parquet`.
+def log_path(
+    task: int,
+    condition_id: str,
+    *,
+    root: Path | None = None,
+    encoder: str | None = None,
+) -> Path:
+    """`data/predictions/task_{n}/[{encoder}/]{condition_id}.parquet`.
 
     The `task_{n}` level is not decoration (CLAUDE.md §5): task 2 and task 3
     both produce a condition named e.g. `transfer_hin_to_ben_mt`, and without
     this level the two tasks' logs collide on one path and silently merge --
     exactly the corruption §5 warns about for corpus data, and just as
     unrecoverable here since item_id is only unique *within* a task.
+
+    `encoder` adds a second such level, for the same reason one level up
+    (CLAUDE5.md rule 1: "never write to a path or row that another encoder's
+    run owns"). It is **not** merely tidiness: `write_prediction_log` merges on
+    append, so a second encoder's rows would land *beside* the first's in one
+    file, and `results_tables` joins source to target on `(item_id, seed)` with
+    no encoder filter -- two encoders' rows for one item would cross-join into
+    four and quietly corrupt every transfer number.
+
+    `encoder=None` keeps the original, un-namespaced path. That is deliberate:
+    it is where IndicBERT's committed Phase 3 artefacts already live and where
+    Phase 6 reads them from (`src.diagnostics.discover_conditions` globs this
+    directory non-recursively, so an encoder subdirectory is invisible to it).
+    Passing the default encoder explicitly would move those files and break a
+    phase that is mid-flight; new encoders get their own level instead.
     """
     root = root if root is not None else PREDICTIONS_ROOT
-    return root / f"task_{task}" / f"{condition_id}.parquet"
+    base = root / f"task_{task}"
+    if encoder is not None:
+        base = base / encoder
+    return base / f"{condition_id}.parquet"
 
 
 def write_prediction_log(
-    frame: pd.DataFrame, task: int, condition_id: str, *, root: Path | None = None
+    frame: pd.DataFrame,
+    task: int,
+    condition_id: str,
+    *,
+    root: Path | None = None,
+    encoder: str | None = None,
 ) -> Path:
     """Write one condition's log, merging with whatever is already on disk.
 
@@ -186,7 +220,7 @@ def write_prediction_log(
     `item_id` alone would make the second and third arm's rows look like
     stale duplicates of the first and silently drop them.
     """
-    path = log_path(task, condition_id, root=root)
+    path = log_path(task, condition_id, root=root, encoder=encoder)
     path.parent.mkdir(parents=True, exist_ok=True)
     if path.exists():
         existing = pd.read_parquet(path)
@@ -198,9 +232,9 @@ def write_prediction_log(
 
 
 def read_prediction_log(
-    task: int, condition_id: str, *, root: Path | None = None
+    task: int, condition_id: str, *, root: Path | None = None, encoder: str | None = None
 ) -> pd.DataFrame:
-    path = log_path(task, condition_id, root=root)
+    path = log_path(task, condition_id, root=root, encoder=encoder)
     if not path.exists():
         raise FileNotFoundError(f"no prediction log for condition {condition_id!r} at {path}")
     return pd.read_parquet(path)
