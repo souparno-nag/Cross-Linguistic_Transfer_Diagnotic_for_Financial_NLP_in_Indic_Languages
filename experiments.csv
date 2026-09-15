@@ -199,3 +199,9 @@ task2_hin_mbert_seed1__translationese_hin__hin,mbert-base,translationese_hin::ta
 task2_hin_mbert_seed2__translationese_hin__hin,mbert-base,translationese_hin::task_2/H/hin,2,42074e93cdbac71d,0.972744,0.972517,2026-09-15T12:56:19+00:00
 task2_hin_mbert_seed2__translationese_hin__hin,mbert-base,translationese_hin::task_2/B/hin,2,5573424264aa5e85,0.929982,0.929378,2026-09-15T12:56:44+00:00
 task2_hin_mbert_seed2__translationese_hin__hin,mbert-base,translationese_hin::task_2/T/hin,2,3f0957cd24eceb92,0.944015,0.943551,2026-09-15T12:57:07+00:00
+task2_ben_indicbert_seed0,indicbert-v2,task2/B/ben/native,0,d2c8754fe89fc417,0.829596,0.829181,2026-09-15T16:14:35+00:00
+task2_ben_indicbert_seed1,indicbert-v2,task2/B/ben/native,1,d1da4374cc7bee7d,0.843049,0.842237,2026-09-15T16:21:22+00:00
+task2_ben_indicbert_seed2,indicbert-v2,task2/B/ben/native,2,4759c7ed9510a5a7,0.789238,0.788813,2026-09-15T16:30:31+00:00
+task3_ben_indicbert_seed0,indicbert-v2,task3/B/ben/native,0,2d4f8996a3c844d1,0.2125,0.063515,2026-09-15T16:31:24+00:00
+task3_ben_indicbert_seed1,indicbert-v2,task3/B/ben/native,1,7ebfe380c6902062,0.2125,0.157616,2026-09-15T16:33:26+00:00
+task3_ben_indicbert_seed2,indicbert-v2,task3/B/ben/native,2,2e7c9879e49c0585,0.225,0.159455,2026-09-15T16:35:50+00:00

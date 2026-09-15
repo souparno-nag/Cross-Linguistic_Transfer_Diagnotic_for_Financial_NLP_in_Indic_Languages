@@ -26,6 +26,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from src import convergence
 from src.config import TRAIN_CONFIG_DIR, load_run_config, run_training
 from src.download_dataset.paths import REPO_ROOT
 from src.env_check import require_python
@@ -70,13 +71,18 @@ def report_records(config_paths, seeds, results_path) -> list[dict]:
     for path in config_paths:
         for seed in seeds:
             run = load_run_config(path, seed=seed)
-            row = latest.get((f"{path.stem}_seed{seed}", run.hash()))
+            run_id = f"{path.stem}_seed{seed}"
+            row = latest.get((run_id, run.hash()))
             if row is None:
                 continue
+            # Whether the run fit its training data, read from its own
+            # checkpoint. `None` when the checkpoint is gone (T-208 prunes
+            # them) — unknown, not failed. See src/convergence.py.
+            history = convergence.history_for(run_id)
             out.append(
                 {
                     "config": path.name,
-                    "run_id": f"{path.stem}_seed{seed}",
+                    "run_id": run_id,
                     "seed": seed,
                     "split": run.split_id(),
                     "encoder": run.encoder,
@@ -85,6 +91,8 @@ def report_records(config_paths, seeds, results_path) -> list[dict]:
                     "effective_batch": run.batch_size * run.grad_accum,
                     "macro_f1": float(row["macro_f1"]),
                     "accuracy": float(row["accuracy"]),
+                    "peak_train_macro_f1": convergence.peak_train_macro_f1(history),
+                    "converged": convergence.converged(history),
                 }
             )
     return out
@@ -123,6 +131,12 @@ def summarise(records: list[dict]) -> list[dict]:
     for config, group in sorted(by_config.items()):
         f1s = [r["macro_f1"] for r in group]
         accs = [r["accuracy"] for r in group]
+        # The all-seeds figure stays primary (`hard rule 3`). The converged
+        # subset is reported *alongside* it, never instead of it: a run that
+        # never fit its training data is still a run that happened, and
+        # dropping it from the headline would hide the instability.
+        conv = convergence.summarise_convergence(group)
+        kept = [r["macro_f1"] for r in conv["converged_records"]]
         out.append(
             {
                 "config": config,
@@ -138,6 +152,12 @@ def summarise(records: list[dict]) -> list[dict]:
                 "accuracy_mean": statistics.mean(accs),
                 "accuracy_std": statistics.stdev(accs) if len(accs) > 1 else 0.0,
                 "macro_f1_by_seed": {r["seed"]: r["macro_f1"] for r in group},
+                "n_converged": conv["n_converged"],
+                "nonconverged_seeds": conv["nonconverged_seeds"],
+                "macro_f1_mean_converged": statistics.mean(kept) if kept else None,
+                "macro_f1_std_converged": (
+                    statistics.stdev(kept) if len(kept) > 1 else 0.0 if kept else None
+                ),
             }
         )
     return out
@@ -177,30 +197,89 @@ def write_report(summary: list[dict], records: list[dict], report_dir: Path) -> 
         "re-shaped because it did not fit in VRAM: that changes how many rows "
         "sit on the card at once, not the gradient, since the loss is a mean.",
         "",
+        "**Where a config has a run that never fit its training data, the "
+        "converged-seed figure is shown alongside** — never instead of. The "
+        "all-seeds mean stays the headline (`hard rule 3`), because a run that "
+        "failed to train is still a run that happened and the instability is "
+        "part of the result. `src/convergence.py` sets and justifies the "
+        f"threshold (peak **train** macro-F1 ≥ "
+        f"{convergence.MIN_TRAIN_MACRO_F1}); it is deliberately far below what "
+        "a healthy run reaches, and it is read from the run's own checkpoint.",
+        "",
         "| config | encoder | split | batch × accum | effective batch | seeds "
-        "| macro-F1 (mean ± std) | accuracy (mean ± std) |",
-        "|---|---|---|---|---|---|---|---|",
+        "| macro-F1 (mean ± std) | converged seeds only | accuracy (mean ± std) |",
+        "|---|---|---|---|---|---|---|---|---|",
     ]
     for s in summary:
         seeds = ",".join(str(x) for x in s["seeds"])
+        if s.get("nonconverged_seeds"):
+            alongside = (
+                f"**{s['macro_f1_mean_converged']:.4f} ± "
+                f"{s['macro_f1_std_converged']:.4f}** (n={s['n_converged']})"
+                if s["macro_f1_mean_converged"] is not None
+                else "— no seed converged"
+            )
+        else:
+            alongside = "all seeds converged"
         lines.append(
             f"| {s['config']} | {s['encoder']} | {s['split']} | "
             f"{s['batch_size']} × {s['grad_accum']} | {s['effective_batch']} | "
             f"{seeds} | "
             f"{s['macro_f1_mean']:.4f} ± {s['macro_f1_std']:.4f} | "
+            f"{alongside} | "
             f"{s['accuracy_mean']:.4f} ± {s['accuracy_std']:.4f} |"
         )
+
+    failed = [s for s in summary if s.get("nonconverged_seeds")]
+    if failed:
+        lines += [
+            "",
+            "## Runs that did not fit their training data",
+            "",
+            "These completed and logged a number without the optimisation ever "
+            "getting going. Their **test** score is indistinguishable from a "
+            "healthy run's on a task at its data ceiling, which is exactly why "
+            "the training fold is what gets checked. They are kept in the "
+            "corpus of results and in the all-seeds mean above; this section "
+            "exists so the mean can be read knowing they are in it.",
+            "",
+            "| run | peak train macro-F1 | test macro-F1 | epochs | verdict |",
+            "|---|---|---|---|---|",
+        ]
+        by_run = {r["run_id"]: r for r in records}
+        for s in failed:
+            for seed in s["nonconverged_seeds"]:
+                rec = by_run.get(f"{Path(s['config']).stem}_seed{seed}")
+                if rec is None:
+                    continue
+                history = convergence.history_for(rec["run_id"])
+                peak = rec.get("peak_train_macro_f1")
+                lines.append(
+                    f"| `{rec['run_id']}` | "
+                    f"{'—' if peak is None else f'{peak:.4f}'} | "
+                    f"{rec['macro_f1']:.4f} | "
+                    f"{len(history) if history else '—'} | "
+                    f"below {convergence.MIN_TRAIN_MACRO_F1} — did not train |"
+                )
+
     lines += [
         "",
         "## Per-seed macro-F1",
         "",
-        "| config | encoder | seed | macro-F1 | accuracy |",
-        "|---|---|---|---|---|",
+        "`peak train` is the run's best macro-F1 on its **own training fold**; "
+        "a blank means the checkpoint is no longer on disk, which is unknown "
+        "rather than failed.",
+        "",
+        "| config | encoder | seed | macro-F1 | accuracy | peak train | trained? |",
+        "|---|---|---|---|---|---|---|",
     ]
     for r in sorted(records, key=lambda r: (r["config"], r["seed"])):
+        peak = r.get("peak_train_macro_f1")
+        state = {True: "yes", False: "**no**", None: "unknown"}[r.get("converged")]
         lines.append(
             f"| {r['config']} | {r['encoder']} | {r['seed']} | "
-            f"{r['macro_f1']:.4f} | {r['accuracy']:.4f} |"
+            f"{r['macro_f1']:.4f} | {r['accuracy']:.4f} | "
+            f"{'—' if peak is None else f'{peak:.4f}'} | {state} |"
         )
     lines.append("")
     (report_dir / "baselines.md").write_text("\n".join(lines))
@@ -216,6 +295,12 @@ def main() -> int:
     parser.add_argument("--seeds", default=",".join(str(s) for s in DEFAULT_SEEDS))
     parser.add_argument("--device", default="cuda")
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument(
+        "--report-only",
+        action="store_true",
+        help="rebuild reports/baselines.{md,parquet} from experiments.csv and the "
+        "existing checkpoints; trains nothing and loads no model.",
+    )
     args = parser.parse_args()
 
     config_paths = sorted(args.config or TRAIN_CONFIG_DIR.glob("*.yaml"))
@@ -224,6 +309,29 @@ def main() -> int:
         return 2
     seeds = [int(s) for s in args.seeds.split(",")]
     plan = plan_runs(config_paths, seeds)
+
+    if args.report_only:
+        all_configs = sorted(TRAIN_CONFIG_DIR.glob("*.yaml"))
+        report_recs = report_records(all_configs, seeds, RESULTS_PATH)
+        if not report_recs:
+            print("nothing logged yet", file=sys.stderr)
+            return 1
+        summary = summarise(report_recs)
+        write_report(summary, report_recs, REPORT_DIR)
+        print(f"wrote {REPORT_DIR / 'baselines.md'} from {len(report_recs)} logged runs\n")
+        for s in summary:
+            extra = ""
+            if s["nonconverged_seeds"]:
+                extra = (
+                    f"  [seed(s) {s['nonconverged_seeds']} did not train; "
+                    f"converged-only {s['macro_f1_mean_converged']:.4f} ± "
+                    f"{s['macro_f1_std_converged']:.4f}]"
+                )
+            print(
+                f"  {s['config']:<28} macro-F1 {s['macro_f1_mean']:.4f} ± "
+                f"{s['macro_f1_std']:.4f}  (n={s['n']}){extra}"
+            )
+        return 0
 
     print(f"{len(plan)} runs: {[p.name for p in config_paths]} × seeds {seeds}")
     if args.dry_run:
