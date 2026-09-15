@@ -10,6 +10,18 @@ The probe mirrors ``train.py``'s step exactly — same AMP path, same optimiser,
 ``attention_mask`` all ones so every row is full length (the worst case) — and
 runs the optimiser step because AdamW allocates its moment buffers lazily on the
 first one, which is a real jump in peak memory.
+
+**That last part silently did not happen until T-500 (CLAUDE5.md).**
+``GradScaler.step`` *skips* ``optimizer.step()`` when the first scaled gradients
+overflow, which on a synthetic batch of random token ids with an untrained head
+they reliably do — so AdamW's two moment buffers were never allocated and the
+probe under-reported peak memory by 8 bytes per parameter. The symptom was a
+table saying ``xlm-r-base`` fits in 2.76 GiB when its weights, gradients and
+optimiser state alone need 4.14 GiB, which is more than the card has. Any
+recorded peak below an encoder's fixed floor is that bug; see
+``fixed_floor_bytes``. ``probe_step`` now forces the allocation when the scaler
+skipped it, and every result carries the floor alongside the measured peak so
+the two can be compared.
 """
 
 from __future__ import annotations
@@ -38,11 +50,37 @@ class ProbeResult:
     fp16: bool
     fits: bool
     peak_bytes: int = 0
+    n_params: int = 0
+    forced_optimizer_step: bool = False
     error: str | None = None
 
     @property
     def peak_gib(self) -> float:
         return self.peak_bytes / _GiB
+
+    @property
+    def floor_gib(self) -> float:
+        """Fixed cost of weights + gradients + AdamW state, in GiB."""
+        return fixed_floor_bytes(self.n_params) / _GiB
+
+    @property
+    def activation_gib(self) -> float:
+        """What the measured peak leaves over the fixed floor — the only part
+        that batch size and sequence length actually move."""
+        return max(0.0, self.peak_gib - self.floor_gib)
+
+
+def fixed_floor_bytes(n_params: int) -> int:
+    """Bytes a full fine-tune needs before a single activation.
+
+    Under AMP the master weights stay fp32 and AdamW keeps two fp32 moments
+    per parameter, so the cost is 4 (weights) + 4 (gradients) + 8 (optimiser
+    state) = **16 bytes per parameter**, independent of batch size and
+    sequence length. An encoder whose floor exceeds the card cannot be fully
+    fine-tuned on it at any shape, which is not something a batch sweep can
+    discover.
+    """
+    return n_params * 16
 
 
 def free_gpu() -> None:
@@ -92,6 +130,8 @@ def probe_step(
         scaler = torch.amp.GradScaler("cuda", enabled=use_amp)
         vocab = model.encoder.config.vocab_size
 
+        result.n_params = sum(p.numel() for p in model.parameters())
+
         model.train()
         optimizer.zero_grad(set_to_none=True)
         for _ in range(grad_accum):
@@ -102,6 +142,21 @@ def probe_step(
             scaler.scale(loss).backward()
         scaler.step(optimizer)
         scaler.update()
+
+        # `scaler.step` is a no-op when the scaled gradients overflowed, and on
+        # a synthetic batch at GradScaler's initial scale they usually do. AdamW
+        # allocates `exp_avg` and `exp_avg_sq` lazily *inside* `step()`, so a
+        # skipped first step leaves 8 bytes per parameter unmeasured and the
+        # probe reports a peak a real run sails straight past. Force it. The
+        # resulting weights are meaningless, which does not matter: this
+        # function measures allocation, not learning.
+        if not optimizer.state:
+            for group in optimizer.param_groups:
+                for param in group["params"]:
+                    if param.grad is not None:
+                        torch.nan_to_num_(param.grad, nan=0.0, posinf=0.0, neginf=0.0)
+            optimizer.step()
+            result.forced_optimizer_step = True
 
         if device.startswith("cuda"):
             torch.cuda.synchronize()
@@ -125,6 +180,30 @@ def _resolve(encoder: str) -> str:
     return resolve_encoder(encoder).hf_id
 
 
+def encoder_param_count(encoder: str) -> int:
+    """Parameter count without downloading weights or touching the GPU.
+
+    Built on the ``meta`` device from the model's config, so it allocates
+    nothing. This is what lets :func:`largest_batch` refuse to probe an
+    encoder whose fixed floor already exceeds the card, instead of OOMing
+    once per candidate batch size.
+    """
+    from transformers import AutoConfig, AutoModel
+
+    config = AutoConfig.from_pretrained(_resolve(encoder))
+    with torch.device("meta"):
+        model = AutoModel.from_config(config)
+    return sum(p.numel() for p in model.parameters())
+
+
+def device_total_bytes(device: str = "cuda") -> int | None:
+    """Total VRAM of ``device``, or ``None`` when it is not a visible GPU."""
+    if not (device.startswith("cuda") and torch.cuda.is_available()):
+        return None
+    index = int(device.split(":")[1]) if ":" in device else 0
+    return int(torch.cuda.get_device_properties(index).total_memory)
+
+
 def largest_batch(
     encoder: str,
     max_len: int,
@@ -138,7 +217,34 @@ def largest_batch(
     """Largest batch from ``batches`` that fits at this sequence length.
 
     Returns the failing 1-row probe if not even a single row fits.
+
+    Short-circuits when the encoder's fixed floor already exceeds the card:
+    no batch size can help, so probing every candidate would just be ten
+    identical OOMs and ten model loads.
     """
+    total = device_total_bytes(device)
+    if total is not None:
+        try:
+            n_params = encoder_param_count(encoder)
+        except Exception:  # config unreachable — fall through to real probing
+            n_params = 0
+        if n_params and fixed_floor_bytes(n_params) > total:
+            floor = fixed_floor_bytes(n_params)
+            return ProbeResult(
+                encoder=encoder,
+                max_len=max_len,
+                batch_size=min(batches),
+                grad_accum=grad_accum,
+                fp16=fp16,
+                fits=False,
+                n_params=n_params,
+                error=(
+                    f"does not fit at any batch size: weights + gradients + AdamW "
+                    f"state need {floor / _GiB:.2f} GiB before any activation, and "
+                    f"the device has {total / _GiB:.2f} GiB"
+                ),
+            )
+
     last = None
     for batch_size in sorted(batches, reverse=True):
         last = probe(
@@ -176,12 +282,19 @@ def budget_table(
                 fp16=fp16,
                 probe=probe,
             )
+            # The floor is reported next to the peak so the T-500 failure mode
+            # is visible in the table itself: a peak *below* the floor means
+            # the optimiser state was never allocated and the row is wrong.
             row = {
                 "encoder": encoder,
                 "max_len": max_len,
                 "fp16": fp16,
                 "max_batch": best.batch_size if best.fits else 0,
                 "peak_gib": round(best.peak_gib, 3) if best.fits else None,
+                "floor_gib": round(best.floor_gib, 3) if best.n_params else None,
+                "activation_gib": (
+                    round(best.activation_gib, 3) if best.fits and best.n_params else None
+                ),
                 "note": "" if best.fits else (best.error or "does not fit"),
             }
             rows.append(row)

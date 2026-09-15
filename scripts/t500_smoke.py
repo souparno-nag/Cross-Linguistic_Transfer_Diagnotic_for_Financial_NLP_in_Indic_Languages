@@ -2,7 +2,8 @@
 
     python -m scripts.t500_smoke --audit-only            # CPU, instant, no model
     python -m scripts.t500_smoke --device cuda           # the real thing, ~1-2 min
-    python -m scripts.t500_smoke --device cuda --encoder-config configs/train/task3_hin_xlmr.yaml
+    python -m scripts.t500_smoke --device cuda --encoder-config configs/train/task3_hin_mbert.yaml
+    python -m scripts.t500_smoke --encoder-config configs/train/deferred/task2_hin_xlmr.yaml --audit-only
 
 CLAUDE5.md's premise is that adding an encoder "should be almost entirely
 configuration", and T-500 exists to find out whether Phases 2 and 3 were in
@@ -52,7 +53,7 @@ from src.config import TRAIN_CONFIG_DIR, RunConfig, load_run_config, run_trainin
 from src.download_dataset.paths import REPO_ROOT
 from src.env_check import require_python
 
-DEFAULT_CONFIG = TRAIN_CONFIG_DIR / "task2_hin_xlmr.yaml"
+DEFAULT_CONFIG = TRAIN_CONFIG_DIR / "task2_hin_mbert.yaml"
 # The sibling each Phase 5 config must match field-for-field except `encoder`.
 REFERENCE_ENCODER = "indicbert-v2"
 SMOKE_CACHE = REPO_ROOT / "cache" / "t500_smoke"
@@ -236,12 +237,15 @@ def parameter_budget(encoder: str) -> dict:
     from transformers import AutoConfig, AutoModel
 
     from src.data import resolve_encoder
+    from src.vram import encoder_param_count, fixed_floor_bytes
 
     hf_id = resolve_encoder(encoder).hf_id
-    config = AutoConfig.from_pretrained(hf_id)
+    n_params = encoder_param_count(encoder)
+    # The largest single tensor is worth naming: it is the allocation the OOM
+    # message actually reports, and for a multilingual encoder it is always the
+    # vocabulary embedding matrix.
     with torch.device("meta"):
-        model = AutoModel.from_config(config)
-    n_params = sum(p.numel() for p in model.parameters())
+        model = AutoModel.from_config(AutoConfig.from_pretrained(hf_id))
     largest = max(model.parameters(), key=lambda p: p.numel()).numel()
     gib = 1024**3
     return {
@@ -250,7 +254,7 @@ def parameter_budget(encoder: str) -> dict:
         "weights_gib": n_params * 4 / gib,
         "grads_gib": n_params * 4 / gib,
         "adamw_gib": n_params * 8 / gib,
-        "floor_gib": n_params * 16 / gib,
+        "floor_gib": fixed_floor_bytes(n_params) / gib,
         "largest_tensor_mib": largest * 4 / 1024**2,
     }
 

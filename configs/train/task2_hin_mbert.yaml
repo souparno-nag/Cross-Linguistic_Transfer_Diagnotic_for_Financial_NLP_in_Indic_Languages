@@ -1,0 +1,33 @@
+# Phase 5 encoder extension (CLAUDE5.md T-502): sustainability (binary) on
+# native Hindi, mBERT base — the legacy multilingual baseline, the model Pires
+# et al. [12] probed.
+#
+# Every field below is copied from the IndicBERT sibling unchanged; only
+# `encoder` differs, because CLAUDE5.md hard rule 1 makes the cross-encoder
+# comparison valid only if nothing else moved. tests/test_t500_smoke.py asserts
+# that parity so the two files cannot silently drift apart.
+#
+# VRAM: mBERT's 179M parameters need 2.65 GiB of weights + gradients + AdamW
+# state before any activation, leaving ~1.03 GiB on this card. That is real but
+# narrow headroom, so T-502 is not assumed to fit — measure it first with
+# `python -m scripts.t205_vram --encoders mbert-base`. Hard rule 6: if it OOMs,
+# report the config rather than quietly shrinking the batch.
+
+encoder: mbert-base
+task: 2
+lang: hin
+origin: native
+
+max_len: 192
+batch_size: 16
+grad_accum: 1
+lr: 2.0e-5
+weight_decay: 0.01
+epochs: 20
+warmup_ratio: 0.1
+patience: 5
+seed: 0
+fp16: true
+
+dev_fraction: 0.1
+test_fraction: 0.1

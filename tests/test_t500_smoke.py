@@ -18,13 +18,21 @@ from src.config import TRAIN_CONFIG_DIR, RunConfig, load_run_config
 PHASE5_ENCODERS = ("xlm-r-base", "mbert-base")
 
 
+def _all_configs():
+    """Every shipped config, deferred ones included.
+
+    `configs/train/deferred/` holds configs T-206 must not pick up — XLM-R,
+    excluded on VRAM grounds at T-500 — but they stay under test so that if the
+    project ever moves to a larger card they can be run without first
+    re-deriving whether they drifted from the protocol.
+    """
+    return sorted(TRAIN_CONFIG_DIR.glob("*.yaml")) + sorted(
+        (TRAIN_CONFIG_DIR / "deferred").glob("*.yaml")
+    )
+
+
 def _phase5_configs():
-    out = []
-    for path in sorted(TRAIN_CONFIG_DIR.glob("*.yaml")):
-        run = load_run_config(path)
-        if run.encoder in PHASE5_ENCODERS:
-            out.append(path)
-    return out
+    return [p for p in _all_configs() if load_run_config(p).encoder in PHASE5_ENCODERS]
 
 
 # --------------------------------------------------------------------------
@@ -34,9 +42,20 @@ def _phase5_configs():
 
 def test_at_least_one_phase5_config_is_shipped():
     assert _phase5_configs(), (
-        "no configs/train/*.yaml names a Phase 5 encoder — T-500 needs XLM-R "
-        "added as a config entry"
+        "no config names a Phase 5 encoder — T-500 needs one added as a config entry"
     )
+
+
+def test_deferred_configs_are_outside_the_t206_glob():
+    """`t206_baseline` globs `configs/train/*.yaml` non-recursively, and that
+    is the only thing keeping it from trying to train XLM-R and OOMing. If a
+    deferred config is ever moved back up a level, this fails."""
+    trainable = {p.stem for p in TRAIN_CONFIG_DIR.glob("*.yaml")}
+    deferred = {p.stem for p in (TRAIN_CONFIG_DIR / "deferred").glob("*.yaml")}
+    assert deferred, "expected XLM-R to be shipped as a deferred config"
+    assert not (trainable & deferred)
+    for path in (TRAIN_CONFIG_DIR / "deferred").glob("*.yaml"):
+        assert load_run_config(path).encoder == "xlm-r-base"
 
 
 @pytest.mark.parametrize("path", _phase5_configs(), ids=lambda p: p.stem)
@@ -57,7 +76,7 @@ def test_phase5_config_stems_are_unique_per_encoder():
     """T-208 maps a run_id back to `configs/train/<stem>.yaml`, and T-206
     builds run_id from the stem, so two encoders sharing a stem would share a
     checkpoint directory."""
-    stems = [p.stem for p in sorted(TRAIN_CONFIG_DIR.glob("*.yaml"))]
+    stems = [p.stem for p in _all_configs()]
     assert len(stems) == len(set(stems))
 
 
@@ -76,7 +95,7 @@ def test_parity_check_catches_a_tuned_hyperparameter(tmp_path):
             "lr": reference.lr * 2,
         }
     )
-    check = T.check_protocol_parity(tuned, TRAIN_CONFIG_DIR / "task2_hin_xlmr.yaml")
+    check = T.check_protocol_parity(tuned, TRAIN_CONFIG_DIR / "task2_hin_mbert.yaml")
     assert not check["ok"]
     assert "lr" in check["detail"]
 
@@ -102,7 +121,7 @@ def test_checkpoint_naming_check_passes_for_indicbert():
 
 
 def test_audit_returns_one_entry_per_check_with_the_expected_shape():
-    audit = T.run_audit(TRAIN_CONFIG_DIR / "task2_hin_xlmr.yaml", device="cpu")
+    audit = T.run_audit(TRAIN_CONFIG_DIR / "task2_hin_mbert.yaml", device="cpu")
     # registry, parity, VRAM floor, checkpoint naming, three artefact checks
     assert len(audit) == 7
     for check in audit:
@@ -115,7 +134,7 @@ def test_audit_judges_the_shipped_yaml_not_the_smoke_overrides():
     """Leg B loads the same YAML with `epochs=1, patience=1`; auditing that
     object would report the smoke's own shortcut as a hard-rule-2 violation.
     Caught for real the first time this script ran."""
-    path = TRAIN_CONFIG_DIR / "task2_hin_xlmr.yaml"
+    path = TRAIN_CONFIG_DIR / "task2_hin_mbert.yaml"
     parity = next(
         c
         for c in T.run_audit(path, device="cpu")
@@ -154,7 +173,7 @@ def test_xlmr_full_finetune_does_not_fit_a_4gb_card():
 
 
 def test_vram_check_is_inconclusive_rather_than_falsely_green_without_cuda():
-    run = load_run_config(TRAIN_CONFIG_DIR / "task2_hin_xlmr.yaml")
+    run = load_run_config(TRAIN_CONFIG_DIR / "deferred" / "task2_hin_xlmr.yaml")
     check = T.check_optimizer_fits(run, "cpu")
     assert check["ok"] and not check["blocker"]
     assert "not compared" in check["detail"]
