@@ -91,12 +91,29 @@ def check_registry(run: RunConfig) -> dict:
     }
 
 
+def _effective_batch(run: RunConfig) -> int:
+    return run.batch_size * run.grad_accum
+
+
 def check_protocol_parity(run: RunConfig, path: Path) -> dict:
     """Hard rules 1-2: identical protocol, no per-encoder tuning.
 
     A comparison across encoders is only valid if nothing but the encoder
     moved, so this compares every `RunConfig` field against the reference
     config and fails on any difference other than `encoder` itself.
+
+    **One exception, and only one.** `batch_size` and `grad_accum` may differ
+    provided their product — the effective batch — does not. Hard rule 2
+    permits deviation "beyond what VRAM forces", and this is the deviation it
+    forces: mBERT cannot hold 16 rows of `max_len` 192 on a 4 GB card, but
+    accumulating two micro-batches of 8 produces the same gradient as one
+    batch of 16, because the loss is a mean. The optimiser, learning rate,
+    schedule and update count are untouched. Anything else differing — a
+    changed learning rate, a shorter `max_len`, a different effective batch —
+    is genuine per-encoder tuning and fails.
+
+    The exception is reported in the detail line even when it passes, so it
+    reaches T-504's table rather than being silently blessed here.
     """
     reference_path = _reference_config_for(run, path)
     if reference_path is None:
@@ -115,20 +132,46 @@ def check_protocol_parity(run: RunConfig, path: Path) -> dict:
         for f in fields(RunConfig)
         if f.name != "encoder" and getattr(run, f.name) != getattr(reference, f.name)
     ]
+    micro_batching_only = (
+        bool(differing)
+        and set(differing) <= {"batch_size", "grad_accum"}
+        and _effective_batch(run) == _effective_batch(reference)
+    )
+    if micro_batching_only:
+        return {
+            "name": "protocol parity vs IndicBERT",
+            "ok": True,
+            "blocker": True,
+            "detail": (
+                f"{path.name} matches {reference_path.name} except in micro-batching: "
+                f"{run.batch_size}x{run.grad_accum} against "
+                f"{reference.batch_size}x{reference.grad_accum}, the same effective "
+                f"batch of {_effective_batch(run)}. Permitted by hard rule 2 as a "
+                "VRAM-forced deviation and measured, not assumed — but it is a stated "
+                "protocol difference and T-504's table must say so."
+            ),
+        }
     if differing:
         detail = ", ".join(
             f"{name}: {getattr(run, name)!r} vs {getattr(reference, name)!r}"
             for name in differing
         )
+        extra = ""
+        if set(differing) <= {"batch_size", "grad_accum"}:
+            extra = (
+                f" The effective batch also moved, {_effective_batch(run)} against "
+                f"{_effective_batch(reference)} — that changes the gradient, so it is "
+                "tuning rather than re-shaping the same step."
+            )
         return {
             "name": "protocol parity vs IndicBERT",
             "ok": False,
             "blocker": True,
             "detail": (
                 f"{path.name} differs from {reference_path.name} in {len(differing)} "
-                f"field(s) besides `encoder` — {detail}. Hard rule 2 allows this only "
-                "when VRAM forces it, and then all three encoders must be tuned and "
-                "it must be said so."
+                f"field(s) besides `encoder` — {detail}.{extra} Hard rule 2 allows this "
+                "only when VRAM forces it, and then all three encoders must be tuned "
+                "and it must be said so."
             ),
         }
     return {

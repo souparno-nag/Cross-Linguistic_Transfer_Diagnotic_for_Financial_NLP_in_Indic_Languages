@@ -7,11 +7,33 @@
 # comparison valid only if nothing else moved. tests/test_t500_smoke.py asserts
 # that parity so the two files cannot silently drift apart.
 #
-# VRAM: mBERT's 179M parameters need 2.65 GiB of weights + gradients + AdamW
-# state before any activation, leaving ~1.03 GiB on this card. That is real but
-# narrow headroom, so T-502 is not assumed to fit — measure it first with
-# `python -m scripts.t205_vram --encoders mbert-base`. Hard rule 6: if it OOMs,
-# report the config rather than quietly shrinking the batch.
+# VRAM, measured: batch 16 at max_len 192 does NOT fit on this card. mBERT's
+# 179M parameters need 2.65 GiB of weights + gradients + AdamW state before any
+# activation, and max_len 192's activations take the rest; the run dies
+# allocating the last 352 MiB moment buffer for the 119k-token embedding
+# matrix, with 562 MiB reserved but too fragmented to serve it. Reproduced in a
+# clean process, so it is a real limit and not leftover state from an earlier
+# run:
+#
+#   python -m scripts.t205_vram --skip-probe --full-epoch \
+#       --config configs/train/task2_hin_mbert.yaml
+#
+# So `batch_size` is 8 with `grad_accum` 2 where the IndicBERT sibling is 16
+# with 1. **The effective batch is 16 in both.** Because the loss is a mean,
+# accumulating two micro-batches of 8 produces the same gradient as one batch
+# of 16 — the optimiser, learning rate, schedule and number of updates are all
+# unchanged. What differs is only how many rows sit on the card at once, plus
+# dropout's draw order and floating-point summation order, which is the same
+# class of difference as changing the seed and is already inside the 3-seed
+# mean ± std this protocol reports.
+#
+# This is the one deviation CLAUDE5.md hard rule 2 permits ("beyond what VRAM
+# forces"), and it was measured rather than assumed. It is applied to mBERT
+# alone, deliberately: matching it on IndicBERT would mean re-running Phase 2's
+# baselines and Phase 3's task-2 transfer results, and re-validating the T-207
+# gate, to erase a difference with no expected effect. **T-504's comparison
+# table must state it** rather than presenting the two encoders as identically
+# configured. task 3 needs no such change and keeps batch 16 / grad_accum 1.
 
 encoder: mbert-base
 task: 2
@@ -19,8 +41,8 @@ lang: hin
 origin: native
 
 max_len: 192
-batch_size: 16
-grad_accum: 1
+batch_size: 8
+grad_accum: 2
 lr: 2.0e-5
 weight_decay: 0.01
 epochs: 20

@@ -100,6 +100,84 @@ def test_parity_check_catches_a_tuned_hyperparameter(tmp_path):
     assert "lr" in check["detail"]
 
 
+def test_parity_allows_micro_batching_that_preserves_the_effective_batch():
+    """mBERT cannot hold 16 rows of max_len 192 on a 4 GB card, but 8x2 is the
+    same gradient as 16x1 because the loss is a mean. Permitted, and reported
+    in the detail line so it reaches T-504's table."""
+    reference = load_run_config(TRAIN_CONFIG_DIR / "task2_hin_indicbert.yaml")
+    reshaped = RunConfig(
+        **{
+            **{f.name: getattr(reference, f.name) for f in fields(RunConfig)},
+            "encoder": "mbert-base",
+            "batch_size": reference.batch_size // 2,
+            "grad_accum": reference.grad_accum * 2,
+        }
+    )
+    check = T.check_protocol_parity(reshaped, TRAIN_CONFIG_DIR / "task2_hin_mbert.yaml")
+    assert check["ok"], check["detail"]
+    assert "micro-batching" in check["detail"]
+    assert "effective batch of 16" in check["detail"]
+
+
+def test_parity_rejects_a_batch_change_that_moves_the_effective_batch():
+    """Halving batch_size without raising grad_accum changes the gradient, so
+    it is tuning, not re-shaping the same step."""
+    reference = load_run_config(TRAIN_CONFIG_DIR / "task2_hin_indicbert.yaml")
+    tuned = RunConfig(
+        **{
+            **{f.name: getattr(reference, f.name) for f in fields(RunConfig)},
+            "encoder": "mbert-base",
+            "batch_size": reference.batch_size // 2,
+        }
+    )
+    check = T.check_protocol_parity(tuned, TRAIN_CONFIG_DIR / "task2_hin_mbert.yaml")
+    assert not check["ok"]
+    assert "effective batch also moved" in check["detail"]
+
+
+def test_parity_still_rejects_other_fields_alongside_micro_batching():
+    """The exception is narrow: re-shaping the batch does not license slipping
+    a learning-rate change through with it."""
+    reference = load_run_config(TRAIN_CONFIG_DIR / "task2_hin_indicbert.yaml")
+    sneaky = RunConfig(
+        **{
+            **{f.name: getattr(reference, f.name) for f in fields(RunConfig)},
+            "encoder": "mbert-base",
+            "batch_size": reference.batch_size // 2,
+            "grad_accum": reference.grad_accum * 2,
+            "lr": reference.lr * 2,
+        }
+    )
+    check = T.check_protocol_parity(sneaky, TRAIN_CONFIG_DIR / "task2_hin_mbert.yaml")
+    assert not check["ok"]
+    assert "lr" in check["detail"]
+
+
+def test_shipped_mbert_task2_carries_the_vram_forced_reshape():
+    """Pins the actual decision: same effective batch as IndicBERT, smaller
+    micro-batch, everything else identical."""
+    mbert = load_run_config(TRAIN_CONFIG_DIR / "task2_hin_mbert.yaml")
+    indicbert = load_run_config(TRAIN_CONFIG_DIR / "task2_hin_indicbert.yaml")
+    assert T._effective_batch(mbert) == T._effective_batch(indicbert) == 16
+    assert mbert.batch_size < indicbert.batch_size
+    assert (mbert.lr, mbert.max_len, mbert.epochs) == (
+        indicbert.lr,
+        indicbert.max_len,
+        indicbert.epochs,
+    )
+
+
+def test_shipped_mbert_task3_needs_no_reshape():
+    """task 3's max_len is 64, so it fitted as shipped and must not have been
+    changed along with task 2."""
+    mbert = load_run_config(TRAIN_CONFIG_DIR / "task3_hin_mbert.yaml")
+    indicbert = load_run_config(TRAIN_CONFIG_DIR / "task3_hin_indicbert.yaml")
+    assert (mbert.batch_size, mbert.grad_accum) == (
+        indicbert.batch_size,
+        indicbert.grad_accum,
+    )
+
+
 def test_parity_check_passes_when_only_the_encoder_differs():
     reference = load_run_config(TRAIN_CONFIG_DIR / "task2_hin_indicbert.yaml")
     twin = RunConfig(
