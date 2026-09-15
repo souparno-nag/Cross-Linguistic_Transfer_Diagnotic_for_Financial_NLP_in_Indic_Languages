@@ -1,0 +1,31 @@
+# Phase 5 encoder extension (CLAUDE5.md T-500/T-501): sustainability (binary)
+# on native Hindi, XLM-R base.
+#
+# Every field below is copied from task2_hin_indicbert.yaml unchanged. Only
+# `encoder` differs, because CLAUDE5.md hard rule 1 ("identical protocol across
+# encoders") makes the comparison valid only if nothing else moved, and hard
+# rule 2 forbids per-encoder tuning beyond what VRAM forces. VRAM forces
+# nothing here: T-205 measured xlm-r-base at max_len 128 fitting batch 32 (peak
+# 2.76 GiB) and at max_len 256 fitting batch 12, so batch 16 at max_len 192 sits
+# inside the budget — and that is before the per-batch dynamic padding real
+# training uses. tests/test_config.py asserts this parity mechanically, so the
+# two files cannot silently drift apart.
+
+encoder: xlm-r-base
+task: 2
+lang: hin
+origin: native
+
+max_len: 192
+batch_size: 16
+grad_accum: 1
+lr: 2.0e-5
+weight_decay: 0.01
+epochs: 20
+warmup_ratio: 0.1
+patience: 5
+seed: 0
+fp16: true
+
+dev_fraction: 0.1
+test_fraction: 0.1

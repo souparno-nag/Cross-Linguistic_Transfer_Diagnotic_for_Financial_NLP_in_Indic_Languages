@@ -1,0 +1,27 @@
+# Phase 5 encoder extension (CLAUDE5.md T-500/T-501): ESG themes (10-class) on
+# native Hindi, XLM-R base.
+#
+# Every field below is copied from task3_hin_indicbert.yaml unchanged; only
+# `encoder` differs. See task2_hin_xlmr.yaml for why, and note that task 3's
+# published IndicBERT number is a data-scarcity floor (532 rows over 10
+# classes, CLAUDE2.md T-206/T-207) — a low XLM-R score here is the same
+# ceiling, not an encoder failure.
+
+encoder: xlm-r-base
+task: 3
+lang: hin
+origin: native
+
+max_len: 64
+batch_size: 16
+grad_accum: 1
+lr: 3.0e-5
+weight_decay: 0.01
+epochs: 40
+warmup_ratio: 0.1
+patience: 8
+seed: 0
+fp16: true
+
+dev_fraction: 0.15
+test_fraction: 0.15
