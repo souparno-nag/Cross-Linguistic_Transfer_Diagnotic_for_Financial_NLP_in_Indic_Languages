@@ -8,7 +8,7 @@ on the way. Financial text was chosen because it is unusually easy to check for 
 a translated sentence either kept its numbers, currency symbols and percentages intact or
 it did not, which gives an objective check that plain sentence quality does not.
 
-The project has four completed phases:
+The project has five completed phases:
 
 1. **Corpus construction** — build a parallel corpus across Hindi, Bengali, Telugu and
    Malayalam, where "parallel" means the same underlying content exists in every
@@ -23,8 +23,14 @@ The project has four completed phases:
    second encoder, to check whether the choice of a specifically Indic model was the
    right one. It was not: a general-purpose multilingual model (mBERT) beat it on every
    measure. Why it beat it is not settled — see below.
+5. **Source-language comparison** — train the same classifiers on Bengali and on Telugu
+   too, so that "how well does a Hindi model travel" becomes "which language is the best
+   one to start from". With one source language there is nothing to compare against;
+   with three there is. The answer is that **Hindi is the worst of the three**, on both
+   encoders — which matters because Hindi has the most data and was this project's
+   original choice.
 
-A fifth phase (diagnosing *why* the model fails on specific items — e.g. does it lose
+A sixth phase (diagnosing *why* the model fails on specific items — e.g. does it lose
 numerals, named entities, or long sentences disproportionately) is in progress
 separately; nothing in this repository claims to explain a cause yet, only to measure
 the size of the effect.
@@ -71,10 +77,10 @@ the human version becomes a free quality ceiling for judging the machine one.
 ## Repository layout
 
 ```
-CLAUDE*.md                           Phase-scoped specifications (corpus / training / transfer / diagnostics / encoders)
+CLAUDE*.md                           Phase-scoped specifications (corpus / training / transfer / diagnostics / encoders / source comparison)
 docs/                                Detailed per-phase documentation (this repo's write-up)
 src/                                 All importable pipeline logic, flat per phase
-scripts/                             Thin CLI entry points, one per task (t1xx = Phase 1, t2xx = Phase 2, t3xx = Phase 3, t5xx = encoder comparison)
+scripts/                             Thin CLI entry points, one per task (t1xx = corpus, t2xx = training, t3xx = transfer, t4xx = source comparison, t5xx = encoder comparison)
 configs/                             Frozen configs: labels, translation/verification settings, eval conditions, training YAMLs
 data/
   base_paper/     upstream IndicFinNLP release, committed as-is with checksums
@@ -134,6 +140,17 @@ Phase 3 — zero-shot transfer evaluation
   ├─ T-306   flag "mismatches": right in the source language, wrong in the target
   ├─ T-307   export the failed-instance set (input to a future diagnostic phase)
   └─ T-308   render the final results tables
+        │
+        ▼
+Phase 4 — source-language comparison
+  ├─ T-401   confirm a new source language is a config change, not a code change
+  ├─ T-402   train on Bengali, 3 seeds                                        ⚠ gate
+  ├─ T-403   train on Telugu, 3 seeds                                         ⚠ gate
+  ├─ T-404   evaluate every Bengali-source condition
+  ├─ T-405   evaluate every Telugu-source condition
+  ├─ T-406   repeat the whole grid on the second encoder
+  ├─ T-407   export the failed-instance sets for the diagnostic phase
+  └─ T-408   which source transfers best, and does language family predict it?
 ```
 
 T-207 is a hard gate: Phase 3 is not allowed to start until the Hindi baseline
@@ -167,14 +184,40 @@ few points of each other. That is evidence the drop is a genuine cross-language 
 problem in the model, not mostly an artifact of this project's own translation pipeline
 (Phase 3, T-308).
 
-**So far this only covers transfer *out of* Hindi**, because only the Hindi classifier has
-been trained (Phase 2 deliberately deferred Bengali and Telugu training to save GPU time).
-42 of the 63 planned (condition × seed) evaluation runs are consequently still blocked,
-not silently skipped — they are recorded as blocked in the results tables so the gap in
-coverage is visible rather than hidden.
+**Every planned evaluation now has a result.** All 63 (condition × seed) pairs run on
+each task, for each of the two encoders that fit on the available GPU — 126 results per
+task. Earlier versions of this README reported 42 of 63 as blocked, because only the
+Hindi classifier existed; Bengali and Telugu have since been trained.
 
-See `docs/phase3.md` for the full per-direction numbers and `reports/transfer_results.md`
-for the generated tables.
+**Which language you train on matters, and the obvious choice is the wrong one.**
+Training on Bengali produces a model that loses least when moved to other languages;
+training on Hindi loses most. The three source models are equally good *in their own
+language* (within a quarter of a point of each other), so this is about transfer, not
+about one model being better. Both encoders agree on the ordering.
+
+**The difficulty lives in the target language, not in the language pairing.** Moving a
+model into a Dravidian language (Telugu, Malayalam) costs more than moving it into an
+Indo-Aryan one (Hindi, Bengali), whatever language it started from — and "same family"
+does not help: on one encoder, Dravidian→Dravidian is the worst case of all. Phase 1
+reached the same conclusion about the machine translation itself, using a completely
+different measurement, which makes it the most solid finding here.
+
+**Transfer is not symmetric.** Hindi→Bengali loses noticeably more than Bengali→Hindi —
+same two languages, same sentences, equally capable models — on both encoders and by
+more than seed-to-seed noise.
+
+Average accuracy lost when moving a model out of each source language (lower is a
+better language to train on), on the sustainability task:
+
+| trained on | IndicBERT-v2 | mBERT |
+|---|---|---|
+| **Bengali** | **0.34** | **0.15** |
+| Telugu | 0.37 | 0.17 |
+| Hindi | 0.43 | 0.20 |
+
+See `docs/phase3.md` for the per-direction numbers out of Hindi, `docs/phase4.md` for
+the source comparison, and `reports/{transfer_results,source_comparison}.md` for the
+generated tables.
 
 ## Known limitations
 
@@ -197,8 +240,22 @@ for the generated tables.
   same sentences, in every case where both exist to compare — a human translator
   paraphrases, and the metric penalizes that. It is trustworthy for ranking translation
   directions against each other, not as an absolute quality bar.
-- **Bengali and Telugu classifiers have not been trained yet.** All Phase 3 transfer
-  numbers currently describe transfer *out of* Hindi only.
+- **Neither Bengali nor Telugu baseline has been checked against the published paper.**
+  Phase 2 validated the Hindi classifier against IndicFinNLP's published number before
+  any transfer claim was made. The equivalent Bengali and Telugu numbers are not in this
+  repository, so that check has not been performed for them — the models train healthily
+  and match Hindi in-language, but they have not been gated the way Hindi was.
+- **Three of the nine IndicBERT runs on the 10-class task never actually trained**, and
+  one more was stopped while it was still improving. They are detected, reported
+  alongside the full average rather than hidden, and excluded from the source
+  comparison — a model that never learned scores equally badly at home and abroad, so it
+  produces a near-zero "transfer gap" that looks like excellent transfer. mBERT has no
+  such failures on identical data and settings, so this is a property of the smaller
+  encoder rather than of the task.
+- **The 10-class ESG task supports no source comparison.** Every transfer gap on it
+  lands between 0.47 and 0.53 regardless of source, target or encoder. With 532 rows
+  across 10 classes it is at its data ceiling — the published baseline for it is 0.05 —
+  and when everything scores badly there is no signal left to compare.
 - **No diagnostic/causal analysis yet.** Phase 3 identifies *which* individual predictions
   flip from correct to wrong when moving to another language and exports that set; it
   does not yet say *why* (numeral loss, entity loss, sentence length, etc.). That is the
@@ -241,13 +298,17 @@ availability. The code is built to checkpoint and resume rather than to be babys
 - `docs/phase1.md` — corpus construction, task by task (T-101–T-114)
 - `docs/phase2.md` — training pipeline and Hindi baselines (T-201–T-208)
 - `docs/phase3.md` — zero-shot transfer evaluation (T-301–T-308)
+- `docs/phase4.md` — Bengali and Telugu source training; which language is the best one
+  to start from (T-401–T-408)
 - `docs/phase5.md` — encoder comparison and the capacity-dilution question (T-500–T-505)
 - `data/v1.0/DATASHEET.md` — the released corpus's datasheet (composition, per-direction
   translation quality, licensing), auto-generated from the frozen artifacts
 - `reports/encoder_comparison.md` — every encoder on identical conditions, with gaps
   and confidence intervals
 - `reports/capacity_dilution.md` — does the Indic-specialised encoder win, and where?
-- `CLAUDE.md`, `CLAUDE2.md`, `CLAUDE3.md`, `CLAUDE4.md`, `CLAUDE5.md` — the original
+- `reports/source_comparison.md` — every source language against every target, on every
+  encoder: which source transfers best, and does language family predict it?
+- `CLAUDE.md`, `CLAUDE2.md`, `CLAUDE3.md`, `CLAUDE4.md`, `CLAUDE5.md`, `CLAUDE6.md` — the original
   phase specifications this work was built against, including the hard rules and
   working agreements each phase follows
 

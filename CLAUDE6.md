@@ -200,6 +200,13 @@ Fine-tune IndicBERT-v2 on `B_nat`, 3 seeds, evaluate in-language.
 a written diagnosis of the gap. **No Bengali transfer claim proceeds until this passes.**
 GPU ≈30 min for both tasks at 3 seeds, measured — not the 4h first budgeted.
 
+**Status: runs DONE, gate UNSCORED.** Bengali task 2 reproduces Hindi almost exactly
+— 0.8201 ± 0.0279 against 0.8226 ± 0.0044, all three seeds healthy. Task 3's seed 0
+never trained (peak train macro-F1 0.152 against its siblings' 0.688 and 0.997), which
+moves the mean from 0.1585 to 0.1269 and quadruples the spread;
+`reports/baselines.md` now shows the converged-seed figure alongside the all-seeds
+mean rather than instead of it.
+
 **Blocked on a number this repo does not have.** `configs/published_baselines.json`
 carries only Ghosh et al.'s Hindi values. Their Bengali figures (Table 4, rows `2 B IB`
 and `3 B IB`) must be added before this gate can be scored at all — the runs can go
@@ -209,6 +216,15 @@ ahead, but "within ±2 of published" has nothing to compare against until then.
 
 Same for `T_nat`.
 **Done:** within ±2 of the published Telugu baseline, or a diagnosis. GPU ≈30 min.
+
+**Status: runs DONE, gate UNSCORED.** Telugu task 2 lands on the other two blocks at
+0.8191 ± 0.0148, all seeds converging. Task 3 is worse: two of three seeds never
+trained, and a third — seed 0 — was cut off by early stopping while still improving
+(loss down 45.6%, train F1 still climbing at the patience cutoff), which is a third
+kind of outcome distinct from both success and failure to start. T-406 established
+that this is IndicBERT-specific rather than a schedule problem, so the protocol was
+not changed.
+
 Blocked on the published Telugu numbers (`2 T IB`, `3 T IB`) in the same way T-402 is
 blocked on the Bengali ones.
 
@@ -217,6 +233,12 @@ blocked on the Bengali ones.
 IndicBERT-v2 → Hindi, Malayalam, Telugu, plus the in-language ceiling and the Bengali
 translationese conditions (`B_nat` vs `Bn←H` vs `Bn←T`).
 **Done:** all conditions logged; per-instance predictions written.
+
+**Status: DONE.** All seven Bengali conditions × 3 seeds on both tasks, plus the
+in-language ceiling logs. Bengali is the better source in every direction against
+Hindi, most sharply into Hindi itself: `ben→hin` loses 0.2631 ± 0.0530 against
+`hin→ben`'s 0.4477 ± 0.0716, on in-language ceilings that differ by 0.002. That is
+2.1× the combined seed spread.
 
 **Run the sweeps with `HF_HUB_OFFLINE=1`.** `transformers` 4.57.6 makes a live
 Hub request inside every `AutoTokenizer.from_pretrained` for a non-local repo id
@@ -253,6 +275,14 @@ byte-comparable, so `hard rule 1`'s identical protocol holds across it.
 Same for block T, including `Te→Ml`.
 **Done:** as above.
 
+**Status: DONE.** 63/63 (condition, seed) pairs on each task, zero blocked, zero
+failed — the first time the project has had a complete matrix, against 21 of 63
+since Phase 3. Both Dravidian-source quadrants have numbers for the first time,
+so `Te→Ml` is measured rather than pending.
+
+Task 3's Telugu cells came back "within seed noise: yes", the first cells to trip
+that flag, because two of three Telugu seeds never trained — see T-403.
+
 ### T-406 — Extend to mBERT
 
 Repeat T-402 through T-405 for mBERT, in the cell order above. **XLM-R is not part of
@@ -264,16 +294,45 @@ is acceptable and must be recorded as such — state which cells ran, not just w
 succeeded, and state XLM-R as deferred-on-hardware rather than as not-yet-run.
 GPU ≈1.5h for both mBERT cells, measured — not the 17h first budgeted.
 
+**Status: DONE, no partial completion to report.** Both mBERT cells trained and
+evaluated, 63/63 pairs per task. mBERT beats IndicBERT-v2 in all six in-language
+cells, extending Phase 5's Hindi-only result to every source language.
+
+**This task settled the T-403 question.** All twelve mBERT runs reached train
+macro-F1 1.0000, task 3 included — 9/9 mBERT task-3 runs fitting their training data
+against IndicBERT's 6/9, on identical data and an identical schedule. The instability
+is the encoder's, not the schedule's, so the protocol was left alone rather than
+tuned around one encoder's fragility.
+
 ### T-407 — Emit failure sets for Phase 6
 
 Run the Phase 3 mismatch filter over all new predictions.
 **Done:** `data/failures/{condition}.parquet` with `encoder_id` and `block_id`
 populated. **Coordinate with Phase 6 first** — they need T-601 finished.
 
+**Status: artefacts written, handover NOT done** — deliberately, as at T-506. All 18
+transfer conditions per task are exported for both encoders. The coordination the
+brief requires has not happened, so nothing has been handed over.
+
 ### T-408 — Source-selection comparison table
 
 All source blocks × all encoders × all targets, mean ± std, gaps with CIs.
 **Done:** `reports/source_comparison.md`.
+
+**Status: DONE.** `src/source_comparison.py`, `scripts/t408_source_comparison.py`,
+19 tests. 36/36 cells computed. Three findings replicate across both encoders and
+two do not; the full write-up is `docs/phase4.md`.
+
+| | replicates? |
+|---|---|
+| Bengali best source, Telugu second, Hindi worst | **yes**, same order on both |
+| Crossing *into* Dravidian costs more, whatever the source | **yes**, and it matches T-111's independent finding about the MT itself |
+| `hin→ben` harder than `ben→hin` | **yes**, both beat the seed spread |
+| Typological proximity predicts the best source | **no** — 1/3 on IndicBERT, 3/3 on mBERT |
+| Bengali↔Telugu asymmetry direction | **no** — encoders disagree, mBERT inside noise |
+
+Task 3 supports none of it: every gap clusters at 0.47–0.53 regardless of source,
+target or encoder, which is what a task at its data ceiling looks like.
 
 This table is what operationalises Lin et al. [16] on transfer-language selection. For
 each target language, which source transfers best — and does typological proximity
