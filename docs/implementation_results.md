@@ -207,10 +207,11 @@ As of this writing, the following has been implemented and unit-tested:
 Two things remain open and constitute the bulk of the pending work:
 
 1. **The orthographic/numeral-mismatch module** from the original five-module design
-   (a deterministic check for digit-system and currency-symbol mismatches) is out of
-   scope for the current build and is absent from the live precedence chain; failures
-   it would have caught currently fall through to `unattributed` or are picked up
-   incidentally by another module.
+   is deliberately excluded and is absent from the live precedence chain; failures it
+   would have caught fall through to `unattributed` or another module. This was checked
+   rather than assumed: Bengali natives use Bengali digits while MT output is ASCII, but
+   mismatched items fail at or below the base rate, so a label would be spurious
+   (CLAUDE4.md "Scope decisions"; `reports/digit_audit.md`).
 2. **The pipeline has been exercised on one condition only** — `task_2`,
    Hindi→Bengali, both the native- and machine-translated-target arms
    (`data/diagnostics/task_2/transfer_hin_to_ben*.parquet`) — as an end-to-end

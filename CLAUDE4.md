@@ -66,6 +66,34 @@ labels 100% of failures is suspicious.
 
 ---
 
+## Scope decisions
+
+**The orthographic / numeral module is excluded from this build** (decided Oct 2026).
+It is absent from `PRECEDENCE` in `src/diagnostics.py`; failures it would have caught
+fall through to the next rung or to `unattributed`. The precedence list and module table
+above describe the original five-module design and are kept for reference.
+
+Why, in short (evidence and tables: `reports/digit_audit.md`, reproducible with
+`python -m scripts.digit_audit`):
+
+- **The data is not uniformly ASCII.** Hindi and Telugu natives use ASCII digits; Bengali
+  natives mostly use Bengali digits (828 of 847 digit-bearing task-2 rows). MT output is
+  ASCII in every language, so `ben→*` pairs change digit system on ~810–822 rows.
+- **But mismatched items do not fail more often.** 12.2% / 13.4% (task 2) and 7.9% /
+  10.6% (task 3) of failures carry a digit-system change, against 34% / 18% of all items
+  in the same pairs. A label at precedence rung 3 would be a correlate presented as a
+  cause, which hard rule 3 forbids.
+- **Narrow reach.** Hindi↔Telugu conditions have no mismatch at all.
+- **Currency and metric formatting were not reliably measurable**; the substring check
+  tried fired inside ordinary words and was discarded.
+- Limits: the evidence shows no over-representation, not that models are insensitive to
+  digit script. Revisit with a controlled test. If revisited, prefer an audit-trail
+  covariate over restoring the label.
+- Knock-on for T-113/Phase 7: native Bengali and MT Bengali differ in digit system as
+  well as provenance; any `B_nat` vs `Bn←H/T` comparison should say so.
+
+---
+
 ## Modules
 
 | Module | Fires when | Label |
