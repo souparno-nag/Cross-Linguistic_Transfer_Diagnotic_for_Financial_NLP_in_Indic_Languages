@@ -197,6 +197,92 @@ def test_not_fired_when_target_more_salient_than_source(monkeypatch):
 
 
 # --------------------------------------------------------------------------
+# convergence check (T-605): an unconverged attribution never fires
+# --------------------------------------------------------------------------
+
+
+def test_converged_boundary_is_inclusive_and_nan_is_not_converged():
+    assert S.converged(S.DEFAULT_CONVERGENCE_TOL)
+    assert S.converged(0.0)
+    assert not S.converged(S.DEFAULT_CONVERGENCE_TOL + 1e-9)
+    assert not S.converged(float("inf"))
+    assert not S.converged(float("nan"))
+
+
+def _run(monkeypatch, src_delta, tgt_delta):
+    fake = _FakeCompute([
+        ([8.0, 1.0, 1.0], _ws_offsets("energy sector grew"), src_delta),
+        ([0.2, 4.8, 5.0], _ws_offsets("urja sector grew"), tgt_delta),
+    ])
+    monkeypatch.setattr(S, "compute_salience", fake)
+    return S.diagnose_instance(
+        loaded=None, tokenizer=None, source_text="energy sector grew", target_text="urja sector grew",
+        gold_label=0, concepts=[{"id": "e", "hin": "energy", "ben": "urja"}],
+        lang_src="hin", lang_tgt="ben", max_len=32,
+    )
+
+
+@pytest.mark.parametrize("src_delta,tgt_delta", [(0.5, 0.01), (0.01, 0.5), (float("inf"), 0.0)])
+def test_unconverged_attribution_does_not_fire_even_with_large_divergence(monkeypatch, src_delta, tgt_delta):
+    result = _run(monkeypatch, src_delta, tgt_delta)
+    assert result.status == "not_converged"
+    assert result.divergence >= S.DEFAULT_DIVERGENCE_THRESHOLD  # kept for the audit trail
+    assert result.convergence_delta == max(src_delta, tgt_delta)
+
+
+def test_converged_attribution_still_fires(monkeypatch):
+    result = _run(monkeypatch, 0.01, 0.04)
+    assert result.status == "fired"
+    assert result.convergence_delta == 0.04
+
+
+def test_compute_salience_reports_a_relative_convergence_error_on_a_toy_model():
+    """Runs the real Captum path on CPU with a 2-layer toy encoder (no download):
+    the completeness identity must hold closely with enough steps, and the
+    value returned is relative to the logit gap, not Captum's raw delta."""
+    torch = pytest.importorskip("torch")
+    pytest.importorskip("captum")
+    from types import SimpleNamespace  # noqa: PLC0415
+
+    torch.manual_seed(0)
+
+    class Enc(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.emb = torch.nn.Embedding(50, 8)
+            self.lin = torch.nn.Linear(8, 8)
+
+        def get_input_embeddings(self):
+            return self.emb
+
+        def forward(self, inputs_embeds, attention_mask):
+            return SimpleNamespace(last_hidden_state=torch.tanh(self.lin(inputs_embeds)))
+
+    class Toy(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.encoder = Enc()
+            self.classifier = torch.nn.Linear(8, 2)
+
+    class Tok:
+        def __call__(self, text, **kw):
+            ids = torch.tensor([[1, 2, 3, 4]])
+            return {"input_ids": ids, "attention_mask": torch.ones_like(ids),
+                    "offset_mapping": torch.tensor([[[0, 1], [1, 2], [2, 3], [3, 4]]])}
+
+    class Enc2(dict):
+        def pop(self, key):
+            return super().pop(key)
+
+    tok = lambda text, **kw: Enc2(Tok()(text))  # noqa: E731
+    salience, offsets, rel = S.compute_salience(
+        SimpleNamespace(model=Toy()), tok, "abcd", 1, max_len=8, n_steps=200,
+    )
+    assert len(salience) == 4 and len(offsets) == 4
+    assert 0 <= rel < S.DEFAULT_CONVERGENCE_TOL
+
+
+# --------------------------------------------------------------------------
 # Slow: the real model + Captum, on 5 sampled pairs
 # --------------------------------------------------------------------------
 

@@ -32,7 +32,7 @@ import pandas as pd
 from . import fragmentation, morphology, saliency
 from . import labse_gate as labse
 from .corpus_io import read_split
-from .data import get_tokenizer
+from .data import DEFAULT_ENCODER, get_tokenizer
 from .download_dataset.paths import REPO_ROOT
 from .evaluate import _split_lang, load_matrix
 from .failures import failure_path, read_failures
@@ -52,7 +52,7 @@ AUDIT_COLUMNS = [
     "gate_status", "labse_sim",
     "frag_status", "r_frag",
     "morph_status", "morph_evidence",
-    "saliency_status", "saliency_divergence",
+    "saliency_status", "saliency_divergence", "saliency_convergence_error",
     "assigned_label", "modules_fired",
 ]
 
@@ -86,19 +86,32 @@ def load_esg_terms(path: Path = ESG_TERMS_PATH) -> list[dict]:
     return lexicon["concepts"]
 
 
-def diagnostics_path(task: int, condition_id: str, *, root: Path | None = None) -> Path:
+def path_encoder(encoder_id: str) -> str | None:
+    """`None` for the default encoder, whose artefacts keep the original
+    un-namespaced paths (the convention `evaluate.py` and `failures.py` already
+    follow); any other encoder gets its own directory level. Without it a second
+    encoder's labels would overwrite the first's, and the `encoder_id` column
+    would be the only thing left saying whose they were."""
+    return None if encoder_id == DEFAULT_ENCODER else encoder_id
+
+
+def diagnostics_path(task: int, condition_id: str, *, root: Path | None = None, encoder: str | None = None) -> Path:
     root = root if root is not None else DIAGNOSTICS_ROOT
-    return root / f"task_{task}" / f"{condition_id}.parquet"
+    base = root / f"task_{task}"
+    return (base / encoder if encoder else base) / f"{condition_id}.parquet"
 
 
-def audit_path(task: int, condition_id: str, *, root: Path | None = None) -> Path:
+def audit_path(task: int, condition_id: str, *, root: Path | None = None, encoder: str | None = None) -> Path:
     root = root if root is not None else AUDIT_ROOT
-    return root / f"task_{task}" / f"{condition_id}.parquet"
+    base = root / f"task_{task}"
+    return (base / encoder if encoder else base) / f"{condition_id}.parquet"
 
 
-def write_diagnostics(task: int, condition_id: str, labels: pd.DataFrame, audit: pd.DataFrame) -> tuple[Path, Path]:
-    label_out = diagnostics_path(task, condition_id)
-    audit_out = audit_path(task, condition_id)
+def write_diagnostics(
+    task: int, condition_id: str, labels: pd.DataFrame, audit: pd.DataFrame, *, encoder: str | None = None
+) -> tuple[Path, Path]:
+    label_out = diagnostics_path(task, condition_id, encoder=encoder)
+    audit_out = audit_path(task, condition_id, encoder=encoder)
     label_out.parent.mkdir(parents=True, exist_ok=True)
     audit_out.parent.mkdir(parents=True, exist_ok=True)
     labels[LABEL_COLUMNS].to_parquet(label_out, index=False)
@@ -106,20 +119,22 @@ def write_diagnostics(task: int, condition_id: str, labels: pd.DataFrame, audit:
     return label_out, audit_out
 
 
-def read_diagnostics(task: int, condition_id: str, *, root: Path | None = None) -> pd.DataFrame:
-    path = diagnostics_path(task, condition_id, root=root)
+def read_diagnostics(
+    task: int, condition_id: str, *, root: Path | None = None, encoder: str | None = None
+) -> pd.DataFrame:
+    path = diagnostics_path(task, condition_id, root=root, encoder=encoder)
     if not path.exists():
         raise FileNotFoundError(f"no diagnostics for condition {condition_id!r} at {path}")
     return pd.read_parquet(path)
 
 
-def discover_conditions(task: int, *, root: Path | None = None) -> list[dict]:
-    """Every condition with a failures parquet on disk, matched against
+def discover_conditions(task: int, *, root: Path | None = None, encoder: str | None = None) -> list[dict]:
+    """Every condition with a failures parquet on disk for `encoder` (`None` =
+    the default encoder's un-namespaced directory), matched against
     `configs/eval_conditions.json` for its source `(block, lang)`. Generic
-    over whatever exists — currently the Hindi-sourced transfer/transfer_mt
-    conditions for task_2; costs nothing to pick up more once Bengali- and
-    Telugu-sourced checkpoints exist (Phase 2/3 concern, not this one's)."""
-    task_dir = failure_path(task, "x", root=root).parent
+    over whatever exists, so new tasks, source blocks and encoders are picked
+    up with no code change."""
+    task_dir = failure_path(task, "x", root=root, encoder=encoder).parent
     matrix = load_matrix(task)
     by_name = {c["name"]: c for c in matrix["conditions"]}
     out = []
@@ -167,6 +182,7 @@ def diagnose_row(
             "frag_status": "not_evaluated", "r_frag": None,
             "morph_status": "not_evaluated", "morph_evidence": None,
             "saliency_status": "not_evaluated", "saliency_divergence": None,
+            "saliency_convergence_error": None,
             "modules_fired": ["gate"], "assigned_label": precedence_pick(["gate"]),
         }
 
@@ -197,6 +213,7 @@ def diagnose_row(
         "frag_status": "fired" if frag_fired else "not_fired", "r_frag": ratio,
         "morph_status": morph_result.status, "morph_evidence": morph_result.evidence,
         "saliency_status": sal_result.status, "saliency_divergence": sal_result.divergence,
+        "saliency_convergence_error": sal_result.convergence_delta,
         "modules_fired": modules_fired, "assigned_label": precedence_pick(modules_fired),
     }
 
@@ -227,7 +244,7 @@ def diagnose_condition(
         raise ValueError(f"{condition_id!r} has no entry in eval_conditions.json task_{task}")
     block_src, lang_src = _split_lang(condition["train"])
 
-    failures = read_failures(task, condition_id, root=root)
+    failures = read_failures(task, condition_id, root=root, encoder=path_encoder(encoder_id))
     if failures.empty:
         return pd.DataFrame(columns=LABEL_COLUMNS), pd.DataFrame(columns=AUDIT_COLUMNS)
 

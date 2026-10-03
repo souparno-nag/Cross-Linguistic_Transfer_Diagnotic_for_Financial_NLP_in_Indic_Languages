@@ -202,6 +202,7 @@ def test_write_and_read_diagnostics_round_trip(tmp_path):
         "frag_status": "not_fired", "r_frag": 1.0,
         "morph_status": "not_fired", "morph_evidence": None,
         "saliency_status": "unavailable", "saliency_divergence": None,
+        "saliency_convergence_error": None,
         "assigned_label": "unattributed", "modules_fired": [],
     }])
     label_path = D.diagnostics_path(1, "c", root=tmp_path / "diag")
@@ -214,3 +215,28 @@ def test_write_and_read_diagnostics_round_trip(tmp_path):
     back = D.read_diagnostics(1, "c", root=tmp_path / "diag")
     assert back["item_id"].tolist() == ["i1"]
     assert back["assigned_label"].tolist() == ["unattributed"]
+
+
+# --------------------------------------------------------------------------
+# encoder-namespaced paths (a second encoder must not overwrite the first)
+# --------------------------------------------------------------------------
+
+
+def test_default_encoder_keeps_the_original_path_and_others_get_a_level(tmp_path):
+    assert D.path_encoder("indicbert-v2") is None
+    assert D.path_encoder("mbert-base") == "mbert-base"
+    a = D.diagnostics_path(2, "c", root=tmp_path)
+    b = D.diagnostics_path(2, "c", root=tmp_path, encoder="mbert-base")
+    assert a != b and b.parent.name == "mbert-base" and a.parent.name == "task_2"
+    assert D.audit_path(2, "c", root=tmp_path, encoder="mbert-base").parent.name == "mbert-base"
+
+
+def test_discover_conditions_reads_an_encoder_subdirectory(tmp_path, monkeypatch):
+    sub = tmp_path / "task_9" / "mbert-base"
+    sub.mkdir(parents=True)
+    (sub / "transfer_hin_to_ben.parquet").write_bytes(b"")
+    monkeypatch.setattr(D, "load_matrix", lambda task: {"conditions": [
+        {"name": "transfer_hin_to_ben", "train": "task_9/H/hin"}]})
+    assert D.discover_conditions(9, root=tmp_path) == []
+    assert [c["condition_id"] for c in D.discover_conditions(9, root=tmp_path, encoder="mbert-base")] == [
+        "transfer_hin_to_ben"]

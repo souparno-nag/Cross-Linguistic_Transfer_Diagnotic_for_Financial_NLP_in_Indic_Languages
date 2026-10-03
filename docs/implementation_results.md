@@ -223,6 +223,35 @@ Two things remain open and constitute the bulk of the pending work:
    not-yet-started phase (Phase 7) — aggregating the resulting labels into
    root-cause findings, is the immediate next work.
 
+### G.1 Phase 6 test status (as of 3 Oct 2026)
+
+- **Fast tests (`-m "not slow"`, CPU only, no model download): 68 passed** across
+  `test_diagnostics`, `test_fragmentation`, `test_morphology`, `test_saliency`
+  (the saliency set includes a toy-model run of the real Captum path).
+- **Not run (9 slow tests):** real-tokenizer fragmentation on IndicBERT-v2 and XLM-R
+  (IndicBERT-v2 is gated and needs an HF token), the real Indic NLP morphology library
+  for all four languages, and the five-pair Integrated Gradients render. These need
+  downloads and, for the last, a GPU. Treat T-602/T-604/T-605 as unverified on real
+  encoders until they pass.
+- **Full suite, same flags:** 533 passed; 19 failed and 21 errored in other phases'
+  tests, all traced to the scratch environment used (Python 3.13 rather than the required
+  3.11; `tabulate`, `openpyxl` missing; HuggingFace offline), none in Phase 6 code. Not
+  re-run in the project's own environment.
+- **T-605 convergence check:** implemented. `compute_salience` returns
+  `|delta| / |F(x) - F(baseline)|`; above 5% (`DEFAULT_CONVERGENCE_TOL`, a conventional
+  judgement) the instance is `not_converged`, never fires, and the error is recorded in
+  the audit as `saliency_convergence_error`.
+- **Still open:** the divergence threshold (0.3) is a placeholder and has not been
+  inspected on real salience distributions; T-608 spot-check not filled in.
+- **Observation for the spot-check, not a conclusion:** on the one diagnosed condition
+  (task 2, Hindi to Bengali) morphological masking fires on 62% of failures (678/1094
+  and 849/1423), while fragmentation and terminology-gap fire on none. That is the
+  pattern a loose fuzzy match would produce, so the spot-check should look at it
+  specifically before any other condition is run.
+- **Other conditions:** `scripts/t601_diagnostics.py` now covers all tasks, source blocks
+  and encoders (resumable, no silent CPU fallback, encoder-namespaced output). Not yet
+  run on anything but Hindi to Bengali.
+
 ## H. Engineering Constraints Common to All Phases
 
 Several constraints recur across every phase and shaped implementation choices

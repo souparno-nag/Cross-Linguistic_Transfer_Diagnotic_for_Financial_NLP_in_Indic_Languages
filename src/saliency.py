@@ -38,13 +38,21 @@ DEFAULT_N_STEPS = 50
 # (CLAUDE4.md hard rule 3). Until that inspection happens this is a
 # placeholder carried over from the approved plan, not yet a measured value.
 DEFAULT_DIVERGENCE_THRESHOLD = 0.3
+# Integrated Gradients' completeness axiom says the attributions sum to
+# F(x) - F(baseline); Captum's convergence delta is the error in that
+# identity. It is judged *relative* to |F(x) - F(baseline)|, because an
+# absolute delta means nothing without the scale of the logit it is an error
+# in. 5% is a conventional judgement, not a derived figure; an unconverged
+# attribution is reported as `not_converged` and never fires (CLAUDE4.md T-605).
+DEFAULT_CONVERGENCE_TOL = 0.05
 
 
 @dataclass
 class SaliencyResult:
-    status: str  # "fired" | "not_fired" | "not_applicable" | "unavailable"
+    # "fired" | "not_fired" | "not_applicable" | "unavailable" | "not_converged"
+    status: str
     divergence: float | None = None
-    convergence_delta: float | None = None
+    convergence_delta: float | None = None  # relative; see DEFAULT_CONVERGENCE_TOL
     concept_id: str | None = None
 
 
@@ -88,6 +96,11 @@ def salience_share(salience, span: list[int]) -> float:
     return float(sum(salience[i] for i in span)) / total
 
 
+def converged(relative_delta: float, tol: float = DEFAULT_CONVERGENCE_TOL) -> bool:
+    """`<= tol` converged. NaN is not converged (`nan <= tol` is False)."""
+    return relative_delta <= tol
+
+
 def fires(divergence: float, threshold: float = DEFAULT_DIVERGENCE_THRESHOLD) -> bool:
     return divergence >= threshold
 
@@ -102,8 +115,10 @@ def compute_salience(
     n_steps: int = DEFAULT_N_STEPS,
     device: str = "cpu",
 ):
-    """Per-token salience (L2 norm of the IG attribution) and Captum's own
-    convergence delta, for one sentence against a zero-embedding baseline.
+    """Per-token salience (L2 norm of the IG attribution) and the **relative**
+    convergence error `|delta| / |F(x) - F(baseline)|` (Captum's own delta,
+    scaled by the logit gap it should account for), for one sentence against a
+    zero-embedding baseline.
 
     `embed_layer.get_input_embeddings()` is HF's architecture-agnostic
     accessor — it works identically whether the encoder is ALBERT-based
@@ -139,8 +154,16 @@ def compute_salience(
         n_steps=n_steps,
         return_convergence_delta=True,
     )
+    with torch.no_grad():
+        gap = (
+            forward_fn(input_embeds, attention_mask)[0, int(gold_label)]
+            - forward_fn(baseline, attention_mask)[0, int(gold_label)]
+        ).abs().item()
+    # a vanishing gap makes the ratio meaningless; report it as unconverged
+    # (inf) rather than dividing by ~0 and calling the result good.
+    relative = float(delta.abs().max().item()) / gap if gap > 1e-6 else float("inf")
     salience = attributions.norm(dim=-1).squeeze(0).detach().cpu().tolist()
-    return salience, offset_mapping, float(delta.abs().max().item())
+    return salience, offset_mapping, relative
 
 
 def diagnose_instance(
@@ -156,6 +179,7 @@ def diagnose_instance(
     max_len: int,
     threshold: float = DEFAULT_DIVERGENCE_THRESHOLD,
     n_steps: int = DEFAULT_N_STEPS,
+    convergence_tol: float = DEFAULT_CONVERGENCE_TOL,
     device: str = "cpu",
 ) -> SaliencyResult:
     """One instance's saliency-divergence verdict, or `not_applicable` if the
@@ -186,10 +210,16 @@ def diagnose_instance(
     src_share = salience_share(src_salience, src_span)
     tgt_share = salience_share(tgt_salience, tgt_span)
     divergence = src_share - tgt_share
-    status = "fired" if fires(divergence, threshold) else "not_fired"
+    worst_delta = max(src_delta, tgt_delta)
+    if not converged(worst_delta, convergence_tol):
+        # kept for the audit trail, but an attribution that fails its own
+        # completeness check cannot support a verdict either way
+        status = "not_converged"
+    else:
+        status = "fired" if fires(divergence, threshold) else "not_fired"
     return SaliencyResult(
         status=status,
         divergence=divergence,
-        convergence_delta=max(src_delta, tgt_delta),
+        convergence_delta=worst_delta,
         concept_id=concept["id"],
     )
