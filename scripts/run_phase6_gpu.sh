@@ -15,6 +15,12 @@
 #   SPOTCHECK_TASKS="2"            tasks to write spot-check sheets for (ben/tel/mal targets)
 #   SPOTCHECK_N=50                 rows per target language
 #   SKIP_TESTS=1                   skip steps 1-2 (e.g. when re-running after a crash)
+#   PREFLIGHT_ONLY=1               run the environment checks and stop
+#   SALIENCY_THRESHOLD=0.05        after the run, re-apply this saliency threshold to the saved
+#                                  audits (CPU, offline). Set it only AFTER inspecting the pairs
+#                                  in reports/diagnostics_summary.md; it is a one-off, documented
+#                                  choice (CLAUDE4.md hard rule 3), so it is never defaulted.
+#                                  Also set saliency.DEFAULT_DIVERGENCE_THRESHOLD to the same value.
 set -uo pipefail
 cd "$(dirname "$0")/.."
 
@@ -83,6 +89,7 @@ PYEOF
 }
 step preflight preflight
 if [ "$FAILED" -ne 0 ]; then echo; echo "stopping: fix the preflight failures above."; exit 1; fi
+if [ -n "${PREFLIGHT_ONLY:-}" ]; then echo; echo "preflight only: done."; exit 0; fi
 
 # ---- 1-2. tests: fast suite, then the slow tests that need a download or GPU -----
 if [ -z "${SKIP_TESTS:-}" ]; then
@@ -113,6 +120,15 @@ for enc in $ENCODERS; do
     step "t601_task${t}_${enc}" "$PY" -m scripts.t601_diagnostics --task "$t" --encoder "$enc" --device cuda
   done
 done
+
+# ---- 4b. optional: re-apply a chosen saliency threshold to the saved audits ------------
+if [ -n "${SALIENCY_THRESHOLD:-}" ]; then
+  step rethreshold "$PY" -m scripts.t601_rethreshold --saliency-threshold "$SALIENCY_THRESHOLD" \
+      $(for t in $TASKS; do printf -- '--task %s ' "$t"; done) \
+      $(for e in $ENCODERS; do printf -- '--encoder %s ' "$e"; done)
+else
+  echo; echo "(no SALIENCY_THRESHOLD set: the placeholder in saliency.py stays in force until you inspect the pairs)"
+fi
 
 # ---- 5. run report + threshold-inspection pairs (CPU) --------------------------------
 step report "$PY" -m scripts.t601_report --task 2 --task 3 --encoder indicbert-v2 --encoder mbert-base
