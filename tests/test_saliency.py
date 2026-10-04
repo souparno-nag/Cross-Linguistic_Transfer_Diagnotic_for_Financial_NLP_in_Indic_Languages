@@ -291,8 +291,7 @@ def test_compute_salience_reports_a_relative_convergence_error_on_a_toy_model():
 def test_real_ig_renders_for_five_sampled_pairs():
     pytest.importorskip("captum")
     pytest.skip(
-        "needs a frozen Phase 2/3 checkpoint (src.inference.load_frozen_model) and "
-        "a populated configs/esg_terms.json -- run manually once both exist, per "
-        "T-604's done bar (salience maps for 5 sampled pairs, convergence delta "
-        "checked and within tolerance)"
+        "needs a frozen checkpoint and a GPU: this acceptance check lives in "
+        "`python -m scripts.t605_ig_check` (run by scripts/run_phase6_gpu.sh), which "
+        "renders 5 sampled pairs and fails on any unconverged attribution"
     )

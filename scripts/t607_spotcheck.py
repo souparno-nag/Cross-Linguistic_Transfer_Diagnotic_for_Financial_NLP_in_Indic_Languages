@@ -31,9 +31,11 @@ from src.evaluate import _split_lang, load_matrix
 REPORTS_DIR = REPO_ROOT / "reports"
 
 
-def _clip(text, n: int = 70) -> str:
-    text = str(text)
-    return text[:n] + ("…" if len(text) > n else "")
+def _cell(text) -> str:
+    """Full text, made safe for one markdown table cell. Not clipped: the
+    evidence for a verdict (e.g. a suffix on a word late in the sentence)
+    can sit anywhere in it, and a judge cannot grade what they cannot read."""
+    return " ".join(str(text).split()).replace("|", "\\|")
 
 
 def _evidence_str(row) -> str:
@@ -86,8 +88,8 @@ def main(argv: list[str] | None = None) -> int:
         f"# T-607 spot-check — task {args.task}",
         "",
         "Sampled diagnosed rows per target language for manual judgment against the "
-        "assigned label. Fill in the **agree?** column by hand (y/n), then report the "
-        "agreement rate; if a systematic disagreement shows up, adjust **one** "
+        "assigned label. Fill in the **agree?** column by hand (`y`, or `n: <short reason>`), "
+        "then report the agreement rate; if a systematic disagreement shows up, adjust **one** "
         "threshold once, document why, and stop -- do not iterate to a tidy number "
         "(CLAUDE4.md hard rule 3).",
         "",
@@ -114,7 +116,7 @@ def main(argv: list[str] | None = None) -> int:
             tgt_text = tgt_text.iloc[0] if len(tgt_text) else ""
             lines.append(
                 f"| {row['item_id']} | {row['seed']} | {row['assigned_label']} | "
-                f"{_evidence_str(row)} | {_clip(src_text)} | {_clip(tgt_text)} | |"
+                f"{_evidence_str(row)} | {_cell(src_text)} | {_cell(tgt_text)} | |"
             )
         lines.append("")
 
