@@ -114,3 +114,11 @@ def test_tau_is_reported_per_task_with_its_basis(datasheet):
 def test_regenerating_is_deterministic_apart_from_the_date():
     first, second = build(), build()
     assert first == second
+
+
+def test_the_bengali_digit_system_difference_is_stated_not_hidden(datasheet):
+    """Native Bengali uses Bengali digits, MT output is ASCII; the datasheet must say
+    so, and must not turn it into a claimed cause of failure (reports/digit_audit.md)."""
+    assert "Digit systems differ between native and machine-translated Bengali" in datasheet
+    assert "not a measured cause of error" in datasheet
+    assert "reports/digit_audit.md" in datasheet

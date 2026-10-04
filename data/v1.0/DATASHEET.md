@@ -1,6 +1,6 @@
 # Datasheet — Indic financial-NLP parallel corpus v1.0
 
-Generated 2026-09-10 from the frozen manifests and the reports that produced them. Every figure below is read back out of those artefacts rather than transcribed, so this document cannot quietly disagree with the data it describes.
+Generated 2026-10-04 from the frozen manifests and the reports that produced them. Every figure below is read back out of those artefacts rather than transcribed, so this document cannot quietly disagree with the data it describes.
 
 **123,680 rows across 36 splits and three tasks.** Each task is a separate corpus sharing one design.
 
@@ -170,6 +170,8 @@ The evaluation conditions are enumerated in `configs/eval_conditions.json` and v
 **Task 1's offsets are not Unicode-normalised, deliberately.** Its `start_posn`/`end_posn` index the raw upstream string; NFC normalisation would break 880 spans while leaving the text looking fine. Do not normalise task 1 text without recomputing offsets.
 
 **Tasks 2 and 3 are not independently sourced across languages.** Their native splits are human translations of one another, which is why alignment was possible and why the item partition above is mandatory. Task 1 is the only task whose languages hold genuinely different content.
+
+**Digit systems differ between native and machine-translated Bengali.** Hindi and Telugu native text uses ASCII digits throughout, but native Bengali text mostly uses Bengali digits (`০-৯`), while machine-translated splits, Bengali included, come out almost entirely in ASCII digits. A comparison of native Bengali against machine-translated Bengali (the translationese conditions) therefore differs in digit system as well as provenance, and a model trained on one and evaluated on the other crosses that boundary. In the diagnostic phase, items whose digit system changed did not fail more often than items whose digit system was unchanged, so no orthographic cause is attributed; the digit system is a property of the data to be aware of, not a measured cause of error. Counts and the check that produced them: `reports/digit_audit.md` (`python -m scripts.digit_audit`).
 
 ## Distribution
 

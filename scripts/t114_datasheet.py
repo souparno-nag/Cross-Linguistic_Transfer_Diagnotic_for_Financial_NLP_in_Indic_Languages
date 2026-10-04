@@ -281,6 +281,19 @@ def build(argv=None) -> str:
         "was possible and why the item partition above is mandatory. Task 1 is the "
         "only task whose languages hold genuinely different content.",
         "",
+        "**Digit systems differ between native and machine-translated Bengali.** "
+        "Hindi and Telugu native text uses ASCII digits throughout, but native Bengali "
+        "text mostly uses Bengali digits (`০-৯`), while machine-translated splits, "
+        "Bengali included, come out almost entirely in ASCII digits. A comparison of native Bengali "
+        "against machine-translated Bengali (the translationese conditions) therefore "
+        "differs in digit system as well as provenance, and a model trained on one and "
+        "evaluated on the other crosses that boundary. In the diagnostic phase, items "
+        "whose digit system changed did not fail more often than items whose digit "
+        "system was unchanged, so "
+        "no orthographic cause is attributed; the digit system is a property of the data "
+        "to be aware of, not a measured cause of error. Counts and the check that "
+        "produced them: `reports/digit_audit.md` (`python -m scripts.digit_audit`).",
+        "",
         "## Distribution",
         "",
         "### Storage format",
