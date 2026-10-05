@@ -68,13 +68,16 @@ try:
     print("HF user:", whoami()["name"])
 except Exception as e:
     errs.append(f"HuggingFace not authenticated (`hf auth login` or HF_TOKEN): {type(e).__name__}")
-for mod in ("captum", "indicnlp", "sentence_transformers", "sentencepiece", "tabulate"):
+for mod in ("captum", "indicnlp", "morfessor", "sentence_transformers", "sentencepiece", "tabulate"):
     try: __import__(mod)
     except Exception: errs.append(f"missing package: {mod}")
 res = os.environ.get("INDIC_RESOURCES_PATH", "")
-if not res or not pathlib.Path(res, "morph").exists():
-    errs.append("INDIC_RESOURCES_PATH unset or lacks morph/ (indic_nlp_resources) — morphology "
-                "would silently run on the suffix-list fallback instead of the library rung")
+missing = [l for l in ("hi", "bn", "te", "ml") if not pathlib.Path(res, "morph", "morfessor", f"{l}.model").is_file()]
+if not res or missing:
+    errs.append(f"INDIC_RESOURCES_PATH={res!r}: missing morph/morfessor/{{{','.join(missing or ['hi','bn','te','ml'])}}}.model. "
+                "Fix: git clone https://github.com/anoopkunchukuttan/indic_nlp_resources.git <dir> "
+                "&& export INDIC_RESOURCES_PATH=<dir>. Without it morphology silently runs on the "
+                "suffix-list fallback instead of the library rung")
 ck = pathlib.Path("checkpoints")
 n = len([d for d in ck.iterdir() if (d / "checkpoint.pt").exists()]) if ck.exists() else 0
 print("checkpoints on disk:", n)
