@@ -312,6 +312,7 @@ def diagnose_condition(
             lang_tgt=lang_tgt,
             loaded=loaded,
             max_len=loaded.run_config.max_len,
+            n_steps=saliency.n_steps_for(encoder_id),
             device=device,
         )
         label_rows.append({

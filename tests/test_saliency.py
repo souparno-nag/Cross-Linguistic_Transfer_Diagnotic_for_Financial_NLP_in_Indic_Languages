@@ -256,7 +256,10 @@ def test_compute_salience_reports_a_relative_convergence_error_on_a_toy_model():
             return self.emb
 
         def forward(self, inputs_embeds, attention_mask):
-            return SimpleNamespace(last_hidden_state=torch.tanh(self.lin(inputs_embeds)))
+            # mix tokens like a real encoder: the baseline keeps position 0
+            # ([CLS]), so a per-token toy would give a zero logit gap there
+            h = torch.tanh(self.lin(inputs_embeds))
+            return SimpleNamespace(last_hidden_state=h.mean(dim=1, keepdim=True).expand_as(h))
 
     class Toy(torch.nn.Module):
         def __init__(self):
@@ -274,7 +277,13 @@ def test_compute_salience_reports_a_relative_convergence_error_on_a_toy_model():
         def pop(self, key):
             return super().pop(key)
 
-    tok = lambda text, **kw: Enc2(Tok()(text))  # noqa: E731
+    class TokWithPad:
+        pad_token_id = 0
+
+        def __call__(self, text, **kw):
+            return Enc2(Tok()(text))
+
+    tok = TokWithPad()
     salience, offsets, rel = S.compute_salience(
         SimpleNamespace(model=Toy()), tok, "abcd", 1, max_len=8, n_steps=200,
     )
@@ -282,16 +291,27 @@ def test_compute_salience_reports_a_relative_convergence_error_on_a_toy_model():
     assert 0 <= rel < S.DEFAULT_CONVERGENCE_TOL
 
 
+def test_ig_baseline_is_pad_with_ends_kept():
+    torch = pytest.importorskip("torch")
+    emb = torch.nn.Embedding(10, 3)
+    ids = torch.tensor([[1, 5, 6, 7, 2]])
+    x = emb(ids)
+    base = S.ig_baseline(x, ids, emb, pad_token_id=0)
+    assert torch.equal(base[:, 0], x[:, 0]) and torch.equal(base[:, -1], x[:, -1])
+    assert all(torch.equal(base[0, i], emb.weight[0]) for i in (1, 2, 3))
+    assert not base.requires_grad
+
+
 # --------------------------------------------------------------------------
-# Slow: the real model + Captum, on 5 sampled pairs
+# Slow: the real model + Captum, on 20 sampled pairs
 # --------------------------------------------------------------------------
 
 
 @pytest.mark.slow
-def test_real_ig_renders_for_five_sampled_pairs():
+def test_real_ig_renders_for_sampled_pairs():
     pytest.importorskip("captum")
     pytest.skip(
         "needs a frozen checkpoint and a GPU: this acceptance check lives in "
         "`python -m scripts.t605_ig_check` (run by scripts/run_phase6_gpu.sh), which "
-        "renders 5 sampled pairs and fails on any unconverged attribution"
+        "renders 20 sampled pairs and fails if over 5% of attributions are unconverged"
     )

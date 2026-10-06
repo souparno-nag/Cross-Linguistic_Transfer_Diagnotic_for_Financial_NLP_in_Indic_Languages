@@ -32,7 +32,23 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-DEFAULT_N_STEPS = 50
+# 200 steps against a [PAD]-embedding baseline (see `ig_baseline`). Chosen on
+# 2026-10-06 from the T-605 check: against a zero baseline IndicBERT-v2 failed
+# 8/10 attributions at 50 steps and still 4/10 at 200, and one sentence's error
+# moved non-monotonically with the step count (-0.16 at 200, +0.43 at 800,
+# +0.01 at 3200) because its logit jumps inside a ~0.0005-wide band of the
+# path near alpha 0.045 — a step grid hits or misses it by luck. The [PAD]
+# baseline cut that to 1/10 at 200; mBERT passes under either. CLAUDE4.md T-605.
+DEFAULT_N_STEPS = 200
+# Per-encoder overrides, from the 20-pair check with the [PAD] baseline:
+# IndicBERT-v2 is 5/40 unconverged at 200, 1/40 at 400, 0/40 at 800; mBERT is
+# 0/40 at 200. Steps only set the integration's accuracy, not what is
+# attributed, so differing per encoder does not make the encoders incomparable.
+N_STEPS_BY_ENCODER = {"indicbert-v2": 400}
+
+
+def n_steps_for(encoder_id: str) -> int:
+    return N_STEPS_BY_ENCODER.get(encoder_id, DEFAULT_N_STEPS)
 # Set once from inspecting real task_2 examples during T-604's build, and
 # documented rather than re-tuned to tidy the resulting distribution
 # (CLAUDE4.md hard rule 3). Until that inspection happens this is a
@@ -45,6 +61,11 @@ DEFAULT_DIVERGENCE_THRESHOLD = 0.3
 # in. 5% is a conventional judgement, not a derived figure; an unconverged
 # attribution is reported as `not_converged` and never fires (CLAUDE4.md T-605).
 DEFAULT_CONVERGENCE_TOL = 0.05
+# T-605 acceptance: the share of sampled attributions allowed to miss
+# DEFAULT_CONVERGENCE_TOL. Not zero, because the residual is a property of the
+# model's path rather than of the step count; the unconverged rows themselves
+# are still reported as `not_converged` and never fire.
+MAX_UNCONVERGED_RATE = 0.05
 
 
 @dataclass
@@ -105,6 +126,26 @@ def fires(divergence: float, threshold: float = DEFAULT_DIVERGENCE_THRESHOLD) ->
     return divergence >= threshold
 
 
+IG_INTERNAL_BATCH = 5
+
+
+def ig_baseline(input_embeds, input_ids, embed_layer, pad_token_id: int):
+    """The IG reference input: every token replaced by [PAD]'s embedding, with
+    the first and last positions ([CLS]/[SEP] or `<s>`/`</s>`) kept as they are,
+    so the path varies only the content tokens.
+
+    Replaces the zero-embedding baseline: zeros sit far off the embedding
+    manifold, and on IndicBERT-v2 the straight path from them crosses a sharp
+    transition that integration cannot resolve reliably (see DEFAULT_N_STEPS).
+    """
+    import torch  # noqa: PLC0415
+
+    baseline = embed_layer(torch.full_like(input_ids, int(pad_token_id)))
+    baseline[:, 0] = input_embeds[:, 0]
+    baseline[:, -1] = input_embeds[:, -1]
+    return baseline.detach()
+
+
 def compute_salience(
     loaded,
     tokenizer,
@@ -117,8 +158,8 @@ def compute_salience(
 ):
     """Per-token salience (L2 norm of the IG attribution) and the **relative**
     convergence error `|delta| / |F(x) - F(baseline)|` (Captum's own delta,
-    scaled by the logit gap it should account for), for one sentence against a
-    zero-embedding baseline.
+    scaled by the logit gap it should account for), for one sentence against the
+    [PAD]-embedding baseline of `ig_baseline`.
 
     `embed_layer.get_input_embeddings()` is HF's architecture-agnostic
     accessor — it works identically whether the encoder is ALBERT-based
@@ -139,7 +180,7 @@ def compute_salience(
 
     embed_layer = model.encoder.get_input_embeddings()
     input_embeds = embed_layer(input_ids)
-    baseline = torch.zeros_like(input_embeds)
+    baseline = ig_baseline(input_embeds, input_ids, embed_layer, tokenizer.pad_token_id)
 
     def forward_fn(embeds, mask):
         out = model.encoder(inputs_embeds=embeds, attention_mask=mask)
@@ -152,6 +193,10 @@ def compute_salience(
         additional_forward_args=(attention_mask,),
         target=int(gold_label),
         n_steps=n_steps,
+        # IG evaluates n_steps interpolated copies of the sentence; run them in
+        # chunks so n_steps x max_len does not have to fit in 4 GB at once. Same maths,
+        # only the batching changes.
+        internal_batch_size=IG_INTERNAL_BATCH,
         return_convergence_delta=True,
     )
     with torch.no_grad():

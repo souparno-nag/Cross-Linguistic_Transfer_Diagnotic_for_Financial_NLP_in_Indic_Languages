@@ -108,7 +108,7 @@ fi
 
 # ---- 3. T-605 acceptance: 5 salience maps, convergence within tolerance ---------
 for enc in $ENCODERS; do
-  step "ig_check_${enc}" "$PY" -m scripts.t605_ig_check --task 2 --encoder "$enc" --n 5
+  step "ig_check_${enc}" "$PY" -m scripts.t605_ig_check --task 2 --encoder "$enc" --n 20
 done
 
 # ---- 4. the diagnostic run (resumable) ------------------------------------------

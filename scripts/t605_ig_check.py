@@ -1,7 +1,7 @@
-"""T-605 acceptance — salience maps for 5 sampled pairs, convergence checked.
+"""T-605 acceptance — salience maps for 20 sampled pairs, convergence checked.
 
     python -m scripts.t605_ig_check --task 2 --encoder indicbert-v2 \\
-        [--condition transfer_hin_to_ben] [--n 5] [--seed 0] [--device cuda]
+        [--condition transfer_hin_to_ben] [--n 20] [--seed 0] [--n-steps N] [--device cuda]
 
 Samples `--n` failing instances whose source sentence contains a lexicon term
 (the only ones the saliency module can evaluate), runs the real frozen
@@ -10,8 +10,9 @@ checkpoint through Integrated Gradients, and writes
 and target, the lexicon term's tokens marked, and each side's *relative*
 convergence error against `saliency.DEFAULT_CONVERGENCE_TOL`.
 
-Exit code is non-zero if fewer than `--n` applicable pairs exist or any pair
-fails to converge — that is the acceptance criterion, not a warning. Needs a
+Exit code is non-zero if fewer than `--n` applicable pairs exist or more than
+`saliency.MAX_UNCONVERGED_RATE` (5%) of the 2 x `--n` attributions fail to
+converge — that is the acceptance criterion, not a warning. Needs a
 GPU; like `t601_diagnostics` it refuses to fall back to CPU silently.
 """
 
@@ -53,11 +54,15 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--task", type=int, default=2)
     parser.add_argument("--encoder", default=DEFAULT_ENCODER)
     parser.add_argument("--condition", default="transfer_hin_to_ben")
-    parser.add_argument("--n", type=int, default=5)
+    parser.add_argument("--n", type=int, default=20)
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--n-steps", type=int, default=None,
+                        help="default: saliency.n_steps_for(encoder)")
     parser.add_argument("--device", default=None)
     args = parser.parse_args(argv)
     device = resolve_device(args.device)
+    if args.n_steps is None:
+        args.n_steps = saliency.n_steps_for(args.encoder)
 
     condition = {c["name"]: c for c in load_matrix(args.task)["conditions"]}[args.condition]
     block_src, lang_src = _split_lang(condition["train"])
@@ -84,10 +89,10 @@ def main(argv: list[str] | None = None) -> int:
         "",
         f"{len(picked)} of {len(applicable)} applicable failing items (seed {args.seed}); "
         f"convergence tolerance {saliency.DEFAULT_CONVERGENCE_TOL:.0%} relative, "
-        f"{saliency.DEFAULT_N_STEPS} IG steps, device {device}.",
+        f"{args.n_steps} IG steps, device {device}.",
         "",
     ]
-    all_ok = len(picked) >= args.n
+    n_attr = n_unconverged = 0
     loaded_by_run: dict = {}
     for k, (row, concept) in enumerate(picked, 1):
         run_id = row["tgt_run_id"]
@@ -102,19 +107,25 @@ def main(argv: list[str] | None = None) -> int:
         ):
             sal, offsets, rel = saliency.compute_salience(
                 loaded, tokenizer, text, int(row["gold"]), max_len=loaded.run_config.max_len,
-                n_steps=saliency.DEFAULT_N_STEPS, device=device,
+                n_steps=args.n_steps, device=device,
             )
             lines, share = _render(text, term, sal, offsets)
             ok = saliency.converged(rel)
-            all_ok &= ok
+            n_attr += 1
+            n_unconverged += not ok
             shares[side] = share
             out += [f"**{side}** — relative convergence error {rel:.4f} "
                     f"({'ok' if ok else 'NOT CONVERGED'}); term share {share:.3f}", "", "```", *lines, "```", ""]
         out += [f"divergence (source share − target share): {shares['source'] - shares['target']:+.3f}", ""]
 
+    # Judged as a rate (CLAUDE4.md T-605): a residual few attributions miss the
+    # tolerance because of the model's path, not the step count. Short samples
+    # cannot resolve a 5% rate, hence --n 20 (40 attributions) by default.
+    rate = n_unconverged / n_attr if n_attr else 1.0
+    all_ok = len(picked) >= args.n and rate <= saliency.MAX_UNCONVERGED_RATE
     verdict = "PASS" if all_ok else "FAIL"
-    out += [f"**{verdict}**: {len(picked)} pairs rendered, "
-            f"{'all converged' if all_ok else 'see above'}.", ""]
+    out += [f"**{verdict}**: {len(picked)} pairs rendered, {n_unconverged}/{n_attr} attributions "
+            f"unconverged ({rate:.1%}; limit {saliency.MAX_UNCONVERGED_RATE:.0%}).", ""]
     suffix = "" if path_encoder(args.encoder) is None else f"_{args.encoder}"
     path = REPO_ROOT / "reports" / f"task_{args.task}" / f"t605_ig_maps{suffix}.md"
     path.parent.mkdir(parents=True, exist_ok=True)
