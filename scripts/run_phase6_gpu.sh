@@ -106,18 +106,20 @@ if [ -z "${SKIP_TESTS:-}" ]; then
   fi
 fi
 
+# Everything below loads only cached models. Offline mode stops a dropped connection
+# from killing the run: every condition reloads LaBSE, and on 2026-10-07 a Hub outage at
+# ~04:15 failed all remaining conditions within seconds. Preflight above still checks login.
+export HF_HUB_OFFLINE="${HF_HUB_OFFLINE:-1}" TRANSFORMERS_OFFLINE="${TRANSFORMERS_OFFLINE:-1}"
+
 # ---- 3. T-605 acceptance: 5 salience maps, convergence within tolerance ---------
 for enc in $ENCODERS; do
   step "ig_check_${enc}" "$PY" -m scripts.t605_ig_check --task 2 --encoder "$enc" --n 20
 done
 
 # ---- 4. the diagnostic run (resumable) ------------------------------------------
-# These two predate the convergence column and were produced on CPU; redo them on the GPU
-# so every audit row has the same columns and the same device. `--force` is deliberate.
-for c in transfer_hin_to_ben transfer_hin_to_ben_mt; do
-  step "t601_redo_${c}" "$PY" -m scripts.t601_diagnostics --task 2 --encoder indicbert-v2 \
-      --condition "$c" --force --device cuda
-done
+# (The old forced redo of transfer_hin_to_ben{,_mt} is gone: those CPU-era files were
+# deleted with the zero-baseline outputs, so the loop below now produces them like any
+# other condition, and a rerun no longer throws 3 h of finished work away.)
 for enc in $ENCODERS; do
   for t in $TASKS; do
     step "t601_task${t}_${enc}" "$PY" -m scripts.t601_diagnostics --task "$t" --encoder "$enc" --device cuda
