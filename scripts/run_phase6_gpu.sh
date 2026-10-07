@@ -16,6 +16,8 @@
 #   SPOTCHECK_N=50                 rows per target language
 #   SKIP_TESTS=1                   skip steps 1-2 (e.g. when re-running after a crash)
 #   PREFLIGHT_ONLY=1               run the environment checks and stop
+#   HF_HUB_OFFLINE=1               run with no network at all (preflight skips the login check;
+#                                  the run stage goes offline after preflight regardless)
 #   SALIENCY_THRESHOLD=0.05        after the run, re-apply this saliency threshold to the saved
 #                                  audits (CPU, offline). Set it only AFTER inspecting the pairs
 #                                  in reports/diagnostics_summary.md; it is a one-off, documented
@@ -63,11 +65,14 @@ if not torch.cuda.is_available():
                 "wedged: stop GPU jobs, then `sudo rmmod nvidia_uvm && sudo modprobe nvidia_uvm`")
 else:
     print("GPU:", torch.cuda.get_device_name(0))
-try:
-    from huggingface_hub import whoami
-    print("HF user:", whoami()["name"])
-except Exception as e:
-    errs.append(f"HuggingFace not authenticated (`hf auth login` or HF_TOKEN): {type(e).__name__}")
+if os.environ.get("HF_HUB_OFFLINE") == "1":
+    print("HF: offline mode, login not checked (every model must already be cached)")
+else:
+    try:
+        from huggingface_hub import whoami
+        print("HF user:", whoami()["name"])
+    except Exception as e:
+        errs.append(f"HuggingFace not authenticated (`hf auth login` or HF_TOKEN): {type(e).__name__}")
 for mod in ("captum", "indicnlp", "morfessor", "sentence_transformers", "sentencepiece", "tabulate"):
     try: __import__(mod)
     except Exception: errs.append(f"missing package: {mod}")
