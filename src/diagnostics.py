@@ -223,6 +223,20 @@ def diagnose_row(
 # --------------------------------------------------------------------------
 
 
+def _free_gpu() -> None:
+    """Return freed blocks to the driver, so the next large load (LaBSE or a
+    classifier) is not refused on a 4 GB card for fragmentation alone."""
+    import gc  # noqa: PLC0415
+
+    gc.collect()
+    try:
+        import torch  # noqa: PLC0415
+    except ImportError:
+        return
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+
+
 def diagnose_condition(
     task: int,
     condition_id: str,
@@ -260,10 +274,19 @@ def diagnose_condition(
 
     config = labse.load_config()
     tau = tau if tau is not None else labse.tau_for(config, task)
-    embedder = labse.Embedder(config, device=device)
-    sims = labse.score_items(
-        embedder, task, block_src, lang_src, block_tgt, lang_tgt, failures["item_id"].tolist()
-    )
+    # LaBSE (~1.9 GB) is loaded only if a split's embeddings are not already
+    # cached on disk, and released straight after scoring: held for the whole
+    # condition beside the classifiers it OOMed the 4 GB card (2026-10-07).
+    item_ids = failures["item_id"].tolist()
+    try:
+        sims = labse.score_items(None, task, block_src, lang_src, block_tgt, lang_tgt, item_ids)
+    except RuntimeError as err:
+        if "no embeddings cached" not in str(err):
+            raise
+        embedder = labse.Embedder(config, device=device)
+        sims = labse.score_items(embedder, task, block_src, lang_src, block_tgt, lang_tgt, item_ids)
+        del embedder
+        _free_gpu()
     sim_by_item = dict(zip(sims["item_id"], sims["labse_sim"]))
     missing = [item for item in failures["item_id"] if item not in sim_by_item]
     if missing:
@@ -281,6 +304,9 @@ def diagnose_condition(
     morph_analyzer = morphology.MorphAnalyzer(lang_tgt)
     concepts = load_esg_terms()
 
+    # One classifier resident at a time. Failure rows arrive grouped by run, so
+    # evicting on a change of run costs one load per run; keeping every seed's
+    # model was the other half of the 2026-10-07 OOM.
     loaded_by_run: dict[str, object] = {}
 
     label_rows, audit_rows = [], []
@@ -289,6 +315,9 @@ def diagnose_condition(
         labse_sim = float(sim_by_item[item_id])
         run_id = failure_row["tgt_run_id"]
         if run_id not in loaded_by_run:
+            if loaded_by_run:
+                loaded_by_run.clear()
+                _free_gpu()
             loaded_by_run[run_id] = load_frozen_model(run_id, device=device)
         loaded = loaded_by_run[run_id]
         if loaded.run_config.encoder != encoder_id:
@@ -327,4 +356,6 @@ def diagnose_condition(
             "seed": int(failure_row["seed"]), **row,
         })
 
+    loaded_by_run.clear()
+    _free_gpu()
     return pd.DataFrame(label_rows)[LABEL_COLUMNS], pd.DataFrame(audit_rows)[AUDIT_COLUMNS]
