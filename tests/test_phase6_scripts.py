@@ -106,3 +106,56 @@ def test_rethreshold_is_idempotent():
     a1, l1, _ = RETH.rethreshold(audit, labels, 0.05)
     a2, l2, _ = RETH.rethreshold(a1, l1, 0.05)
     assert a1.astype(str).equals(a2.astype(str)) and l1.astype(str).equals(l2.astype(str))
+
+
+# --------------------------------------------------------------------------
+# per-cell IG steps, t605_resaliency, t605_baseline
+# --------------------------------------------------------------------------
+
+from scripts import t605_baseline as BASE  # noqa: E402
+from scripts import t605_resaliency as RESAL  # noqa: E402
+from src import saliency as SAL  # noqa: E402
+
+
+def test_n_steps_raised_only_for_the_two_unconverged_cells():
+    assert SAL.n_steps_for("indicbert-v2", 3) == 800
+    assert SAL.n_steps_for("mbert-base", 2) == 800
+    assert SAL.n_steps_for("indicbert-v2", 2) == 400
+    assert SAL.n_steps_for("mbert-base", 3) == 200
+    assert SAL.n_steps_for("indicbert-v2") == 400  # task-free callers keep the encoder default
+
+
+def test_resaliency_redoes_only_unconverged_rows_below_the_target():
+    audit = pd.DataFrame({
+        "saliency_status": ["not_converged", "not_fired", "fired", "not_applicable", "not_converged"],
+        "saliency_n_steps": [None, None, None, None, 800],
+    })
+    # rows with no record ran at the encoder default (IndicBERT-v2: 400)
+    assert RESAL.prior_steps(audit, "indicbert-v2").tolist() == [400, 400, 400, 400, 800]
+    assert RESAL.rows_to_redo(audit, "indicbert-v2", 800, redo_all=False).tolist() == [
+        True, False, False, False, False]
+    assert RESAL.rows_to_redo(audit, "indicbert-v2", 800, redo_all=True).tolist() == [
+        True, True, True, False, False]
+
+
+def test_resaliency_treats_a_missing_steps_column_as_the_old_default():
+    audit = pd.DataFrame({"saliency_status": ["not_converged"]})
+    assert RESAL.prior_steps(audit, "mbert-base").tolist() == [200]
+
+
+def test_baseline_keeps_only_pairs_correct_in_both_languages(monkeypatch):
+    src = pd.DataFrame({"item_id": ["a", "b", "c"], "seed": 0, "gold": [1, 1, 0], "pred": [1, 0, 0],
+                        "condition_id": "H_hin_native_ceiling", "run_id": "r"})
+    tgt = pd.DataFrame({"item_id": ["a", "b", "c"], "seed": 0, "gold": [1, 1, 0], "pred": [1, 1, 1],
+                        "condition_id": "transfer_hin_to_ben", "run_id": "t", "block_id": "B", "lang": "ben",
+                        "origin": "native", "src_lang": None, "probs": None})
+    logs = {"H_hin_native_ceiling": src, "transfer_hin_to_ben": tgt}
+    monkeypatch.setattr(BASE, "read_prediction_log", lambda task, cid, encoder=None: logs[cid])
+    kept = BASE.both_correct(2, "transfer_hin_to_ben", "indicbert-v2", "H", "hin")
+    assert kept["item_id"].tolist() == ["a"]  # b wrong on source, c wrong on target
+
+
+def test_baseline_paths_are_namespaced_per_encoder():
+    a = BASE.baseline_path(2, "c", "indicbert-v2")
+    b = BASE.baseline_path(2, "c", "mbert-base")
+    assert a.parent.name == "task_2" and b.parent.name == "mbert-base"

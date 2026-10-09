@@ -183,6 +183,21 @@ resolvable; with 5 pairs it would mean zero.
 Do not loosen the 5% tolerance or the 5% rate to make the check pass (hard rule 3).
 Raise the steps or report the failure.
 
+**Follow-up, 2026-10-09 run.** The full run missed the 5% tolerance in two cells (task 3
+IndicBERT-v2 17.9% unconverged at 400 steps, task 2 mBERT 14.3% at 200; the other two 3.8%
+and 3.1%). Those two cells move to 800 steps (`saliency.N_STEPS_BY_TASK_ENCODER`), and only
+their unconverged rows are recomputed (`scripts.t605_resaliency`): a converged row is already
+accurate to within tolerance. Each audit row now records `saliency_n_steps`.
+
+**Divergence threshold: set against a null, not against the failures.** The 0.3 placeholder
+never fires (failures' 95th percentile +0.04 to +0.10). Reading a value off the failures'
+own distribution would fix the firing rate by construction, which hard rule 3 forbids.
+`scripts.t605_baseline` instead measures divergence on pairs the model got *right* in both
+languages; the candidate threshold is that null's 95th percentile (a ~5% false-positive rate
+fixed in advance). If failures exceed it at about the null's own rate, the module detects
+nothing beyond chance, and that is reported as the result. The chosen value is applied with
+`scripts.t601_rethreshold` and recorded here.
+
 ### T-606 — Multi-fire audit trail
 Record every module that fired per instance, not just the winner.
 **Done:** any assigned label traces to its deciding module and to what else matched.

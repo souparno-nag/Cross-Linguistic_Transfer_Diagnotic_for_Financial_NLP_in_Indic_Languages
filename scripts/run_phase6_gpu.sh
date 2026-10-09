@@ -131,6 +131,10 @@ for enc in $ENCODERS; do
   done
 done
 
+# ---- 4a. null divergence on both-correct pairs (sets the saliency threshold) ------------
+step baseline "$PY" -m scripts.t605_baseline $(for t in $TASKS; do printf -- '--task %s ' "$t"; done) \
+    $(for e in $ENCODERS; do printf -- '--encoder %s ' "$e"; done) --device cuda
+
 # ---- 4b. optional: re-apply a chosen saliency threshold to the saved audits ------------
 if [ -n "${SALIENCY_THRESHOLD:-}" ]; then
   step rethreshold "$PY" -m scripts.t601_rethreshold --saliency-threshold "$SALIENCY_THRESHOLD" \

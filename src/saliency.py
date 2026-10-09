@@ -45,9 +45,20 @@ DEFAULT_N_STEPS = 200
 # 0/40 at 200. Steps only set the integration's accuracy, not what is
 # attributed, so differing per encoder does not make the encoders incomparable.
 N_STEPS_BY_ENCODER = {"indicbert-v2": 400}
+# Per-(task, encoder) overrides, from the full 2026-10-09 run, where two cells
+# missed the 5% tolerance far more often than the 20-pair check predicted:
+# task 3 IndicBERT-v2 17.9% unconverged at 400 steps, task 2 mBERT 14.3% at 200
+# (the other two cells: 3.8% and 3.1%). 800 is the step count at which the
+# check saw IndicBERT-v2 reach 0/40. Raising steps changes only the
+# integration's accuracy, never what is attributed, so this is not threshold
+# tuning (hard rule 3). Only rows that failed to converge are recomputed
+# (`scripts.t605_resaliency`); each row records its own `saliency_n_steps`.
+N_STEPS_BY_TASK_ENCODER = {(3, "indicbert-v2"): 800, (2, "mbert-base"): 800}
 
 
-def n_steps_for(encoder_id: str) -> int:
+def n_steps_for(encoder_id: str, task: int | None = None) -> int:
+    if task is not None and (task, encoder_id) in N_STEPS_BY_TASK_ENCODER:
+        return N_STEPS_BY_TASK_ENCODER[(task, encoder_id)]
     return N_STEPS_BY_ENCODER.get(encoder_id, DEFAULT_N_STEPS)
 # Set once from inspecting real task_2 examples during T-604's build, and
 # documented rather than re-tuned to tidy the resulting distribution

@@ -52,9 +52,13 @@ AUDIT_COLUMNS = [
     "gate_status", "labse_sim",
     "frag_status", "r_frag",
     "morph_status", "morph_evidence",
-    "saliency_status", "saliency_divergence", "saliency_convergence_error",
+    "saliency_status", "saliency_divergence", "saliency_convergence_error", "saliency_n_steps",
     "assigned_label", "modules_fired",
 ]
+
+# Saliency statuses that mean IG actually ran on the row (so `saliency_n_steps`
+# is meaningful), as opposed to never being attempted.
+SALIENCY_EVALUATED = ("fired", "not_fired", "not_converged")
 
 # CLAUDE4.md's resolution precedence, minus the excluded orthographic rung
 # (dropped per this build's scope). `gate` is handled specially in
@@ -115,6 +119,9 @@ def write_diagnostics(
     label_out.parent.mkdir(parents=True, exist_ok=True)
     audit_out.parent.mkdir(parents=True, exist_ok=True)
     labels[LABEL_COLUMNS].to_parquet(label_out, index=False)
+    if "saliency_n_steps" not in audit:
+        # audits from before per-row step counts were recorded (2026-10-09 run)
+        audit = audit.assign(saliency_n_steps=None)
     audit[AUDIT_COLUMNS].to_parquet(audit_out, index=False)
     return label_out, audit_out
 
@@ -182,7 +189,7 @@ def diagnose_row(
             "frag_status": "not_evaluated", "r_frag": None,
             "morph_status": "not_evaluated", "morph_evidence": None,
             "saliency_status": "not_evaluated", "saliency_divergence": None,
-            "saliency_convergence_error": None,
+            "saliency_convergence_error": None, "saliency_n_steps": None,
             "modules_fired": ["gate"], "assigned_label": precedence_pick(["gate"]),
         }
 
@@ -214,6 +221,7 @@ def diagnose_row(
         "morph_status": morph_result.status, "morph_evidence": morph_result.evidence,
         "saliency_status": sal_result.status, "saliency_divergence": sal_result.divergence,
         "saliency_convergence_error": sal_result.convergence_delta,
+        "saliency_n_steps": n_steps if sal_result.status in SALIENCY_EVALUATED else None,
         "modules_fired": modules_fired, "assigned_label": precedence_pick(modules_fired),
     }
 
@@ -341,7 +349,7 @@ def diagnose_condition(
             lang_tgt=lang_tgt,
             loaded=loaded,
             max_len=loaded.run_config.max_len,
-            n_steps=saliency.n_steps_for(encoder_id),
+            n_steps=saliency.n_steps_for(encoder_id, task),
             device=device,
         )
         label_rows.append({

@@ -202,7 +202,7 @@ def test_write_and_read_diagnostics_round_trip(tmp_path):
         "frag_status": "not_fired", "r_frag": 1.0,
         "morph_status": "not_fired", "morph_evidence": None,
         "saliency_status": "unavailable", "saliency_divergence": None,
-        "saliency_convergence_error": None,
+        "saliency_convergence_error": None, "saliency_n_steps": None,
         "assigned_label": "unattributed", "modules_fired": [],
     }])
     label_path = D.diagnostics_path(1, "c", root=tmp_path / "diag")
@@ -240,3 +240,16 @@ def test_discover_conditions_reads_an_encoder_subdirectory(tmp_path, monkeypatch
     assert D.discover_conditions(9, root=tmp_path) == []
     assert [c["condition_id"] for c in D.discover_conditions(9, root=tmp_path, encoder="mbert-base")] == [
         "transfer_hin_to_ben"]
+
+
+def test_audit_records_ig_steps_only_when_ig_ran(tokenizer):
+    morph_analyzer = M.MorphAnalyzer("tel")
+    gate = D.diagnose_row(
+        labse_sim=0.1, tau=0.82, source_text="a", target_text="a", gold_label=0, tokenizer=tokenizer,
+        morph_analyzer=morph_analyzer, concepts=[], lang_src="hin", lang_tgt="tel", loaded=None, n_steps=800,
+    )
+    no_model = D.diagnose_row(
+        labse_sim=0.95, tau=0.82, source_text="a", target_text="a", gold_label=0, tokenizer=tokenizer,
+        morph_analyzer=morph_analyzer, concepts=[], lang_src="hin", lang_tgt="tel", loaded=None, n_steps=800,
+    )
+    assert gate["saliency_n_steps"] is None and no_model["saliency_n_steps"] is None
