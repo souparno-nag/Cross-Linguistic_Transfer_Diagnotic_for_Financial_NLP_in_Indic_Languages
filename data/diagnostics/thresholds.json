@@ -1,0 +1,515 @@
+{
+  "cells": {
+    "task_2/indicbert-v2": 0.038,
+    "task_2/mbert-base": 0.047,
+    "task_3/indicbert-v2": 0.085,
+    "task_3/mbert-base": 0.078
+  },
+  "conditions": {
+    "task_2/indicbert-v2/transfer_ben_to_hin": {
+      "eligible": 350,
+      "label_changed": 27,
+      "no_convergence_record": 0,
+      "saliency_fired": 27,
+      "status_changed": 27
+    },
+    "task_2/indicbert-v2/transfer_ben_to_hin_mt": {
+      "eligible": 433,
+      "label_changed": 18,
+      "no_convergence_record": 0,
+      "saliency_fired": 18,
+      "status_changed": 18
+    },
+    "task_2/indicbert-v2/transfer_ben_to_mal": {
+      "eligible": 327,
+      "label_changed": 12,
+      "no_convergence_record": 0,
+      "saliency_fired": 14,
+      "status_changed": 14
+    },
+    "task_2/indicbert-v2/transfer_ben_to_mal_mt": {
+      "eligible": 451,
+      "label_changed": 11,
+      "no_convergence_record": 0,
+      "saliency_fired": 11,
+      "status_changed": 11
+    },
+    "task_2/indicbert-v2/transfer_ben_to_tel": {
+      "eligible": 218,
+      "label_changed": 9,
+      "no_convergence_record": 0,
+      "saliency_fired": 9,
+      "status_changed": 9
+    },
+    "task_2/indicbert-v2/transfer_ben_to_tel_mt": {
+      "eligible": 315,
+      "label_changed": 16,
+      "no_convergence_record": 0,
+      "saliency_fired": 24,
+      "status_changed": 24
+    },
+    "task_2/indicbert-v2/transfer_hin_to_ben": {
+      "eligible": 533,
+      "label_changed": 17,
+      "no_convergence_record": 0,
+      "saliency_fired": 27,
+      "status_changed": 27
+    },
+    "task_2/indicbert-v2/transfer_hin_to_ben_mt": {
+      "eligible": 747,
+      "label_changed": 28,
+      "no_convergence_record": 0,
+      "saliency_fired": 41,
+      "status_changed": 41
+    },
+    "task_2/indicbert-v2/transfer_hin_to_mal": {
+      "eligible": 328,
+      "label_changed": 22,
+      "no_convergence_record": 0,
+      "saliency_fired": 24,
+      "status_changed": 24
+    },
+    "task_2/indicbert-v2/transfer_hin_to_mal_mt": {
+      "eligible": 427,
+      "label_changed": 28,
+      "no_convergence_record": 0,
+      "saliency_fired": 32,
+      "status_changed": 32
+    },
+    "task_2/indicbert-v2/transfer_hin_to_tel": {
+      "eligible": 237,
+      "label_changed": 10,
+      "no_convergence_record": 0,
+      "saliency_fired": 10,
+      "status_changed": 10
+    },
+    "task_2/indicbert-v2/transfer_hin_to_tel_mt": {
+      "eligible": 311,
+      "label_changed": 9,
+      "no_convergence_record": 0,
+      "saliency_fired": 12,
+      "status_changed": 12
+    },
+    "task_2/indicbert-v2/transfer_tel_to_ben": {
+      "eligible": 306,
+      "label_changed": 46,
+      "no_convergence_record": 0,
+      "saliency_fired": 56,
+      "status_changed": 56
+    },
+    "task_2/indicbert-v2/transfer_tel_to_ben_mt": {
+      "eligible": 343,
+      "label_changed": 48,
+      "no_convergence_record": 0,
+      "saliency_fired": 55,
+      "status_changed": 55
+    },
+    "task_2/indicbert-v2/transfer_tel_to_hin": {
+      "eligible": 319,
+      "label_changed": 41,
+      "no_convergence_record": 0,
+      "saliency_fired": 41,
+      "status_changed": 41
+    },
+    "task_2/indicbert-v2/transfer_tel_to_hin_mt": {
+      "eligible": 350,
+      "label_changed": 39,
+      "no_convergence_record": 0,
+      "saliency_fired": 39,
+      "status_changed": 39
+    },
+    "task_2/indicbert-v2/transfer_tel_to_mal": {
+      "eligible": 311,
+      "label_changed": 17,
+      "no_convergence_record": 0,
+      "saliency_fired": 17,
+      "status_changed": 17
+    },
+    "task_2/indicbert-v2/transfer_tel_to_mal_mt": {
+      "eligible": 410,
+      "label_changed": 21,
+      "no_convergence_record": 0,
+      "saliency_fired": 21,
+      "status_changed": 21
+    },
+    "task_2/mbert-base/transfer_ben_to_hin": {
+      "eligible": 130,
+      "label_changed": 10,
+      "no_convergence_record": 0,
+      "saliency_fired": 10,
+      "status_changed": 10
+    },
+    "task_2/mbert-base/transfer_ben_to_hin_mt": {
+      "eligible": 198,
+      "label_changed": 8,
+      "no_convergence_record": 0,
+      "saliency_fired": 8,
+      "status_changed": 8
+    },
+    "task_2/mbert-base/transfer_ben_to_mal": {
+      "eligible": 155,
+      "label_changed": 9,
+      "no_convergence_record": 0,
+      "saliency_fired": 9,
+      "status_changed": 9
+    },
+    "task_2/mbert-base/transfer_ben_to_mal_mt": {
+      "eligible": 206,
+      "label_changed": 8,
+      "no_convergence_record": 0,
+      "saliency_fired": 8,
+      "status_changed": 8
+    },
+    "task_2/mbert-base/transfer_ben_to_tel": {
+      "eligible": 114,
+      "label_changed": 3,
+      "no_convergence_record": 0,
+      "saliency_fired": 3,
+      "status_changed": 3
+    },
+    "task_2/mbert-base/transfer_ben_to_tel_mt": {
+      "eligible": 170,
+      "label_changed": 9,
+      "no_convergence_record": 0,
+      "saliency_fired": 11,
+      "status_changed": 11
+    },
+    "task_2/mbert-base/transfer_hin_to_ben": {
+      "eligible": 188,
+      "label_changed": 0,
+      "no_convergence_record": 0,
+      "saliency_fired": 4,
+      "status_changed": 4
+    },
+    "task_2/mbert-base/transfer_hin_to_ben_mt": {
+      "eligible": 218,
+      "label_changed": 12,
+      "no_convergence_record": 0,
+      "saliency_fired": 12,
+      "status_changed": 12
+    },
+    "task_2/mbert-base/transfer_hin_to_mal": {
+      "eligible": 188,
+      "label_changed": 8,
+      "no_convergence_record": 0,
+      "saliency_fired": 11,
+      "status_changed": 11
+    },
+    "task_2/mbert-base/transfer_hin_to_mal_mt": {
+      "eligible": 248,
+      "label_changed": 11,
+      "no_convergence_record": 0,
+      "saliency_fired": 11,
+      "status_changed": 11
+    },
+    "task_2/mbert-base/transfer_hin_to_tel": {
+      "eligible": 138,
+      "label_changed": 4,
+      "no_convergence_record": 0,
+      "saliency_fired": 4,
+      "status_changed": 4
+    },
+    "task_2/mbert-base/transfer_hin_to_tel_mt": {
+      "eligible": 167,
+      "label_changed": 2,
+      "no_convergence_record": 0,
+      "saliency_fired": 3,
+      "status_changed": 3
+    },
+    "task_2/mbert-base/transfer_tel_to_ben": {
+      "eligible": 193,
+      "label_changed": 3,
+      "no_convergence_record": 0,
+      "saliency_fired": 4,
+      "status_changed": 4
+    },
+    "task_2/mbert-base/transfer_tel_to_ben_mt": {
+      "eligible": 231,
+      "label_changed": 7,
+      "no_convergence_record": 0,
+      "saliency_fired": 8,
+      "status_changed": 8
+    },
+    "task_2/mbert-base/transfer_tel_to_hin": {
+      "eligible": 160,
+      "label_changed": 1,
+      "no_convergence_record": 0,
+      "saliency_fired": 1,
+      "status_changed": 1
+    },
+    "task_2/mbert-base/transfer_tel_to_hin_mt": {
+      "eligible": 229,
+      "label_changed": 2,
+      "no_convergence_record": 0,
+      "saliency_fired": 2,
+      "status_changed": 2
+    },
+    "task_2/mbert-base/transfer_tel_to_mal": {
+      "eligible": 135,
+      "label_changed": 4,
+      "no_convergence_record": 0,
+      "saliency_fired": 5,
+      "status_changed": 5
+    },
+    "task_2/mbert-base/transfer_tel_to_mal_mt": {
+      "eligible": 164,
+      "label_changed": 4,
+      "no_convergence_record": 0,
+      "saliency_fired": 4,
+      "status_changed": 4
+    },
+    "task_3/indicbert-v2/transfer_ben_to_hin": {
+      "eligible": 116,
+      "label_changed": 3,
+      "no_convergence_record": 0,
+      "saliency_fired": 3,
+      "status_changed": 3
+    },
+    "task_3/indicbert-v2/transfer_ben_to_hin_mt": {
+      "eligible": 132,
+      "label_changed": 2,
+      "no_convergence_record": 0,
+      "saliency_fired": 2,
+      "status_changed": 2
+    },
+    "task_3/indicbert-v2/transfer_ben_to_mal": {
+      "eligible": 68,
+      "label_changed": 2,
+      "no_convergence_record": 0,
+      "saliency_fired": 2,
+      "status_changed": 2
+    },
+    "task_3/indicbert-v2/transfer_ben_to_mal_mt": {
+      "eligible": 82,
+      "label_changed": 1,
+      "no_convergence_record": 0,
+      "saliency_fired": 1,
+      "status_changed": 1
+    },
+    "task_3/indicbert-v2/transfer_ben_to_tel": {
+      "eligible": 34,
+      "label_changed": 0,
+      "no_convergence_record": 0,
+      "saliency_fired": 0,
+      "status_changed": 0
+    },
+    "task_3/indicbert-v2/transfer_ben_to_tel_mt": {
+      "eligible": 42,
+      "label_changed": 0,
+      "no_convergence_record": 0,
+      "saliency_fired": 0,
+      "status_changed": 0
+    },
+    "task_3/indicbert-v2/transfer_hin_to_ben": {
+      "eligible": 134,
+      "label_changed": 23,
+      "no_convergence_record": 0,
+      "saliency_fired": 24,
+      "status_changed": 24
+    },
+    "task_3/indicbert-v2/transfer_hin_to_ben_mt": {
+      "eligible": 161,
+      "label_changed": 24,
+      "no_convergence_record": 0,
+      "saliency_fired": 25,
+      "status_changed": 25
+    },
+    "task_3/indicbert-v2/transfer_hin_to_mal": {
+      "eligible": 92,
+      "label_changed": 9,
+      "no_convergence_record": 0,
+      "saliency_fired": 9,
+      "status_changed": 9
+    },
+    "task_3/indicbert-v2/transfer_hin_to_mal_mt": {
+      "eligible": 107,
+      "label_changed": 16,
+      "no_convergence_record": 0,
+      "saliency_fired": 17,
+      "status_changed": 17
+    },
+    "task_3/indicbert-v2/transfer_hin_to_tel": {
+      "eligible": 50,
+      "label_changed": 9,
+      "no_convergence_record": 0,
+      "saliency_fired": 9,
+      "status_changed": 9
+    },
+    "task_3/indicbert-v2/transfer_hin_to_tel_mt": {
+      "eligible": 38,
+      "label_changed": 10,
+      "no_convergence_record": 0,
+      "saliency_fired": 10,
+      "status_changed": 10
+    },
+    "task_3/indicbert-v2/transfer_tel_to_ben": {
+      "eligible": 32,
+      "label_changed": 0,
+      "no_convergence_record": 0,
+      "saliency_fired": 0,
+      "status_changed": 0
+    },
+    "task_3/indicbert-v2/transfer_tel_to_ben_mt": {
+      "eligible": 29,
+      "label_changed": 0,
+      "no_convergence_record": 0,
+      "saliency_fired": 0,
+      "status_changed": 0
+    },
+    "task_3/indicbert-v2/transfer_tel_to_hin": {
+      "eligible": 29,
+      "label_changed": 0,
+      "no_convergence_record": 0,
+      "saliency_fired": 0,
+      "status_changed": 0
+    },
+    "task_3/indicbert-v2/transfer_tel_to_hin_mt": {
+      "eligible": 30,
+      "label_changed": 0,
+      "no_convergence_record": 0,
+      "saliency_fired": 0,
+      "status_changed": 0
+    },
+    "task_3/indicbert-v2/transfer_tel_to_mal": {
+      "eligible": 19,
+      "label_changed": 0,
+      "no_convergence_record": 0,
+      "saliency_fired": 0,
+      "status_changed": 0
+    },
+    "task_3/indicbert-v2/transfer_tel_to_mal_mt": {
+      "eligible": 29,
+      "label_changed": 0,
+      "no_convergence_record": 0,
+      "saliency_fired": 0,
+      "status_changed": 0
+    },
+    "task_3/mbert-base/transfer_ben_to_hin": {
+      "eligible": 114,
+      "label_changed": 5,
+      "no_convergence_record": 0,
+      "saliency_fired": 5,
+      "status_changed": 5
+    },
+    "task_3/mbert-base/transfer_ben_to_hin_mt": {
+      "eligible": 142,
+      "label_changed": 10,
+      "no_convergence_record": 0,
+      "saliency_fired": 10,
+      "status_changed": 10
+    },
+    "task_3/mbert-base/transfer_ben_to_mal": {
+      "eligible": 79,
+      "label_changed": 1,
+      "no_convergence_record": 0,
+      "saliency_fired": 2,
+      "status_changed": 2
+    },
+    "task_3/mbert-base/transfer_ben_to_mal_mt": {
+      "eligible": 92,
+      "label_changed": 1,
+      "no_convergence_record": 0,
+      "saliency_fired": 1,
+      "status_changed": 1
+    },
+    "task_3/mbert-base/transfer_ben_to_tel": {
+      "eligible": 35,
+      "label_changed": 1,
+      "no_convergence_record": 0,
+      "saliency_fired": 1,
+      "status_changed": 1
+    },
+    "task_3/mbert-base/transfer_ben_to_tel_mt": {
+      "eligible": 40,
+      "label_changed": 0,
+      "no_convergence_record": 0,
+      "saliency_fired": 0,
+      "status_changed": 0
+    },
+    "task_3/mbert-base/transfer_hin_to_ben": {
+      "eligible": 124,
+      "label_changed": 12,
+      "no_convergence_record": 0,
+      "saliency_fired": 12,
+      "status_changed": 12
+    },
+    "task_3/mbert-base/transfer_hin_to_ben_mt": {
+      "eligible": 125,
+      "label_changed": 11,
+      "no_convergence_record": 0,
+      "saliency_fired": 14,
+      "status_changed": 14
+    },
+    "task_3/mbert-base/transfer_hin_to_mal": {
+      "eligible": 83,
+      "label_changed": 7,
+      "no_convergence_record": 0,
+      "saliency_fired": 10,
+      "status_changed": 10
+    },
+    "task_3/mbert-base/transfer_hin_to_mal_mt": {
+      "eligible": 84,
+      "label_changed": 10,
+      "no_convergence_record": 0,
+      "saliency_fired": 12,
+      "status_changed": 12
+    },
+    "task_3/mbert-base/transfer_hin_to_tel": {
+      "eligible": 41,
+      "label_changed": 8,
+      "no_convergence_record": 0,
+      "saliency_fired": 9,
+      "status_changed": 9
+    },
+    "task_3/mbert-base/transfer_hin_to_tel_mt": {
+      "eligible": 33,
+      "label_changed": 7,
+      "no_convergence_record": 0,
+      "saliency_fired": 8,
+      "status_changed": 8
+    },
+    "task_3/mbert-base/transfer_tel_to_ben": {
+      "eligible": 51,
+      "label_changed": 2,
+      "no_convergence_record": 0,
+      "saliency_fired": 2,
+      "status_changed": 2
+    },
+    "task_3/mbert-base/transfer_tel_to_ben_mt": {
+      "eligible": 51,
+      "label_changed": 2,
+      "no_convergence_record": 0,
+      "saliency_fired": 2,
+      "status_changed": 2
+    },
+    "task_3/mbert-base/transfer_tel_to_hin": {
+      "eligible": 51,
+      "label_changed": 4,
+      "no_convergence_record": 0,
+      "saliency_fired": 4,
+      "status_changed": 4
+    },
+    "task_3/mbert-base/transfer_tel_to_hin_mt": {
+      "eligible": 55,
+      "label_changed": 4,
+      "no_convergence_record": 0,
+      "saliency_fired": 4,
+      "status_changed": 4
+    },
+    "task_3/mbert-base/transfer_tel_to_mal": {
+      "eligible": 29,
+      "label_changed": 0,
+      "no_convergence_record": 0,
+      "saliency_fired": 0,
+      "status_changed": 0
+    },
+    "task_3/mbert-base/transfer_tel_to_mal_mt": {
+      "eligible": 31,
+      "label_changed": 1,
+      "no_convergence_record": 0,
+      "saliency_fired": 1,
+      "status_changed": 1
+    }
+  },
+  "saliency_threshold": "per cell (saliency.threshold_for)"
+}

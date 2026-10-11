@@ -1,0 +1,443 @@
+{
+  "conditions": {
+    "task_2/indicbert-v2/transfer_ben_to_hin": {
+      "label_changed": 0,
+      "morph_fired_after": 0,
+      "morph_fired_before": 0,
+      "rows": 731
+    },
+    "task_2/indicbert-v2/transfer_ben_to_hin_mt": {
+      "label_changed": 0,
+      "morph_fired_after": 0,
+      "morph_fired_before": 0,
+      "rows": 890
+    },
+    "task_2/indicbert-v2/transfer_ben_to_mal": {
+      "label_changed": 28,
+      "morph_fired_after": 4,
+      "morph_fired_before": 32,
+      "rows": 961
+    },
+    "task_2/indicbert-v2/transfer_ben_to_mal_mt": {
+      "label_changed": 22,
+      "morph_fired_after": 10,
+      "morph_fired_before": 32,
+      "rows": 1172
+    },
+    "task_2/indicbert-v2/transfer_ben_to_tel": {
+      "label_changed": 3,
+      "morph_fired_after": 205,
+      "morph_fired_before": 208,
+      "rows": 1022
+    },
+    "task_2/indicbert-v2/transfer_ben_to_tel_mt": {
+      "label_changed": 2,
+      "morph_fired_after": 275,
+      "morph_fired_before": 277,
+      "rows": 1251
+    },
+    "task_2/indicbert-v2/transfer_hin_to_ben": {
+      "label_changed": 10,
+      "morph_fired_after": 131,
+      "morph_fired_before": 141,
+      "rows": 1094
+    },
+    "task_2/indicbert-v2/transfer_hin_to_ben_mt": {
+      "label_changed": 24,
+      "morph_fired_after": 142,
+      "morph_fired_before": 166,
+      "rows": 1423
+    },
+    "task_2/indicbert-v2/transfer_hin_to_mal": {
+      "label_changed": 23,
+      "morph_fired_after": 10,
+      "morph_fired_before": 33,
+      "rows": 989
+    },
+    "task_2/indicbert-v2/transfer_hin_to_mal_mt": {
+      "label_changed": 32,
+      "morph_fired_after": 8,
+      "morph_fired_before": 40,
+      "rows": 1239
+    },
+    "task_2/indicbert-v2/transfer_hin_to_tel": {
+      "label_changed": 3,
+      "morph_fired_after": 211,
+      "morph_fired_before": 214,
+      "rows": 1103
+    },
+    "task_2/indicbert-v2/transfer_hin_to_tel_mt": {
+      "label_changed": 1,
+      "morph_fired_after": 301,
+      "morph_fired_before": 302,
+      "rows": 1422
+    },
+    "task_2/indicbert-v2/transfer_tel_to_ben": {
+      "label_changed": 7,
+      "morph_fired_after": 112,
+      "morph_fired_before": 119,
+      "rows": 893
+    },
+    "task_2/indicbert-v2/transfer_tel_to_ben_mt": {
+      "label_changed": 13,
+      "morph_fired_after": 96,
+      "morph_fired_before": 109,
+      "rows": 1002
+    },
+    "task_2/indicbert-v2/transfer_tel_to_hin": {
+      "label_changed": 0,
+      "morph_fired_after": 0,
+      "morph_fired_before": 0,
+      "rows": 849
+    },
+    "task_2/indicbert-v2/transfer_tel_to_hin_mt": {
+      "label_changed": 0,
+      "morph_fired_after": 0,
+      "morph_fired_before": 0,
+      "rows": 982
+    },
+    "task_2/indicbert-v2/transfer_tel_to_mal": {
+      "label_changed": 25,
+      "morph_fired_after": 10,
+      "morph_fired_before": 35,
+      "rows": 1061
+    },
+    "task_2/indicbert-v2/transfer_tel_to_mal_mt": {
+      "label_changed": 31,
+      "morph_fired_after": 1,
+      "morph_fired_before": 32,
+      "rows": 1239
+    },
+    "task_2/mbert-base/transfer_ben_to_hin": {
+      "label_changed": 0,
+      "morph_fired_after": 0,
+      "morph_fired_before": 0,
+      "rows": 313
+    },
+    "task_2/mbert-base/transfer_ben_to_hin_mt": {
+      "label_changed": 0,
+      "morph_fired_after": 0,
+      "morph_fired_before": 0,
+      "rows": 413
+    },
+    "task_2/mbert-base/transfer_ben_to_mal": {
+      "label_changed": 14,
+      "morph_fired_after": 0,
+      "morph_fired_before": 14,
+      "rows": 496
+    },
+    "task_2/mbert-base/transfer_ben_to_mal_mt": {
+      "label_changed": 10,
+      "morph_fired_after": 3,
+      "morph_fired_before": 13,
+      "rows": 628
+    },
+    "task_2/mbert-base/transfer_ben_to_tel": {
+      "label_changed": 3,
+      "morph_fired_after": 86,
+      "morph_fired_before": 89,
+      "rows": 500
+    },
+    "task_2/mbert-base/transfer_ben_to_tel_mt": {
+      "label_changed": 3,
+      "morph_fired_after": 111,
+      "morph_fired_before": 114,
+      "rows": 620
+    },
+    "task_2/mbert-base/transfer_hin_to_ben": {
+      "label_changed": 2,
+      "morph_fired_after": 43,
+      "morph_fired_before": 45,
+      "rows": 410
+    },
+    "task_2/mbert-base/transfer_hin_to_ben_mt": {
+      "label_changed": 10,
+      "morph_fired_after": 37,
+      "morph_fired_before": 47,
+      "rows": 455
+    },
+    "task_2/mbert-base/transfer_hin_to_mal": {
+      "label_changed": 13,
+      "morph_fired_after": 5,
+      "morph_fired_before": 18,
+      "rows": 587
+    },
+    "task_2/mbert-base/transfer_hin_to_mal_mt": {
+      "label_changed": 17,
+      "morph_fired_after": 4,
+      "morph_fired_before": 21,
+      "rows": 683
+    },
+    "task_2/mbert-base/transfer_hin_to_tel": {
+      "label_changed": 3,
+      "morph_fired_after": 113,
+      "morph_fired_before": 116,
+      "rows": 647
+    },
+    "task_2/mbert-base/transfer_hin_to_tel_mt": {
+      "label_changed": 2,
+      "morph_fired_after": 145,
+      "morph_fired_before": 147,
+      "rows": 777
+    },
+    "task_2/mbert-base/transfer_tel_to_ben": {
+      "label_changed": 2,
+      "morph_fired_after": 75,
+      "morph_fired_before": 77,
+      "rows": 536
+    },
+    "task_2/mbert-base/transfer_tel_to_ben_mt": {
+      "label_changed": 8,
+      "morph_fired_after": 61,
+      "morph_fired_before": 69,
+      "rows": 608
+    },
+    "task_2/mbert-base/transfer_tel_to_hin": {
+      "label_changed": 0,
+      "morph_fired_after": 0,
+      "morph_fired_before": 0,
+      "rows": 450
+    },
+    "task_2/mbert-base/transfer_tel_to_hin_mt": {
+      "label_changed": 0,
+      "morph_fired_after": 0,
+      "morph_fired_before": 0,
+      "rows": 600
+    },
+    "task_2/mbert-base/transfer_tel_to_mal": {
+      "label_changed": 13,
+      "morph_fired_after": 4,
+      "morph_fired_before": 17,
+      "rows": 466
+    },
+    "task_2/mbert-base/transfer_tel_to_mal_mt": {
+      "label_changed": 10,
+      "morph_fired_after": 0,
+      "morph_fired_before": 10,
+      "rows": 525
+    },
+    "task_3/indicbert-v2/transfer_ben_to_hin": {
+      "label_changed": 0,
+      "morph_fired_after": 0,
+      "morph_fired_before": 0,
+      "rows": 337
+    },
+    "task_3/indicbert-v2/transfer_ben_to_hin_mt": {
+      "label_changed": 0,
+      "morph_fired_after": 0,
+      "morph_fired_before": 0,
+      "rows": 338
+    },
+    "task_3/indicbert-v2/transfer_ben_to_mal": {
+      "label_changed": 0,
+      "morph_fired_after": 0,
+      "morph_fired_before": 0,
+      "rows": 332
+    },
+    "task_3/indicbert-v2/transfer_ben_to_mal_mt": {
+      "label_changed": 0,
+      "morph_fired_after": 0,
+      "morph_fired_before": 0,
+      "rows": 325
+    },
+    "task_3/indicbert-v2/transfer_ben_to_tel": {
+      "label_changed": 2,
+      "morph_fired_after": 15,
+      "morph_fired_before": 17,
+      "rows": 322
+    },
+    "task_3/indicbert-v2/transfer_ben_to_tel_mt": {
+      "label_changed": 1,
+      "morph_fired_after": 28,
+      "morph_fired_before": 29,
+      "rows": 335
+    },
+    "task_3/indicbert-v2/transfer_hin_to_ben": {
+      "label_changed": 3,
+      "morph_fired_after": 17,
+      "morph_fired_before": 20,
+      "rows": 473
+    },
+    "task_3/indicbert-v2/transfer_hin_to_ben_mt": {
+      "label_changed": 5,
+      "morph_fired_after": 10,
+      "morph_fired_before": 15,
+      "rows": 473
+    },
+    "task_3/indicbert-v2/transfer_hin_to_mal": {
+      "label_changed": 0,
+      "morph_fired_after": 0,
+      "morph_fired_before": 0,
+      "rows": 456
+    },
+    "task_3/indicbert-v2/transfer_hin_to_mal_mt": {
+      "label_changed": 2,
+      "morph_fired_after": 0,
+      "morph_fired_before": 2,
+      "rows": 476
+    },
+    "task_3/indicbert-v2/transfer_hin_to_tel": {
+      "label_changed": 2,
+      "morph_fired_after": 26,
+      "morph_fired_before": 28,
+      "rows": 466
+    },
+    "task_3/indicbert-v2/transfer_hin_to_tel_mt": {
+      "label_changed": 0,
+      "morph_fired_after": 33,
+      "morph_fired_before": 33,
+      "rows": 463
+    },
+    "task_3/indicbert-v2/transfer_tel_to_ben": {
+      "label_changed": 1,
+      "morph_fired_after": 7,
+      "morph_fired_before": 8,
+      "rows": 228
+    },
+    "task_3/indicbert-v2/transfer_tel_to_ben_mt": {
+      "label_changed": 0,
+      "morph_fired_after": 3,
+      "morph_fired_before": 3,
+      "rows": 237
+    },
+    "task_3/indicbert-v2/transfer_tel_to_hin": {
+      "label_changed": 0,
+      "morph_fired_after": 0,
+      "morph_fired_before": 0,
+      "rows": 212
+    },
+    "task_3/indicbert-v2/transfer_tel_to_hin_mt": {
+      "label_changed": 0,
+      "morph_fired_after": 0,
+      "morph_fired_before": 0,
+      "rows": 208
+    },
+    "task_3/indicbert-v2/transfer_tel_to_mal": {
+      "label_changed": 0,
+      "morph_fired_after": 0,
+      "morph_fired_before": 0,
+      "rows": 204
+    },
+    "task_3/indicbert-v2/transfer_tel_to_mal_mt": {
+      "label_changed": 0,
+      "morph_fired_after": 0,
+      "morph_fired_before": 0,
+      "rows": 217
+    },
+    "task_3/mbert-base/transfer_ben_to_hin": {
+      "label_changed": 0,
+      "morph_fired_after": 0,
+      "morph_fired_before": 0,
+      "rows": 376
+    },
+    "task_3/mbert-base/transfer_ben_to_hin_mt": {
+      "label_changed": 0,
+      "morph_fired_after": 0,
+      "morph_fired_before": 0,
+      "rows": 367
+    },
+    "task_3/mbert-base/transfer_ben_to_mal": {
+      "label_changed": 2,
+      "morph_fired_after": 0,
+      "morph_fired_before": 2,
+      "rows": 419
+    },
+    "task_3/mbert-base/transfer_ben_to_mal_mt": {
+      "label_changed": 0,
+      "morph_fired_after": 0,
+      "morph_fired_before": 0,
+      "rows": 405
+    },
+    "task_3/mbert-base/transfer_ben_to_tel": {
+      "label_changed": 0,
+      "morph_fired_after": 18,
+      "morph_fired_before": 18,
+      "rows": 410
+    },
+    "task_3/mbert-base/transfer_ben_to_tel_mt": {
+      "label_changed": 1,
+      "morph_fired_after": 26,
+      "morph_fired_before": 27,
+      "rows": 395
+    },
+    "task_3/mbert-base/transfer_hin_to_ben": {
+      "label_changed": 1,
+      "morph_fired_after": 13,
+      "morph_fired_before": 14,
+      "rows": 383
+    },
+    "task_3/mbert-base/transfer_hin_to_ben_mt": {
+      "label_changed": 3,
+      "morph_fired_after": 8,
+      "morph_fired_before": 11,
+      "rows": 345
+    },
+    "task_3/mbert-base/transfer_hin_to_mal": {
+      "label_changed": 0,
+      "morph_fired_after": 0,
+      "morph_fired_before": 0,
+      "rows": 424
+    },
+    "task_3/mbert-base/transfer_hin_to_mal_mt": {
+      "label_changed": 1,
+      "morph_fired_after": 0,
+      "morph_fired_before": 1,
+      "rows": 416
+    },
+    "task_3/mbert-base/transfer_hin_to_tel": {
+      "label_changed": 2,
+      "morph_fired_after": 24,
+      "morph_fired_before": 26,
+      "rows": 406
+    },
+    "task_3/mbert-base/transfer_hin_to_tel_mt": {
+      "label_changed": 0,
+      "morph_fired_after": 28,
+      "morph_fired_before": 28,
+      "rows": 389
+    },
+    "task_3/mbert-base/transfer_tel_to_ben": {
+      "label_changed": 2,
+      "morph_fired_after": 10,
+      "morph_fired_before": 12,
+      "rows": 419
+    },
+    "task_3/mbert-base/transfer_tel_to_ben_mt": {
+      "label_changed": 0,
+      "morph_fired_after": 15,
+      "morph_fired_before": 15,
+      "rows": 394
+    },
+    "task_3/mbert-base/transfer_tel_to_hin": {
+      "label_changed": 0,
+      "morph_fired_after": 0,
+      "morph_fired_before": 0,
+      "rows": 392
+    },
+    "task_3/mbert-base/transfer_tel_to_hin_mt": {
+      "label_changed": 0,
+      "morph_fired_after": 0,
+      "morph_fired_before": 0,
+      "rows": 370
+    },
+    "task_3/mbert-base/transfer_tel_to_mal": {
+      "label_changed": 0,
+      "morph_fired_after": 0,
+      "morph_fired_before": 0,
+      "rows": 411
+    },
+    "task_3/mbert-base/transfer_tel_to_mal_mt": {
+      "label_changed": 0,
+      "morph_fired_after": 0,
+      "morph_fired_before": 0,
+      "rows": 382
+    }
+  },
+  "match_rule": "morphology.stem_matches (2026-10-11)",
+  "rungs": {
+    "ben": "library",
+    "hin": "library",
+    "mal": "library",
+    "tel": "library"
+  }
+}
