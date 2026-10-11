@@ -105,8 +105,8 @@ def main(argv: list[str] | None = None) -> int:
     encoders = args.encoder or [DEFAULT_ENCODER, "mbert-base"]
 
     out = ["# Phase 6 diagnostics — run summary", "",
-           f"Saliency divergence threshold in force: **{saliency.DEFAULT_DIVERGENCE_THRESHOLD}** "
-           f"(placeholder until inspected below); convergence tolerance "
+           f"Saliency divergence threshold: per cell, from the null baseline "
+           f"(reports/saliency_baseline.md; fallback {saliency.DEFAULT_DIVERGENCE_THRESHOLD}); convergence tolerance "
            f"{saliency.DEFAULT_CONVERGENCE_TOL:.0%} relative.", ""]
     for encoder in encoders:
         for task in tasks:
@@ -124,7 +124,7 @@ def main(argv: list[str] | None = None) -> int:
                         f"(n={len(div)}): " + ", ".join(
                             f"{q:.0%}={div.quantile(q):+.3f}" for q in (0.05, 0.25, 0.5, 0.75, 0.95)),
                         ""]
-                near = nearest_to_threshold(task, audit, saliency.DEFAULT_DIVERGENCE_THRESHOLD)
+                near = nearest_to_threshold(task, audit, saliency.threshold_for(encoder, task))
                 parquet = REPO_ROOT / "reports" / f"task_{task}" / f"saliency_threshold_pairs_{encoder}.parquet"
                 parquet.parent.mkdir(parents=True, exist_ok=True)
                 near.to_parquet(parquet, index=False)

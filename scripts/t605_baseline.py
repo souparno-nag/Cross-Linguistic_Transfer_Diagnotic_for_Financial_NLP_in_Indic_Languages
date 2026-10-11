@@ -146,8 +146,8 @@ def report(tasks, encoders) -> None:
              "in the source minus its share in the target. Only converged attributions are counted.", "",
              f"**Candidate threshold** = the null's {NULL_QUANTILE:.0%} quantile: a correctly handled pair "
              "exceeds it ~5% of the time. Choosing it is a one-off decision to record in CLAUDE4.md "
-             "(hard rule 3), then apply with `python -m scripts.t601_rethreshold --saliency-threshold X` "
-             "and set `saliency.DEFAULT_DIVERGENCE_THRESHOLD` to match.", "",
+             "(hard rule 3): record it per cell in `saliency.DIVERGENCE_THRESHOLD_BY_TASK_ENCODER`, then "
+             "apply with `python -m scripts.t601_rethreshold`.", "",
              "| task | encoder | null n (converged / sampled) | " + " | ".join(f"null q{int(q*100)}" for q in qs)
              + " | failures n | failures ≥ candidate |",
              "|---|---|---|" + "---|" * len(qs) + "---|---|"]

@@ -128,7 +128,7 @@ def main(argv: list[str] | None = None) -> int:
         loaded = None
         _free_gpu()
 
-        audit, labels, _ = rethreshold(audit, labels, saliency.DEFAULT_DIVERGENCE_THRESHOLD)
+        audit, labels, _ = rethreshold(audit, labels, saliency.threshold_for(args.encoder, args.task))
         write_diagnostics(args.task, cond, labels, audit, encoder=enc)
         n_after = int((audit["saliency_status"] == "not_converged").sum())
         evaluated = int(audit["saliency_status"].isin(SALIENCY_EVALUATED).sum())

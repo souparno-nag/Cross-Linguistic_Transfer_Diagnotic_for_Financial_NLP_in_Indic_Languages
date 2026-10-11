@@ -227,3 +227,7 @@ cache/
 # Phase 2 training checkpoints (T-206/T-208): large, regenerable from a config
 # + seed. experiments.csv and reports/ are the tracked record of a run.
 checkpoints/
+
+# Phase 6 GPU run logs are part of the record (scripts/run_phase6_saliency_gpu.sh);
+# the global *.log rule above would otherwise drop them from every commit.
+!reports/runs/*.log

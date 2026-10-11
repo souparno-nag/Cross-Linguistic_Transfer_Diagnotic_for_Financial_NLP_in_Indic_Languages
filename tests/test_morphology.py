@@ -158,3 +158,55 @@ def test_real_library_loads_and_segments(lang):
         )
     stem, suffix = analyzer.segment_word("test")
     assert isinstance(stem, str) and isinstance(suffix, str)
+
+
+# --------------------------------------------------------------------------
+# stem_matches — the match rule (revised 2026-10-11 after the fuzzy-match bug)
+# --------------------------------------------------------------------------
+
+@pytest.mark.parametrize("term,stem", [
+    ("जल", "जल"),                       # exact
+    ("ఉద్గారాలు", "ఉద్గారాల"),           # Telugu oblique: final vowel sign dropped
+    ("সম্পদ", "সম্প"),                  # segmenter split one codepoint early
+    ("জীববৈচিত্র্য", "জীববৈচিত্র্যে"),    # segmenter split one codepoint late
+    ("వ్యర్థాలు", "వ్యర్థాల"),
+    ("নির্গমন", "নির্গমনে"),            # Bengali genitive split as নির্গমনে + র
+])
+def test_stem_matches_the_term_and_its_inflected_stems(term, stem):
+    assert M.stem_matches(term, stem)
+
+
+@pytest.mark.parametrize("term,stem", [
+    ("जल", "कर"),          # the bug: any 2-codepoint stem matched "water"
+    ("जल", "हो"),
+    ("জল", "থে"),
+    ("জল", "জা"),          # short terms get no spelling change at all
+    ("प्रदूषण", "प्रदूशण"),  # change not at the end (ष -> श mid-word)
+    ("ऊर्जा", "ऊर्जावान"),   # more than one codepoint longer: a different word
+    ("সম্পদ", "সম্পর্"),     # substitution at the end: stem of সম্পর্কে ("about"), not "resource"
+    ("प्रदूषण", "प्रदूषन"),  # substitution of the final codepoint
+    ("ऊर्जा", "ऊर्जाक"),     # one codepoint added, but a consonant, not a vowel sign
+])
+def test_stem_matches_rejects_other_words(term, stem):
+    assert not M.stem_matches(term, stem)
+
+
+@pytest.mark.parametrize("lang,text", [
+    ("hin", "दुनिया के लॉकडाउन में होने के कारण परिवहन ठप हो गया है।"),
+    ("hin", "इसने उत्सर्जन को कम करने के लिए काफी प्रयास किया है।"),
+    ("ben", "আমরা ব্যবসায়িক ভ্রমণকেও হ্রাস করতে চাই।"),
+])
+def test_real_false_positives_from_the_run_no_longer_fire(lang, text):
+    concepts = [{"id": "water", "hin": "जल", "ben": "জল"}]
+    assert M.check_instance(M.MorphAnalyzer(lang), text, concepts).status == "not_fired"
+
+
+def test_evidence_records_which_rung_segmented_the_word():
+    result = M.check_instance(M.MorphAnalyzer("tel"), "వనరుకు కొరత.", [{"id": "r", "tel": "వనరు"}])
+    assert result.evidence["rung"] in ("library", "suffix_rules")
+
+
+def test_lexicon_punctuation_does_not_stop_a_match():
+    concepts = [{"id": "waste", "ben": "বর্জ্য।"}]
+    result = M.check_instance(M.MorphAnalyzer("ben"), "বর্জ্যকে কমাতে হবে।", concepts)
+    assert result.status == "fired" and result.evidence["term"] == "বর্জ্য"

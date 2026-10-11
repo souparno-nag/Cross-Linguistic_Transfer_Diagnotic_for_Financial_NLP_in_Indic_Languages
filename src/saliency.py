@@ -60,11 +60,32 @@ def n_steps_for(encoder_id: str, task: int | None = None) -> int:
     if task is not None and (task, encoder_id) in N_STEPS_BY_TASK_ENCODER:
         return N_STEPS_BY_TASK_ENCODER[(task, encoder_id)]
     return N_STEPS_BY_ENCODER.get(encoder_id, DEFAULT_N_STEPS)
-# Set once from inspecting real task_2 examples during T-604's build, and
-# documented rather than re-tuned to tidy the resulting distribution
-# (CLAUDE4.md hard rule 3). Until that inspection happens this is a
-# placeholder carried over from the approved plan, not yet a measured value.
-DEFAULT_DIVERGENCE_THRESHOLD = 0.3
+# Set 2026-10-11 from the null distribution (`scripts.t605_baseline`,
+# reports/saliency_baseline.md): divergence measured on pairs the model got
+# RIGHT in both languages, 20 per condition, seed 0. The threshold is that
+# null's 95th percentile — a correctly handled pair exceeds it ~5% of the time,
+# a false-positive rate fixed in advance rather than a firing rate chosen from
+# the failures (CLAUDE4.md hard rule 3). Per cell, because the null's spread
+# differs by task and encoder (task 3's short headlines spread twice as wide),
+# so one global value would hold each cell to a different false-positive rate.
+#
+# Read the result with the finding beside it: failures exceed these values at
+# 3.7-8.7%, and failure-vs-null AUC is 0.48-0.52 — divergence does not separate
+# failures from correct pairs. `terminology_gap` therefore fires at about the
+# chance rate, and its labels are not evidence of a terminology gap.
+DIVERGENCE_THRESHOLD_BY_TASK_ENCODER = {
+    (2, "indicbert-v2"): 0.038,
+    (2, "mbert-base"): 0.047,
+    (3, "indicbert-v2"): 0.085,
+    (3, "mbert-base"): 0.078,
+}
+# Fallback for a cell with no null of its own: the 95th percentile of all four
+# nulls pooled (n = 1344). Replaces the 0.3 placeholder, which never fired.
+DEFAULT_DIVERGENCE_THRESHOLD = 0.065
+
+
+def threshold_for(encoder_id: str, task: int | None = None) -> float:
+    return DIVERGENCE_THRESHOLD_BY_TASK_ENCODER.get((task, encoder_id), DEFAULT_DIVERGENCE_THRESHOLD)
 # Integrated Gradients' completeness axiom says the attributions sum to
 # F(x) - F(baseline); Captum's convergence delta is the error in that
 # identity. It is judged *relative* to |F(x) - F(baseline)|, because an

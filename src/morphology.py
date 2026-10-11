@@ -29,6 +29,7 @@ not a morphological analyser — confirmed during Phase 6 planning research.
 from __future__ import annotations
 
 import re
+import unicodedata
 from dataclasses import dataclass, field
 
 LANG_CODES = {"hin": "hi", "ben": "bn", "tel": "te", "mal": "ml"}
@@ -77,7 +78,52 @@ def edit_distance(a: str, b: str) -> int:
 
 
 def fuzzy_match(term: str, candidate: str, max_distance: int = 2) -> bool:
+    """Plain edit-distance test. Kept for its tests; **not** the match rule
+    (see `stem_matches`)."""
     return edit_distance(term, candidate) <= max_distance
+
+
+# Shortest term (in codepoints) allowed any spelling change at all.
+MIN_TERM_FOR_END_CHANGE = 4
+
+
+def stem_matches(term: str, stem: str) -> bool:
+    """Is `stem` this lexicon term, once its inflectional suffix is removed?
+
+    The match rule, revised 2026-10-11. The first rule (`fuzzy_match`, edit
+    distance <= 2 at any length) let a 2-codepoint term match *any* 2-codepoint
+    stem: "जल" (water) matched कर (do), हो (be), हम (we), and 96% of all
+    morphological-masking labels in the 2026-10-09 run were such fuzzy hits.
+    That was a correctness bug — the check no longer tested term identity — not
+    a threshold to tune (CLAUDE4.md "Scope decisions" / T-604).
+
+    Ordinary inflection counts as masking (decided 2026-10-11), so the rule
+    accepts exactly the stem changes inflection makes, and nothing else:
+
+    * exact: `stem == term`;
+    * for terms of at least `MIN_TERM_FOR_END_CHANGE` codepoints only:
+      - the final codepoint **dropped** — Telugu's oblique stem
+        (ఉద్గారాలు -> ఉద్గారాల+ను), or a segment boundary one codepoint early
+        (সম্পদ -> সম্প+দের);
+      - one **vowel sign added** at the end — the Bengali genitive splitting as
+        নির্গমনে+র, Malayalam പരിസ്ഥിതിയ+ിൽ (combining marks, categories Mn/Mc).
+
+    A substitution is never accepted: সম্পদ (resource) against সম্পর্ (the stem of
+    সম্পর্কে, "about") was the one remaining false positive of a looser version.
+    Short terms (জল, जल) must match exactly — at two codepoints any change makes
+    another word.
+    """
+    if stem == term:
+        return True
+    if len(term) < MIN_TERM_FOR_END_CHANGE:
+        return False
+    if stem == term[:-1]:
+        return True
+    return (
+        len(stem) == len(term) + 1
+        and stem.startswith(term)
+        and unicodedata.category(stem[-1]) in ("Mn", "Mc")
+    )
 
 
 def strip_suffix(word: str, lang: str) -> tuple[str, str]:
@@ -95,6 +141,7 @@ class MorphAnalyzer:
 
     lang: str
     _library: object = field(default=None, init=False, repr=False)
+    _cache: dict = field(default_factory=dict, init=False, repr=False)
 
     def __post_init__(self):
         self._try_load_library()
@@ -147,6 +194,14 @@ class MorphAnalyzer:
         than raising, so an API surprise cannot silently corrupt a
         diagnosis.
         """
+        # Segmentation depends on the word alone, and `check_instance` asks for
+        # the same word once per lexicon concept: memoise, or a full re-run makes
+        # ~19M Morfessor calls for ~40k rows.
+        if word not in self._cache:
+            self._cache[word] = self._segment_uncached(word)
+        return self._cache[word]
+
+    def _segment_uncached(self, word: str) -> tuple[str, str]:
         if self._library is not None:
             try:
                 segmented = self._library.morph_analyze(word)
@@ -181,14 +236,17 @@ def check_instance(analyzer: MorphAnalyzer, text: str, concepts: list[dict]) -> 
     word_set = set(words)
 
     for concept in concepts:
-        term = concept.get(analyzer.lang)
+        # Terms are cleaned like the words they are compared with: the
+        # machine-derived lexicon carries two stray sentence marks (ben
+        # "বর্জ্য।", tel "వాతావరణం."), which would otherwise never match a word.
+        term = _clean_word(concept.get(analyzer.lang) or "")
         if not term:
             continue
         if term in word_set:
             continue  # intact -- visible, not masked
         for word in words:
             stem, suffix = analyzer.segment_word(word)
-            if suffix and fuzzy_match(term, stem):
+            if suffix and stem_matches(term, stem):
                 return MorphResult(
                     status="fired",
                     evidence={
@@ -197,6 +255,7 @@ def check_instance(analyzer: MorphAnalyzer, text: str, concepts: list[dict]) -> 
                         "stem": stem,
                         "suffix": suffix,
                         "concept": concept["id"],
+                        "rung": analyzer.rung,
                     },
                 )
     return MorphResult(status="not_fired")

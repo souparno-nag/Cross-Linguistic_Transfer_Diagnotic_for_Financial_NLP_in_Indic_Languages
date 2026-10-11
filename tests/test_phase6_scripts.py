@@ -159,3 +159,49 @@ def test_baseline_paths_are_namespaced_per_encoder():
     a = BASE.baseline_path(2, "c", "indicbert-v2")
     b = BASE.baseline_path(2, "c", "mbert-base")
     assert a.parent.name == "task_2" and b.parent.name == "mbert-base"
+
+
+# --------------------------------------------------------------------------
+# t604_remorph, per-cell saliency thresholds
+# --------------------------------------------------------------------------
+
+from scripts import t604_remorph as REMORPH  # noqa: E402
+from src import morphology as MORPH  # noqa: E402
+
+
+def _morph_audit(rows):
+    audit = pd.DataFrame([{"item_id": f"i{i}", "seed": 0, "gate_status": "passed",
+                           "morph_status": "fired", "morph_evidence": {"term": "जल"},
+                           "modules_fired": ["morph"], "assigned_label": "morphological_masking", **r}
+                          for i, r in enumerate(rows)])
+    return audit, audit[["item_id", "seed", "modules_fired", "assigned_label"]].copy()
+
+
+def test_remorph_clears_the_fuzzy_false_positive_and_keeps_other_modules():
+    audit, labels = _morph_audit([
+        {},                                                     # "करने" matched "जल" under the old rule
+        {"modules_fired": ["frag", "morph"], "assigned_label": "tokenizer_fragmentation"},
+        {"gate_status": "fired", "morph_status": "not_evaluated", "morph_evidence": None,
+         "modules_fired": ["gate"], "assigned_label": "translation_drift"},
+    ])
+    texts = {"i0": "उत्सर्जन कम करने के लिए", "i1": "उत्सर्जन कम करने के लिए", "i2": "x"}
+    a, l, stats = REMORPH.remorph(audit, labels, MORPH.MorphAnalyzer("hin"), texts, [{"id": "w", "hin": "जल"}])
+    assert a["morph_status"].tolist() == ["not_fired", "not_fired", "not_evaluated"]
+    assert l["assigned_label"].tolist() == ["unattributed", "tokenizer_fragmentation", "translation_drift"]
+    assert list(a["modules_fired"].iloc[1]) == ["frag"]
+    assert stats["morph_fired_before"] == 2 and stats["morph_fired_after"] == 0
+
+
+def test_remorph_keeps_a_genuinely_inflected_term():
+    audit, labels = _morph_audit([{"morph_status": "not_fired", "morph_evidence": None,
+                                   "modules_fired": [], "assigned_label": "unattributed"}])
+    a, l, _ = REMORPH.remorph(audit, labels, MORPH.MorphAnalyzer("tel"), {"i0": "వనరుకు కొరత."},
+                              [{"id": "r", "tel": "వనరు"}])
+    assert a["morph_status"].iloc[0] == "fired"
+    assert l["assigned_label"].iloc[0] == "morphological_masking"
+
+
+def test_saliency_thresholds_are_per_cell_with_a_pooled_fallback():
+    assert SAL.threshold_for("indicbert-v2", 2) == 0.038
+    assert SAL.threshold_for("mbert-base", 3) == 0.078
+    assert SAL.threshold_for("xlm-r-base", 2) == SAL.DEFAULT_DIVERGENCE_THRESHOLD == 0.065

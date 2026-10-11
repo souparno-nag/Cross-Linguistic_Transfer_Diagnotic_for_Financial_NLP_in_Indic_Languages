@@ -350,6 +350,7 @@ def diagnose_condition(
             loaded=loaded,
             max_len=loaded.run_config.max_len,
             n_steps=saliency.n_steps_for(encoder_id, task),
+            saliency_threshold=saliency.threshold_for(encoder_id, task),
             device=device,
         )
         label_rows.append({

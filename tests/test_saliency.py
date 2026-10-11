@@ -78,8 +78,10 @@ def test_salience_share_zero_total_is_zero_not_an_error():
 
 
 def test_fires_boundary_is_inclusive():
-    assert S.fires(0.3) is True
-    assert S.fires(0.2999) is False
+    t = S.DEFAULT_DIVERGENCE_THRESHOLD
+    assert S.fires(t) is True
+    assert S.fires(t - 1e-4) is False
+    assert S.fires(0.3, threshold=0.3) is True and S.fires(0.2999, threshold=0.3) is False
 
 
 # --------------------------------------------------------------------------
@@ -170,11 +172,12 @@ def test_not_fired_when_divergence_below_threshold(monkeypatch):
         ([5.0, 2.5, 2.5], _ws_offsets(source), 0.01),   # share 0.5
         ([4.0, 3.0, 3.0], _ws_offsets(target), 0.01),   # share 0.4 -> divergence 0.1
     ])
+    # threshold explicit: this tests the comparison, not the calibrated value
     monkeypatch.setattr(S, "compute_salience", fake)
     result = S.diagnose_instance(
         loaded=None, tokenizer=None, source_text=source, target_text=target,
         gold_label=0, concepts=[{"id": "c", "hin": "energy", "ben": "urja"}],
-        lang_src="hin", lang_tgt="ben", max_len=32,
+        lang_src="hin", lang_tgt="ben", max_len=32, threshold=0.3,
     )
     assert result.status == "not_fired"
     assert result.divergence == pytest.approx(0.1)

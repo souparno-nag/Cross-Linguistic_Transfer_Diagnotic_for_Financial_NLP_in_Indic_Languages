@@ -152,6 +152,23 @@ Fallback ladder, in order:
 **Done:** module runs for every target language, or the gap is documented and the
 affected instances fall through to the next precedence level. **Decide by 25 Sep.**
 
+**Match rule fixed, 2026-10-11 (a bug, not a threshold).** The original rule
+(edit distance ≤ 2 at any term length) let 2-codepoint terms match any 2-codepoint stem —
+"जल"/"জল" (water) matched कर (do), हो (be), থে, and 96% of the 10,642 morphological-masking
+labels of the 2026-10-09 run were such fuzzy hits (1 of 80 in the spot-check sheet was an
+exact match). Ordinary inflection *does* count as masking (decided 2026-10-11), so the new
+rule (`morphology.stem_matches`) accepts exactly the stem changes inflection makes: exact
+match; or, for terms of ≥ 4 codepoints, the final codepoint dropped (Telugu oblique
+ఉద్గారాలు → ఉద్గారాల+ను) or one vowel sign added (Bengali নির্গমনে+র). No substitution:
+সম্পদ "resource" vs সম্পর্(কে) "about" was the last false positive of a looser version.
+Lexicon terms are cleaned of punctuation like words are (two machine-derived entries carry a
+stray `।`/`.`: ben waste, tel climate — fix them in `configs/esg_terms.json` at the next GPU
+saliency run, since saliency matched against them as-is). Re-run offline on the library rung
+for all four languages (`scripts.t604_remorph`): morphological masking 10,642 → 2,484 rows;
+2.0–7.8% of failures per cell. Hindi targets fire 0%: Hindi writes postpositions as separate
+words, so nothing attaches to the term. Known gap: multi-word terms (जीवाश्म ईंधन) can never
+match a single word in this module.
+
 ### T-605 — Integrated Gradients module
 Captum IG against a **[PAD]-embedding baseline** (revised 2026-10-06, was zero-embedding);
 compare salience across the parallel pair; flag divergence.
@@ -197,6 +214,18 @@ languages; the candidate threshold is that null's 95th percentile (a ~5% false-p
 fixed in advance). If failures exceed it at about the null's own rate, the module detects
 nothing beyond chance, and that is reported as the result. The chosen value is applied with
 `scripts.t601_rethreshold` and recorded here.
+
+**Threshold set, 2026-10-11.** Per cell, at the null's 95th percentile
+(`saliency.DIVERGENCE_THRESHOLD_BY_TASK_ENCODER`; reports/saliency_baseline.md): task 2
+IndicBERT-v2 0.038, task 2 mBERT 0.047, task 3 IndicBERT-v2 0.085, task 3 mBERT 0.078;
+fallback 0.065 (pooled null). Per cell because the null's spread differs by cell, and one
+value would hold each cell to a different false-positive rate. **Result: divergence does not
+separate failures from correct pairs** — failure-vs-null AUC 0.48–0.52, and failures exceed
+the thresholds at 3.7–8.7% (bootstrap 95% CIs mostly spanning the null's own 5%).
+`terminology_gap` now fires on 1.1–2.2% of failures, at about the chance rate; its labels
+are not evidence of a terminology gap, and Phase 7 must report the module as null.
+Convergence after the 800-step re-run: task 2 mBERT 14.3% → 2.1% unconverged; task 3
+IndicBERT-v2 17.9% → 8.2%, still above the 5% limit and reported as such.
 
 ### T-606 — Multi-fire audit trail
 Record every module that fired per instance, not just the winner.

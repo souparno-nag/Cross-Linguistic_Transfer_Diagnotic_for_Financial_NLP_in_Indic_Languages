@@ -1,6 +1,9 @@
 """Re-apply a saliency-divergence threshold to saved diagnostics, offline.
 
-    python -m scripts.t601_rethreshold --saliency-threshold 0.05 [--task 2 --task 3] [--encoder ...]
+    python -m scripts.t601_rethreshold [--saliency-threshold X] [--task 2 --task 3] [--encoder ...]
+
+Without --saliency-threshold each cell gets its own value from
+`saliency.threshold_for(encoder, task)` (the null-derived thresholds).
 
 Changing `saliency.DEFAULT_DIVERGENCE_THRESHOLD` after the T-605 inspection should not
 cost a GPU re-run: every audit row stores the divergence it was judged on. This re-derives
@@ -85,14 +88,16 @@ def rethreshold(audit: pd.DataFrame, labels: pd.DataFrame, threshold: float):
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--saliency-threshold", type=float, required=True)
+    parser.add_argument("--saliency-threshold", type=float, default=None,
+                        help="one value for every cell; default: each cell's own, saliency.threshold_for")
     parser.add_argument("--task", type=int, action="append")
     parser.add_argument("--encoder", action="append")
     args = parser.parse_args(argv)
     tasks = args.task or [2, 3]
     encoders = args.encoder or [DEFAULT_ENCODER, "mbert-base"]
 
-    log: dict = {"saliency_threshold": args.saliency_threshold, "conditions": {}}
+    log: dict = {"saliency_threshold": args.saliency_threshold if args.saliency_threshold is not None
+                 else "per cell (saliency.threshold_for)", "cells": {}, "conditions": {}}
     for encoder in encoders:
         enc = path_encoder(encoder)
         for task in tasks:
@@ -101,7 +106,10 @@ def main(argv: list[str] | None = None) -> int:
                 cond = path.stem
                 audit = pd.read_parquet(audit_path(task, cond, encoder=enc))
                 labels = pd.read_parquet(diagnostics_path(task, cond, encoder=enc))
-                new_audit, new_labels, stats = rethreshold(audit, labels, args.saliency_threshold)
+                threshold = (args.saliency_threshold if args.saliency_threshold is not None
+                             else saliency.threshold_for(encoder, task))
+                log["cells"][f"task_{task}/{encoder}"] = threshold
+                new_audit, new_labels, stats = rethreshold(audit, labels, threshold)
                 write_diagnostics(task, cond, new_labels, new_audit, encoder=enc)
                 log["conditions"][f"task_{task}/{encoder}/{cond}"] = stats
                 print(f"task_{task} {encoder} {cond}: {stats}")
