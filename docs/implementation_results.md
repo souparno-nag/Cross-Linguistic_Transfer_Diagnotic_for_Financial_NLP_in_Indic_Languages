@@ -241,16 +241,24 @@ Two things remain open and constitute the bulk of the pending work:
   `|delta| / |F(x) - F(baseline)|`; above 5% (`DEFAULT_CONVERGENCE_TOL`, a conventional
   judgement) the instance is `not_converged`, never fires, and the error is recorded in
   the audit as `saliency_convergence_error`.
-- **Still open:** the divergence threshold (0.3) is a placeholder and has not been
-  inspected on real salience distributions; T-608 spot-check not filled in.
-- **Observation for the spot-check, not a conclusion:** on the one diagnosed condition
-  (task 2, Hindi to Bengali) morphological masking fires on 62% of failures (678/1094
-  and 849/1423), while fragmentation and terminology-gap fire on none. That is the
-  pattern a loose fuzzy match would produce, so the spot-check should look at it
-  specifically before any other condition is run.
-- **Other conditions:** `scripts/t601_diagnostics.py` now covers all tasks, source blocks
-  and encoders (resumable, no silent CPU fallback, encoder-namespaced output). Not yet
-  run on anything but Hindi to Bengali.
+- **Divergence threshold:** set per cell (task 2 IndicBERT-v2 0.038, task 2 mBERT 0.047,
+  task 3 IndicBERT-v2 0.085, task 3 mBERT 0.078) at the 95th percentile of divergence on
+  pairs the model classified correctly in both languages (`scripts/t605_baseline.py`).
+- **Morphology match rule:** the edit-distance-2 fuzzy match produced 96% false hits
+  ("water" matching ordinary two-letter stems). It was replaced by `stem_matches`, which
+  accepts only an exact stem, a dropped final codepoint or one added vowel sign.
+  Morphological masking fell from 10,642 to 2,484 labels (2.0–7.8% of failures per cell).
+- **Label status (decided 12 Oct 2026):** `morphological_masking` and `terminology_gap`
+  are causal labels. A failure on which either fires is attributed to that cause. Their
+  validation is reported beside them as a limitation. A masked term does not raise the
+  failure rate (worse than an intact term in 20 of 44 conditions;
+  `reports/morphology_null.md`), and salience divergence does not separate failures
+  from correct pairs (AUC 0.48–0.52; `reports/saliency_baseline.md`).
+- **Still open:** T-608 spot-check not filled in; task 3 IndicBERT-v2 IG is 8.2%
+  unconverged, above the 5% limit.
+- **Other conditions:** `scripts/t601_diagnostics.py` covers all tasks, source blocks
+  and encoders (resumable, no silent CPU fallback, encoder-namespaced output). Run on
+  tasks 2 and 3 for IndicBERT-v2 and mBERT.
 
 ## H. Engineering Constraints Common to All Phases
 

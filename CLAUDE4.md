@@ -92,6 +92,28 @@ Why, in short (evidence and tables: `reports/digit_audit.md`, reproducible with
 - Knock-on for T-113/Phase 7: native Bengali and MT Bengali differ in digit system as
   well as provenance; any `B_nat` vs `Bn←H/T` comparison should say so.
 
+**`morphological_masking` and `terminology_gap` are causal labels** (decided 2026-10-12).
+This build is a demonstration of the diagnostic pipeline, so every module in `PRECEDENCE`
+assigns a cause: a failure on which either module fires is attributed to that cause, by the
+same precedence as drift and fragmentation, and Phase 7 counts and reports them as causes,
+not as descriptive tags.
+
+The validation results stay on the record, and every place the two labels are reported must
+carry them as a limitation:
+
+- **Morphological masking:** a masked term does not raise the failure rate. Masked vs intact
+  term within condition, the masked item fails more often in 20 of 44 cells
+  (reports/morphology_null.md).
+- **Terminology gap:** salience divergence does not separate failures from correctly handled
+  pairs (AUC 0.48–0.52), and the label fires at about the 5% false-positive rate its
+  threshold was set to (reports/saliency_baseline.md).
+
+In short: each label means "this module's criterion was met on this failure", which the
+pipeline treats as the attributed cause. The module-level evidence that the criterion
+predicts failure is, so far, absent. The orthographic module was excluded on similar
+evidence; the difference is that these two are kept for the demonstration, and the choice
+is stated rather than implied.
+
 ---
 
 ## Modules
@@ -175,10 +197,10 @@ reads only the target sentence, so it can be run on every prediction, not just f
 correct source prediction, the failure rate when a lexicon term is masked vs present intact
 vs absent: task 2 IndicBERT-v2 37.2% / 37.4% / 39.1%; task 2 mBERT 16.6% / 17.7% / 20.2%;
 task 3 IndicBERT-v2 78.3% / 76.7% / 76.1%; task 3 mBERT 58.0% / 59.8% / 59.4%. Matched within
-condition, masked fails more often than intact in only 20 of 44 cells. So
-`morphological_masking` records *where inflection occurs* in the target, not why the model
-failed; like `terminology_gap`, it fires at its base rate, and Phase 7 must report it as a
-descriptive tag with no causal weight. Nothing was tuned in response (hard rule 3).
+condition, masked fails more often than intact in only 20 of 44 cells: the module does not
+yet separate failures from successes. It stays a **causal label** regardless (Scope
+decisions, 2026-10-12); this result is the stated limitation that goes with it. Nothing
+was tuned in response (hard rule 3).
 
 ### T-605 — Integrated Gradients module
 Captum IG against a **[PAD]-embedding baseline** (revised 2026-10-06, was zero-embedding);
@@ -233,8 +255,9 @@ fallback 0.065 (pooled null). Per cell because the null's spread differs by cell
 value would hold each cell to a different false-positive rate. **Result: divergence does not
 separate failures from correct pairs** — failure-vs-null AUC 0.48–0.52, and failures exceed
 the thresholds at 3.7–8.7% (bootstrap 95% CIs mostly spanning the null's own 5%).
-`terminology_gap` now fires on 1.1–2.2% of failures, at about the chance rate; its labels
-are not evidence of a terminology gap, and Phase 7 must report the module as null.
+`terminology_gap` now fires on 1.1–2.2% of failures, at about the chance rate. It stays a
+**causal label** regardless (Scope decisions, 2026-10-12); this result is the stated
+limitation that goes with it.
 Convergence after the 800-step re-run: task 2 mBERT 14.3% → 2.1% unconverged; task 3
 IndicBERT-v2 17.9% → 8.2%, still above the 5% limit and reported as such.
 

@@ -37,4 +37,4 @@ Segmentation rung: {'hin': 'library', 'ben': 'library', 'tel': 'library', 'mal':
 |      3 | tel        | masked  |       0.649 |   325 |
 |      3 | tel        | none    |       0.69  |  3790 |
 
-If `masked` fails no more often than `intact`, a masked term does not make failure more likely, and a `morphological_masking` label records where inflection occurs, not why the model failed.
+If `masked` fails no more often than `intact`, a masked term does not make failure more likely. `morphological_masking` is still assigned as a causal label (CLAUDE4.md Scope decisions, 2026-10-12); this table is the limitation reported beside it.

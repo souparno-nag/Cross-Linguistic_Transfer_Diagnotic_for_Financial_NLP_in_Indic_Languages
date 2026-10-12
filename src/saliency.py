@@ -71,8 +71,9 @@ def n_steps_for(encoder_id: str, task: int | None = None) -> int:
 #
 # Read the result with the finding beside it: failures exceed these values at
 # 3.7-8.7%, and failure-vs-null AUC is 0.48-0.52 — divergence does not separate
-# failures from correct pairs. `terminology_gap` therefore fires at about the
-# chance rate, and its labels are not evidence of a terminology gap.
+# failures from correct pairs, so `terminology_gap` fires at about the chance rate.
+# It is still assigned as a causal label (CLAUDE4.md Scope decisions, 2026-10-12),
+# with this result reported beside it as a limitation.
 DIVERGENCE_THRESHOLD_BY_TASK_ENCODER = {
     (2, "indicbert-v2"): 0.038,
     (2, "mbert-base"): 0.047,

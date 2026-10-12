@@ -169,9 +169,9 @@ def report(tasks, encoders) -> None:
                          + " | ".join(f"{conv.quantile(q):+.3f}" for q in qs)
                          + f" | {len(fail)} | {share:.1%} |")
     lines += ["", "If failures sit above the candidate at roughly the null's own ~5%, divergence does not "
-              "separate failures from correct pairs, and the honest outcome is that the terminology-gap "
-              "module detects nothing beyond chance, reported as such rather than rescued by moving the "
-              "threshold.", ""]
+              "separate failures from correct pairs. The threshold is not moved to rescue it (hard rule 3). "
+              "`terminology_gap` is still assigned as a causal label (CLAUDE4.md Scope decisions, "
+              "2026-10-12), with this result reported beside it as a limitation.", ""]
     REPORT.write_text("\n".join(lines))
     print(f"wrote {REPORT}")
 

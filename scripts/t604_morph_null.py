@@ -142,8 +142,9 @@ def main(argv: list[str] | None = None) -> int:
              summary.round(3).to_markdown(index=False), "",
              "## By target language", "",
              by_lang.round(3).to_markdown(index=False), "",
-             "If `masked` fails no more often than `intact`, a masked term does not make failure more likely, "
-             "and a `morphological_masking` label records where inflection occurs, not why the model failed.", ""]
+             "If `masked` fails no more often than `intact`, a masked term does not make failure more likely. "
+             "`morphological_masking` is still assigned as a causal label (CLAUDE4.md Scope decisions, "
+             "2026-10-12); this table is the limitation reported beside it.", ""]
     REPORT.write_text("\n".join(lines))
     print(summary.round(3).to_string(index=False))
     print(f"wrote {REPORT}")
