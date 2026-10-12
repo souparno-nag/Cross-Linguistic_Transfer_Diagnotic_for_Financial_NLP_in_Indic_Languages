@@ -205,3 +205,30 @@ def test_saliency_thresholds_are_per_cell_with_a_pooled_fallback():
     assert SAL.threshold_for("indicbert-v2", 2) == 0.038
     assert SAL.threshold_for("mbert-base", 3) == 0.078
     assert SAL.threshold_for("xlm-r-base", 2) == SAL.DEFAULT_DIVERGENCE_THRESHOLD == 0.065
+
+
+from scripts import t604_morph_null as MNULL  # noqa: E402
+
+
+def test_morph_null_groups_masked_intact_and_none():
+    concepts = [{"id": "r", "tel": "వనరు"}]
+    a = MORPH.MorphAnalyzer("tel")
+    assert MNULL.term_group(a, "వనరుకు కొరత.", concepts) == "masked"
+    assert MNULL.term_group(a, "వనరు తగ్గింది.", concepts) == "intact"
+    assert MNULL.term_group(a, "మార్కెట్ పెరిగింది.", concepts) == "none"
+
+
+def test_morph_null_summary_matches_within_condition():
+    rows = pd.DataFrame({
+        "task": 2, "encoder": "e",
+        "condition_id": ["a"] * 4 + ["b"] * 4,
+        "group": ["masked", "masked", "intact", "intact", "masked", "intact", "intact", "none"],
+        "failed": [True, False, False, False, True, True, False, True],
+    })
+    s = MNULL.summarise(rows).iloc[0]
+    assert s["masked_n"] == 3 and s["masked_fail"] == pytest.approx(2 / 3)
+    assert s["intact_n"] == 4 and s["intact_fail"] == pytest.approx(1 / 4)
+    # a: masked 0.5 vs intact 0.0 (weight 2); b: 1.0 vs 0.5 (weight 1)
+    assert s["matched_masked_fail"] == pytest.approx((0.5 * 2 + 1.0) / 3)
+    assert s["matched_intact_fail"] == pytest.approx((0.0 * 2 + 0.5) / 3)
+    assert s["cells_masked_worse"] == "2/2"

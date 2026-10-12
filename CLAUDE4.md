@@ -169,6 +169,17 @@ for all four languages (`scripts.t604_remorph`): morphological masking 10,642 �
 words, so nothing attaches to the term. Known gap: multi-word terms (जीवाश्म ईंधन) can never
 match a single word in this module.
 
+**Validity check, 2026-10-12: a masked term does not make failure more likely.** The module
+reads only the target sentence, so it can be run on every prediction, not just failures
+(`scripts.t604_morph_null`, reports/morphology_null.md). Over every (item, seed) with a
+correct source prediction, the failure rate when a lexicon term is masked vs present intact
+vs absent: task 2 IndicBERT-v2 37.2% / 37.4% / 39.1%; task 2 mBERT 16.6% / 17.7% / 20.2%;
+task 3 IndicBERT-v2 78.3% / 76.7% / 76.1%; task 3 mBERT 58.0% / 59.8% / 59.4%. Matched within
+condition, masked fails more often than intact in only 20 of 44 cells. So
+`morphological_masking` records *where inflection occurs* in the target, not why the model
+failed; like `terminology_gap`, it fires at its base rate, and Phase 7 must report it as a
+descriptive tag with no causal weight. Nothing was tuned in response (hard rule 3).
+
 ### T-605 — Integrated Gradients module
 Captum IG against a **[PAD]-embedding baseline** (revised 2026-10-06, was zero-embedding);
 compare salience across the parallel pair; flag divergence.
@@ -226,6 +237,16 @@ the thresholds at 3.7–8.7% (bootstrap 95% CIs mostly spanning the null's own 5
 are not evidence of a terminology gap, and Phase 7 must report the module as null.
 Convergence after the 800-step re-run: task 2 mBERT 14.3% → 2.1% unconverged; task 3
 IndicBERT-v2 17.9% → 8.2%, still above the 5% limit and reported as such.
+
+**Re-checked against the GPU run logs, 2026-10-12; thresholds unchanged.** The baseline
+completed for all four cells (the 2026-10-09 attempt died on a CUDA launch failure and was
+re-run on 2026-10-10). Recomputed from the saved rows: each set value equals its cell's null
+q95 (bootstrap 95% CIs: 0.032–0.052, 0.038–0.057, 0.066–0.094, 0.066–0.093); AUC 0.50 / 0.52 /
+0.52 / 0.48, condition-matched 0.49 / 0.52 / 0.52 / 0.47. Task 3's null rests on only 75–78
+distinct items (few headlines carry a lexicon term in both languages), so its threshold is
+the least precise. The transformers "incorrect regex pattern … fix_mistral_regex" warning
+in the logs is cosmetic in 4.57.6: no pre-tokenizer change is applied unless the flag is
+passed, so tokenization matches training.
 
 ### T-606 — Multi-fire audit trail
 Record every module that fired per instance, not just the winner.
