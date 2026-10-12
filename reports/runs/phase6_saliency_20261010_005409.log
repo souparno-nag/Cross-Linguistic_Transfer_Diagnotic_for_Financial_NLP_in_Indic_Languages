@@ -1,0 +1,8 @@
+Phase 6 saliency follow-up, 20261010_005409, from 1ce8006 on souparno-Dell-G15-5520
+device: NVIDIA GeForce RTX 3050 Laptop GPU
+ok    resaliency_task3_indicbert
+ok    resaliency_task2_mbert
+ok    baseline
+ok    report
+
+task_2 / mbert-base: 71/3303 IG-evaluated rows unconverged (2.1%); limit 5% -> within

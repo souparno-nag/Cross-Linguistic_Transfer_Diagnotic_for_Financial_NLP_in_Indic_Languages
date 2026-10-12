@@ -1,0 +1,60 @@
+The tokenizer you are loading from 'bert-base-multilingual-cased' with an incorrect regex pattern: https://huggingface.co/mistralai/Mistral-Small-3.1-24B-Instruct-2503/discussions/84#69121093e8b480e709447d5e. This will lead to incorrect tokenization. You should set the `fix_mistral_regex=True` flag when loading this tokenizer to fix this issue.
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/souparno/Projects/Cross-Linguistic_Transfer_Diagnotic_for_Financial_NLP_in_Indic_Languages/scripts/t605_resaliency.py", line 151, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/home/souparno/Projects/Cross-Linguistic_Transfer_Diagnotic_for_Financial_NLP_in_Indic_Languages/scripts/t605_resaliency.py", line 119, in main
+    result = saliency.diagnose_instance(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/souparno/Projects/Cross-Linguistic_Transfer_Diagnotic_for_Financial_NLP_in_Indic_Languages/src/saliency.py", line 254, in diagnose_instance
+    src_salience, src_offsets, src_delta = compute_salience(
+                                           ^^^^^^^^^^^^^^^^^
+  File "/home/souparno/Projects/Cross-Linguistic_Transfer_Diagnotic_for_Financial_NLP_in_Indic_Languages/src/saliency.py", line 201, in compute_salience
+    attributions, delta = ig.attribute(
+                          ^^^^^^^^^^^^^
+  File "/home/souparno/Projects/Cross-Linguistic_Transfer_Diagnotic_for_Financial_NLP_in_Indic_Languages/env/lib/python3.11/site-packages/captum/log/dummy_log.py", line 54, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/souparno/Projects/Cross-Linguistic_Transfer_Diagnotic_for_Financial_NLP_in_Indic_Languages/env/lib/python3.11/site-packages/captum/attr/_core/integrated_gradients.py", line 273, in attribute
+    attributions = _batch_attribution(
+                   ^^^^^^^^^^^^^^^^^^^
+  File "/home/souparno/Projects/Cross-Linguistic_Transfer_Diagnotic_for_Financial_NLP_in_Indic_Languages/env/lib/python3.11/site-packages/captum/attr/_utils/batching.py", line 86, in _batch_attribution
+    current_attr = attr_method._attribute(
+                   ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/souparno/Projects/Cross-Linguistic_Transfer_Diagnotic_for_Financial_NLP_in_Indic_Languages/env/lib/python3.11/site-packages/captum/attr/_core/integrated_gradients.py", line 366, in _attribute
+    grads = self.gradient_func(
+            ^^^^^^^^^^^^^^^^^^^
+  File "/home/souparno/Projects/Cross-Linguistic_Transfer_Diagnotic_for_Financial_NLP_in_Indic_Languages/env/lib/python3.11/site-packages/captum/_utils/gradient.py", line 128, in compute_gradients
+    outputs = _run_forward(forward_fn, inputs, target_ind, additional_forward_args)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/souparno/Projects/Cross-Linguistic_Transfer_Diagnotic_for_Financial_NLP_in_Indic_Languages/env/lib/python3.11/site-packages/captum/_utils/common.py", line 599, in _run_forward
+    output = forward_func(
+             ^^^^^^^^^^^^^
+  File "/home/souparno/Projects/Cross-Linguistic_Transfer_Diagnotic_for_Financial_NLP_in_Indic_Languages/src/saliency.py", line 197, in forward_fn
+    out = model.encoder(inputs_embeds=embeds, attention_mask=mask)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/souparno/Projects/Cross-Linguistic_Transfer_Diagnotic_for_Financial_NLP_in_Indic_Languages/env/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1783, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/souparno/Projects/Cross-Linguistic_Transfer_Diagnotic_for_Financial_NLP_in_Indic_Languages/env/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1794, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/souparno/Projects/Cross-Linguistic_Transfer_Diagnotic_for_Financial_NLP_in_Indic_Languages/env/lib/python3.11/site-packages/transformers/models/bert/modeling_bert.py", line 966, in forward
+    extended_attention_mask = _prepare_4d_attention_mask_for_sdpa(
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/souparno/Projects/Cross-Linguistic_Transfer_Diagnotic_for_Financial_NLP_in_Indic_Languages/env/lib/python3.11/site-packages/transformers/modeling_attn_mask_utils.py", line 454, in _prepare_4d_attention_mask_for_sdpa
+    if not is_tracing and torch.all(mask == 1):
+torch.AcceleratorError: CUDA error: unspecified launch failure
+Search for `cudaErrorLaunchFailure' in https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__TYPES.html for more information.
+CUDA kernel errors might be asynchronously reported at some other API call, so the stacktrace below might be incorrect.
+For debugging consider passing CUDA_LAUNCH_BLOCKING=1
+The CUDA driver logged these messages, which may provide useful details:
+Returning 719 (CUDA_ERROR_LAUNCH_FAILED) from cuStreamSynchronize
+
+
+task_2 / mbert-base: target 800 steps; 471 rows in 7 conditions to redo
+transfer_ben_to_hin: redid 61; not_converged 61 -> 5 of 135
+transfer_ben_to_hin_mt: redid 91; not_converged 91 -> 12 of 210
+transfer_ben_to_mal: redid 74; not_converged 74 -> 15 of 170
