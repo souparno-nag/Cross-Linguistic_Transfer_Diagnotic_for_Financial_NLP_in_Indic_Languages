@@ -1,0 +1,40 @@
+The tokenizer you are loading from 'ai4bharat/indic-bert' with an incorrect regex pattern: https://huggingface.co/mistralai/Mistral-Small-3.1-24B-Instruct-2503/discussions/84#69121093e8b480e709447d5e. This will lead to incorrect tokenization. You should set the `fix_mistral_regex=True` flag when loading this tokenizer to fix this issue.
+task_3 / indicbert-v2: target 800 steps; 239 rows in 17 conditions to redo
+transfer_ben_to_hin: redid 9; not_converged 9 -> 3 of 119
+transfer_ben_to_hin_mt: redid 10; not_converged 10 -> 5 of 137
+transfer_ben_to_mal: redid 6; not_converged 6 -> 1 of 69
+transfer_ben_to_mal_mt: redid 6; not_converged 6 -> 0 of 82
+transfer_ben_to_tel: redid 4; not_converged 4 -> 1 of 35
+transfer_ben_to_tel_mt: redid 4; not_converged 4 -> 0 of 42
+transfer_hin_to_ben: redid 49; not_converged 49 -> 27 of 161
+transfer_hin_to_ben_mt: redid 50; not_converged 50 -> 24 of 185
+transfer_hin_to_mal: redid 34; not_converged 34 -> 17 of 109
+transfer_hin_to_mal_mt: redid 27; not_converged 27 -> 15 of 122
+transfer_hin_to_tel: redid 17; not_converged 17 -> 6 of 56
+transfer_hin_to_tel_mt: redid 16; not_converged 16 -> 10 of 48
+transfer_tel_to_ben: redid 1; not_converged 1 -> 0 of 32
+transfer_tel_to_ben_mt: redid 2; not_converged 2 -> 0 of 29
+transfer_tel_to_hin_mt: redid 1; not_converged 1 -> 0 of 30
+transfer_tel_to_mal: redid 2; not_converged 2 -> 0 of 19
+transfer_tel_to_mal_mt: redid 1; not_converged 1 -> 0 of 29
+
+             condition  redone  evaluated  not_converged_before  not_converged_after
+   transfer_ben_to_hin       9        119                     9                    3
+transfer_ben_to_hin_mt      10        137                    10                    5
+   transfer_ben_to_mal       6         69                     6                    1
+transfer_ben_to_mal_mt       6         82                     6                    0
+   transfer_ben_to_tel       4         35                     4                    1
+transfer_ben_to_tel_mt       4         42                     4                    0
+   transfer_hin_to_ben      49        161                    49                   27
+transfer_hin_to_ben_mt      50        185                    50                   24
+   transfer_hin_to_mal      34        109                    34                   17
+transfer_hin_to_mal_mt      27        122                    27                   15
+   transfer_hin_to_tel      17         56                    17                    6
+transfer_hin_to_tel_mt      16         48                    16                   10
+   transfer_tel_to_ben       1         32                     1                    0
+transfer_tel_to_ben_mt       2         29                     2                    0
+transfer_tel_to_hin_mt       1         30                     1                    0
+   transfer_tel_to_mal       2         19                     2                    0
+transfer_tel_to_mal_mt       1         29                     1                    0
+
+task_3 / indicbert-v2: 109/1333 IG-evaluated rows unconverged (8.2%); limit 5% -> ABOVE

@@ -1,0 +1,7 @@
+Phase 6 saliency follow-up, 20261009_224052, from 13205dc on souparno-Dell-G15-5520
+ok    resaliency_task3_indicbert
+FAIL  resaliency_task2_mbert
+FAIL  baseline
+ok    report
+
+task_3 / indicbert-v2: 109/1333 IG-evaluated rows unconverged (8.2%); limit 5% -> ABOVE

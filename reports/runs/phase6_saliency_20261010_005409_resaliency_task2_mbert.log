@@ -1,0 +1,14 @@
+The tokenizer you are loading from 'bert-base-multilingual-cased' with an incorrect regex pattern: https://huggingface.co/mistralai/Mistral-Small-3.1-24B-Instruct-2503/discussions/84#69121093e8b480e709447d5e. This will lead to incorrect tokenization. You should set the `fix_mistral_regex=True` flag when loading this tokenizer to fix this issue.
+task_2 / mbert-base: target 800 steps; 245 rows in 4 conditions to redo
+transfer_ben_to_mal_mt: redid 101; not_converged 101 -> 19 of 225
+transfer_ben_to_tel: redid 59; not_converged 59 -> 9 of 123
+transfer_ben_to_tel_mt: redid 84; not_converged 84 -> 11 of 181
+transfer_tel_to_hin_mt: redid 1; not_converged 1 -> 0 of 229
+
+             condition  redone  evaluated  not_converged_before  not_converged_after
+transfer_ben_to_mal_mt     101        225                   101                   19
+   transfer_ben_to_tel      59        123                    59                    9
+transfer_ben_to_tel_mt      84        181                    84                   11
+transfer_tel_to_hin_mt       1        229                     1                    0
+
+task_2 / mbert-base: 71/3303 IG-evaluated rows unconverged (2.1%); limit 5% -> within

@@ -1,0 +1,39 @@
+The tokenizer you are loading from 'ai4bharat/indic-bert' with an incorrect regex pattern: https://huggingface.co/mistralai/Mistral-Small-3.1-24B-Instruct-2503/discussions/84#69121093e8b480e709447d5e. This will lead to incorrect tokenization. You should set the `fix_mistral_regex=True` flag when loading this tokenizer to fix this issue.
+/home/souparno/Projects/Cross-Linguistic_Transfer_Diagnotic_for_Financial_NLP_in_Indic_Languages/env/lib/python3.11/site-packages/torch/cuda/__init__.py:228: UserWarning: CUDA initialization: CUDA unknown error - this may be due to an incorrectly set up environment, e.g. changing env variable CUDA_VISIBLE_DEVICES after program start. Setting the available devices to be zero. (Triggered internally at /__w/pytorch/pytorch/c10/cuda/CUDAFunctions.cpp:119.)
+  return torch._C._cuda_getDeviceCount() > 0
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/souparno/Projects/Cross-Linguistic_Transfer_Diagnotic_for_Financial_NLP_in_Indic_Languages/scripts/t605_baseline.py", line 201, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/home/souparno/Projects/Cross-Linguistic_Transfer_Diagnotic_for_Financial_NLP_in_Indic_Languages/scripts/t605_baseline.py", line 195, in main
+    run(task, encoder, args.per_condition, args.seed, device)
+  File "/home/souparno/Projects/Cross-Linguistic_Transfer_Diagnotic_for_Financial_NLP_in_Indic_Languages/scripts/t605_baseline.py", line 113, in run
+    loaded, loaded_run = load_frozen_model(r.tgt_run_id, device=device), r.tgt_run_id
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/souparno/Projects/Cross-Linguistic_Transfer_Diagnotic_for_Financial_NLP_in_Indic_Languages/src/inference.py", line 75, in load_frozen_model
+    model = build_model(tcfg, device)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/souparno/Projects/Cross-Linguistic_Transfer_Diagnotic_for_Financial_NLP_in_Indic_Languages/src/train.py", line 131, in build_model
+    return model.to(device)
+           ^^^^^^^^^^^^^^^^
+  File "/home/souparno/Projects/Cross-Linguistic_Transfer_Diagnotic_for_Financial_NLP_in_Indic_Languages/env/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1388, in to
+    return self._apply(convert)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/souparno/Projects/Cross-Linguistic_Transfer_Diagnotic_for_Financial_NLP_in_Indic_Languages/env/lib/python3.11/site-packages/torch/nn/modules/module.py", line 933, in _apply
+    module._apply(fn)
+  File "/home/souparno/Projects/Cross-Linguistic_Transfer_Diagnotic_for_Financial_NLP_in_Indic_Languages/env/lib/python3.11/site-packages/torch/nn/modules/module.py", line 933, in _apply
+    module._apply(fn)
+  File "/home/souparno/Projects/Cross-Linguistic_Transfer_Diagnotic_for_Financial_NLP_in_Indic_Languages/env/lib/python3.11/site-packages/torch/nn/modules/module.py", line 933, in _apply
+    module._apply(fn)
+  File "/home/souparno/Projects/Cross-Linguistic_Transfer_Diagnotic_for_Financial_NLP_in_Indic_Languages/env/lib/python3.11/site-packages/torch/nn/modules/module.py", line 966, in _apply
+    param_applied = fn(param)
+                    ^^^^^^^^^
+  File "/home/souparno/Projects/Cross-Linguistic_Transfer_Diagnotic_for_Financial_NLP_in_Indic_Languages/env/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1374, in convert
+    return t.to(
+           ^^^^^
+  File "/home/souparno/Projects/Cross-Linguistic_Transfer_Diagnotic_for_Financial_NLP_in_Indic_Languages/env/lib/python3.11/site-packages/torch/cuda/__init__.py", line 591, in _lazy_init
+    torch._C._cuda_init()
+RuntimeError: CUDA unknown error - this may be due to an incorrectly set up environment, e.g. changing env variable CUDA_VISIBLE_DEVICES after program start. Setting the available devices to be zero.
+=== task_2 / indicbert-v2
