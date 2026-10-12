@@ -192,8 +192,8 @@ def test_write_and_read_diagnostics_round_trip(tmp_path):
     labels = pd.DataFrame([{
         "condition_id": "c", "encoder_id": "indicbert-v2", "item_id": "i1",
         "block_id": "H", "src_lang": "hin", "tgt_lang": "tel",
-        "assigned_label": "unattributed", "modules_fired": [], "r_frag": None,
-        "labse_sim": 0.9, "seed": 0,
+        "assigned_label": "unattributed", "label_group": "unattributed", "modules_fired": [],
+        "r_frag": None, "labse_sim": 0.9, "seed": 0,
     }])
     audit = pd.DataFrame([{
         "condition_id": "c", "encoder_id": "indicbert-v2", "item_id": "i1",
@@ -203,7 +203,9 @@ def test_write_and_read_diagnostics_round_trip(tmp_path):
         "morph_status": "not_fired", "morph_evidence": None,
         "saliency_status": "unavailable", "saliency_divergence": None,
         "saliency_convergence_error": None, "saliency_n_steps": None,
-        "assigned_label": "unattributed", "modules_fired": [],
+        "provenance_status": "not_fired", "xling_status": "not_fired",
+        "collapse_status": "not_fired", "seed_status": "not_fired",
+        "assigned_label": "unattributed", "label_group": "unattributed", "modules_fired": [],
     }])
     label_path = D.diagnostics_path(1, "c", root=tmp_path / "diag")
     audit_path_ = D.audit_path(1, "c", root=tmp_path / "diag" / "audit")

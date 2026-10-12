@@ -43,6 +43,13 @@ Two stages, strictly ordered.
 **Stage 2 — linguistic attribution.** Only semantically equivalent pairs reach the four
 linguistic modules.
 
+**Stage 3 — data and model-behaviour attribution** (added 2026-10-12, `src/behaviour.py`).
+Gate-passed rows also run four modules that explain a failure by the item or the model
+rather than by the target sentence's language. They rank below every linguistic module, so
+they only claim what Stages 1–2 left unattributed. They need every condition of a
+(task, encoder) cell at once, so they run per cell after Stage 1–2
+(`scripts/t609_behaviour.py`, called automatically at the end of `t601_diagnostics`).
+
 The ordering is the whole point. If the linguistic modules ran first, noise from your own
 machine translation would be misattributed to tokenization or morphology and the
 diagnosis would be unsound. Never reorder these stages.
@@ -58,8 +65,26 @@ precedence:
 3. orthographic_numeral_mismatch
 4. morphological_masking
 5. terminology_gap            (saliency divergence)
-6. unattributed               (nothing fired)
+6. provenance_specific        (Stage 3, data)
+7. cross_lingual_hard         (Stage 3, data)
+8. class_collapse             (Stage 3, model)
+9. seed_unstable              (Stage 3, model)
+10. unattributed              (nothing fired)
 ```
+
+Rung 3 (orthographic) is excluded in this build; see Scope decisions.
+
+### Hierarchical labels
+
+Every label also carries a level-1 `label_group`, always derived from the level-2
+`assigned_label` (never decided separately, so the two cannot disagree):
+
+| `label_group` | `assigned_label` |
+|---|---|
+| `linguistic` | translation_drift, tokenizer_fragmentation, morphological_masking, terminology_gap |
+| `data` | provenance_specific, cross_lingual_hard |
+| `model` | class_collapse, seed_unstable |
+| `unattributed` | unattributed |
 
 `unattributed` is a legitimate outcome and must be reported, not hidden. A pipeline that
 labels 100% of failures is suspicious.
@@ -114,6 +139,32 @@ predicts failure is, so far, absent. The orthographic module was excluded on sim
 evidence; the difference is that these two are kept for the demonstration, and the choice
 is stated rather than implied.
 
+**Stage 3 categories added, 2026-10-12** (`src/behaviour.py`; see Architecture). Purpose:
+give failures that no linguistic module explains a reason, including reasons about the
+model rather than the language. Four were chosen from seven candidates estimated on the
+saved logs. `low_margin` and `fragile_source` were dropped as generic and overlapping, and
+`corpus_flag` because it reached ~0.1% of failures. The cutoffs (75% one-class share; all 3
+target languages; any other seed) were fixed before the first run and must not be moved to
+change the distribution (hard rule 3). 75% sits well above the largest gold class share (task
+2: 55%). Each label is a fact read off the prediction logs, so no null check is needed.
+They are also generic: `seed_unstable` in particular says only that training randomness
+decided the item. They are kept so that every failure has a reason, not because each is
+equally informative.
+
+First run (CPU, 2026-10-12), share of failures:
+
+| | T2 IndicBERT-v2 | T2 mBERT | T3 IndicBERT-v2 | T3 mBERT |
+|---|---|---|---|---|
+| linguistic | 12.0% | 11.3% | 8.8% | 9.4% |
+| data | 44.6% | 48.3% | 72.2% | 64.9% |
+| model | 34.2% | 20.8% | 7.1% | 11.2% |
+| **unattributed** | **9.2%** | **19.7%** | **11.8%** | **14.4%** (was 88.0–91.2%) |
+
+Within these, `cross_lingual_hard` is the largest label everywhere (26.0–62.5%).
+`class_collapse` is 27.3% of task-2 IndicBERT-v2 failures and 0% for mBERT: those runs predict
+one class on 69–92% of target rows against a 55/45 gold split, which is a training-quality
+issue in its own right. No Stage 1–2 label changed.
+
 ---
 
 ## Modules
@@ -125,6 +176,10 @@ is stated rather than implied.
 | Orthographic / numeral | digit-system or currency mismatch | `orthographic_numeral_mismatch` |
 | Morphological masking | bound morphology masks the root financial noun | `morphological_masking` |
 | Integrated Gradients (Eq. 6) | salience diverges across the parallel pair | `terminology_gap` |
+| Provenance (Stage 3) | the same (item, seed) is right in the twin condition (native vs MT target, same language and source) | `provenance_specific` |
+| Cross-lingual (Stage 3) | the same (item, seed), same training source, fails in all 3 target languages | `cross_lingual_hard` |
+| Class collapse (Stage 3) | the run predicts one class on ≥ 75% of the condition's target rows, and this failure is that class | `class_collapse` |
+| Seed instability (Stage 3) | the same item is right on another seed of the same condition (that seed's source also right) | `seed_unstable` |
 
 `R_frag = |tokens(target)| / |tokens(source)|`, using **the encoder's own tokenizer**.
 
@@ -285,6 +340,13 @@ Purpose-built fixtures that trigger each module in isolation.
 thresholds **once**, with the change documented — not iterated until the numbers look
 good.
 
+### T-609 — Stage 3: data and model-behaviour modules
+`src/behaviour.py`, `scripts/t609_behaviour.py`. Four modules (see Modules), run per
+(task, encoder) cell on gate-passed rows, then labels and `label_group` re-resolved.
+Idempotent; CPU only.
+**Done:** ≥5 positive and ≥5 negative fixtures per module passing (`tests/test_behaviour.py`);
+applied to all four cells; no Stage 1–2 label changed. **Status: done 2026-10-12.**
+
 ---
 
 ## Outputs
@@ -296,7 +358,9 @@ good.
 | Spot-check results | `reports/spotcheck.md` |
 
 Label row columns: `condition_id, encoder_id, item_id, block_id, src_lang, tgt_lang,
-assigned_label, modules_fired, r_frag, labse_sim, seed`.
+assigned_label, label_group, modules_fired, r_frag, labse_sim, seed`. The audit adds
+`provenance_status, xling_status, collapse_status, seed_status` (`not_evaluated` on
+gate-fired rows).
 
 ---
 

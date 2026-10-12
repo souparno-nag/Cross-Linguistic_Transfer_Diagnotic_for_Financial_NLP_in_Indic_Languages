@@ -8,7 +8,8 @@ For every condition with a failures parquet on disk for the chosen encoder
 has no subdirectory), runs the two-stage router
 (`src.diagnostics.diagnose_condition`) and writes per-instance labels to
 `data/diagnostics/task_{n}/[{encoder}/]{condition}.parquet` and the full
-multi-fire trail to `data/diagnostics/audit/task_{n}/[{encoder}/]…`.
+multi-fire trail to `data/diagnostics/audit/task_{n}/[{encoder}/]…`. Once every
+condition of the cell has output, Stage 3 (`scripts.t609_behaviour`) is applied.
 
 Resumable: a condition whose label *and* audit files already exist is skipped
 (`--force` redoes it), so a run interrupted by the intermittent GPU (CLAUDE.md
@@ -109,6 +110,13 @@ def main(argv: list[str] | None = None) -> int:
     print()
     if summary:
         print(pd.DataFrame(summary).to_string(index=False))
+    # Stage 3 needs the whole cell (cross_lingual_hard compares target languages),
+    # so it runs once every condition of this task/encoder has output.
+    if summary and all(done(c["condition_id"]) for c in discover_conditions(args.task, encoder=enc)):
+        from scripts.t609_behaviour import run_cell  # noqa: PLC0415
+
+        cell = run_cell(args.task, args.encoder)
+        print(f"Stage 3 (data / model behaviour) applied: {cell['groups']}")
     return 0
 
 

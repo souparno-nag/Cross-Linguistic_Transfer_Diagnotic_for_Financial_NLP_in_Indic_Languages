@@ -24,7 +24,8 @@ import random
 import pandas as pd
 
 from src.corpus_io import read_split
-from src.diagnostics import audit_path, read_diagnostics
+from src import behaviour
+from src.diagnostics import audit_path, label_group, read_diagnostics
 from src.download_dataset.paths import REPO_ROOT
 from src.evaluate import _split_lang, load_matrix
 
@@ -39,7 +40,8 @@ def _cell(text) -> str:
 
 
 def _evidence_str(row) -> str:
-    parts = [f"label={row['assigned_label']}", f"labse_sim={row['labse_sim']:.3f}"]
+    parts = [f"label={row['assigned_label']}", f"group={label_group(row['assigned_label'])}",
+             f"labse_sim={row['labse_sim']:.3f}"]
     if pd.notna(row.get("r_frag")):
         parts.append(f"r_frag={row['r_frag']:.2f}")
     if row.get("morph_status") == "fired" and row.get("morph_evidence"):
@@ -47,6 +49,9 @@ def _evidence_str(row) -> str:
         parts.append(f"morph={ev.get('term')}+{ev.get('suffix')}")
     if row.get("saliency_status") == "fired" and pd.notna(row.get("saliency_divergence")):
         parts.append(f"saliency_div={row['saliency_divergence']:.2f}")
+    stage3 = [m for m in behaviour.MODULES if row.get(f"{m}_status") == "fired"]
+    if stage3:
+        parts.append("stage3=" + ",".join(stage3))
     return "; ".join(parts)
 
 
@@ -70,7 +75,8 @@ def main(argv: list[str] | None = None) -> int:
         labels = read_diagnostics(args.task, condition_id)
         audit = pd.read_parquet(audit_path(args.task, condition_id))
         merged = labels.merge(
-            audit[["item_id", "seed", "morph_status", "morph_evidence", "saliency_status", "saliency_divergence"]],
+            audit[["item_id", "seed", "morph_status", "morph_evidence", "saliency_status", "saliency_divergence",
+                   *behaviour.STATUS_COLUMNS]],
             on=["item_id", "seed"], how="left",
         )
         merged["_block_src"] = block_src
@@ -92,6 +98,11 @@ def main(argv: list[str] | None = None) -> int:
         "then report the agreement rate; if a systematic disagreement shows up, adjust **one** "
         "threshold once, document why, and stop -- do not iterate to a tidy number "
         "(CLAUDE4.md hard rule 3).",
+        "",
+        "Rows labelled in the `data` or `model` group (provenance_specific, cross_lingual_hard, "
+        "class_collapse, seed_unstable) are facts read off the prediction logs, not judgements about "
+        "the text. For those, the judge only checks that no linguistic cause is obvious in the "
+        "sentence pair (`n: <cause>` if one is).",
         "",
     ]
 

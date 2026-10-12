@@ -22,7 +22,7 @@ import argparse
 
 import pandas as pd
 
-from src import saliency
+from src import behaviour, saliency
 from src.corpus_io import read_split
 from src.data import DEFAULT_ENCODER
 from src.diagnostics import AUDIT_ROOT, DIAGNOSTICS_ROOT, path_encoder
@@ -56,7 +56,9 @@ def condition_table(audit: pd.DataFrame) -> pd.DataFrame:
                "unattributed_%": round(100 * (g["assigned_label"] == "unattributed").mean(), 1)}
         for label, share in g["assigned_label"].value_counts().items():
             row[label] = int(share)
-        for col in ("frag_status", "morph_status", "saliency_status"):
+        for group, share in g["label_group"].value_counts(normalize=True).items():
+            row[f"L1:{group}_%"] = round(100 * share, 1)
+        for col in ("frag_status", "morph_status", "saliency_status", *behaviour.STATUS_COLUMNS):
             for status, count in g[col].value_counts().items():
                 row[f"{col.split('_')[0]}:{status}"] = int(count)
         rows.append(row)
@@ -117,7 +119,12 @@ def main(argv: list[str] | None = None) -> int:
                 continue
             n = len(audit)
             un = (audit["assigned_label"] == "unattributed").mean()
-            out += [f"{n} instances; **unattributed {un:.1%}**.", "", _md(condition_table(audit)), ""]
+            groups = audit["label_group"].value_counts(normalize=True)
+            labels = audit["assigned_label"].value_counts(normalize=True)
+            out += [f"{n} instances; **unattributed {un:.1%}**.", "",
+                    "Level 1: " + ", ".join(f"{g} {v:.1%}" for g, v in groups.items()) + ".", "",
+                    "Level 2: " + ", ".join(f"{k} {v:.1%}" for k, v in labels.items()) + ".", "",
+                    _md(condition_table(audit)), ""]
             div = audit.loc[audit["saliency_status"].isin(["fired", "not_fired"]), "saliency_divergence"].dropna()
             if len(div):
                 out += ["Saliency divergence over converged, evaluated instances "

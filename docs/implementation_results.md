@@ -254,6 +254,16 @@ Two things remain open and constitute the bulk of the pending work:
   failure rate (worse than an intact term in 20 of 44 conditions;
   `reports/morphology_null.md`), and salience divergence does not separate failures
   from correct pairs (AUC 0.48–0.52; `reports/saliency_baseline.md`).
+- **Stage 3 and hierarchical labels (12 Oct 2026):** four data and model-behaviour
+  categories run after the linguistic modules and claim only what those leave
+  unattributed (`src/behaviour.py`, `scripts/t609_behaviour.py`). The data categories are
+  `provenance_specific` (right on the twin native/MT target) and `cross_lingual_hard`
+  (fails in all three target languages). The model categories are `class_collapse` (the
+  run predicts one class on at least 75% of rows) and `seed_unstable` (right on another
+  seed). Each label also carries a level-1 group: linguistic, data, model or unattributed.
+  Unattributed fell from 88–91% to 9.2% / 19.7% / 11.8% / 14.4% (task 2 IndicBERT-v2,
+  task 2 mBERT, task 3 IndicBERT-v2, task 3 mBERT). The linguistic group is 8.8–12.0% of
+  failures.
 - **Still open:** T-608 spot-check not filled in; task 3 IndicBERT-v2 IG is 8.2%
   unconverged, above the 5% limit.
 - **Other conditions:** `scripts/t601_diagnostics.py` covers all tasks, source blocks

@@ -1,0 +1,86 @@
+{
+  "cells": {
+    "task_2/indicbert-v2": {
+      "groups": {
+        "data": 8618,
+        "linguistic": 2310,
+        "model": 6610,
+        "unattributed": 1785
+      },
+      "labels": {
+        "class_collapse": 5276,
+        "cross_lingual_hard": 5707,
+        "morphological_masking": 1516,
+        "provenance_specific": 2911,
+        "seed_unstable": 1334,
+        "terminology_gap": 424,
+        "tokenizer_fragmentation": 9,
+        "translation_drift": 361,
+        "unattributed": 1785
+      },
+      "rows": 19323
+    },
+    "task_2/mbert-base": {
+      "groups": {
+        "data": 4688,
+        "linguistic": 1100,
+        "model": 2017,
+        "unattributed": 1909
+      },
+      "labels": {
+        "cross_lingual_hard": 2530,
+        "morphological_masking": 687,
+        "provenance_specific": 2158,
+        "seed_unstable": 2017,
+        "terminology_gap": 106,
+        "tokenizer_fragmentation": 50,
+        "translation_drift": 257,
+        "unattributed": 1909
+      },
+      "rows": 9714
+    },
+    "task_3/indicbert-v2": {
+      "groups": {
+        "data": 4408,
+        "linguistic": 540,
+        "model": 435,
+        "unattributed": 719
+      },
+      "labels": {
+        "class_collapse": 126,
+        "cross_lingual_hard": 3816,
+        "morphological_masking": 139,
+        "provenance_specific": 592,
+        "seed_unstable": 309,
+        "terminology_gap": 101,
+        "tokenizer_fragmentation": 3,
+        "translation_drift": 297,
+        "unattributed": 719
+      },
+      "rows": 6102
+    },
+    "task_3/mbert-base": {
+      "groups": {
+        "data": 4609,
+        "linguistic": 670,
+        "model": 798,
+        "unattributed": 1026
+      },
+      "labels": {
+        "cross_lingual_hard": 3510,
+        "morphological_masking": 142,
+        "provenance_specific": 1099,
+        "seed_unstable": 798,
+        "terminology_gap": 88,
+        "tokenizer_fragmentation": 25,
+        "translation_drift": 415,
+        "unattributed": 1026
+      },
+      "rows": 7103
+    }
+  },
+  "cutoffs": {
+    "collapse_share": 0.75,
+    "xling_min_langs": 3
+  }
+}

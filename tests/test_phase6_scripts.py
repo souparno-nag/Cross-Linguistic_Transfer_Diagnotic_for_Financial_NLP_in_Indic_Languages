@@ -27,7 +27,9 @@ def test_no_silent_cpu_fallback(monkeypatch):
 
 def _audit(rows):
     cols = {"condition_id": "c", "assigned_label": "unattributed", "frag_status": "not_fired",
-            "morph_status": "not_fired", "saliency_status": "not_applicable"}
+            "morph_status": "not_fired", "saliency_status": "not_applicable",
+            "label_group": "unattributed", "provenance_status": "not_fired", "xling_status": "not_fired",
+            "collapse_status": "not_fired", "seed_status": "not_fired"}
     return pd.DataFrame([{**cols, **r} for r in rows])
 
 

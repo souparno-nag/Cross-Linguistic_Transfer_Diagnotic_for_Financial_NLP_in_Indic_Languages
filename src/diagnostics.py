@@ -29,7 +29,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from . import fragmentation, morphology, saliency
+from . import behaviour, fragmentation, morphology, saliency
 from . import labse_gate as labse
 from .corpus_io import read_split
 from .data import DEFAULT_ENCODER, get_tokenizer
@@ -44,7 +44,7 @@ ESG_TERMS_PATH = REPO_ROOT / "configs" / "esg_terms.json"
 
 LABEL_COLUMNS = [
     "condition_id", "encoder_id", "item_id", "block_id", "src_lang", "tgt_lang",
-    "assigned_label", "modules_fired", "r_frag", "labse_sim", "seed",
+    "assigned_label", "label_group", "modules_fired", "r_frag", "labse_sim", "seed",
 ]
 
 AUDIT_COLUMNS = [
@@ -53,7 +53,8 @@ AUDIT_COLUMNS = [
     "frag_status", "r_frag",
     "morph_status", "morph_evidence",
     "saliency_status", "saliency_divergence", "saliency_convergence_error", "saliency_n_steps",
-    "assigned_label", "modules_fired",
+    *behaviour.STATUS_COLUMNS,
+    "assigned_label", "label_group", "modules_fired",
 ]
 
 # Saliency statuses that mean IG actually ran on the row (so `saliency_n_steps`
@@ -70,7 +71,31 @@ PRECEDENCE = [
     ("frag", "tokenizer_fragmentation"),
     ("morph", "morphological_masking"),
     ("saliency", "terminology_gap"),
+    # Stage 3 (src.behaviour, added 2026-10-12): data, then model behaviour.
+    # Last, so they only claim what the linguistic modules left unattributed.
+    ("provenance", "provenance_specific"),
+    ("xling", "cross_lingual_hard"),
+    ("collapse", "class_collapse"),
+    ("seed", "seed_unstable"),
 ]
+
+# Level 1 of the hierarchical diagnosis: always derived from the level-2 label
+# precedence picked, never decided separately, so the two levels cannot disagree.
+LABEL_GROUP = {
+    "translation_drift": "linguistic",
+    "tokenizer_fragmentation": "linguistic",
+    "morphological_masking": "linguistic",
+    "terminology_gap": "linguistic",
+    "provenance_specific": "data",
+    "cross_lingual_hard": "data",
+    "class_collapse": "model",
+    "seed_unstable": "model",
+    "unattributed": "unattributed",
+}
+
+
+def label_group(label: str) -> str:
+    return LABEL_GROUP[label]
 
 
 def precedence_pick(modules_fired) -> str:
@@ -118,10 +143,18 @@ def write_diagnostics(
     audit_out = audit_path(task, condition_id, encoder=encoder)
     label_out.parent.mkdir(parents=True, exist_ok=True)
     audit_out.parent.mkdir(parents=True, exist_ok=True)
+    # level 1 is recomputed on every write, so no re-resolution can leave it stale
+    labels = labels.assign(label_group=[label_group(x) for x in labels["assigned_label"]])
+    audit = audit.assign(label_group=[label_group(x) for x in audit["assigned_label"]])
     labels[LABEL_COLUMNS].to_parquet(label_out, index=False)
     if "saliency_n_steps" not in audit:
         # audits from before per-row step counts were recorded (2026-10-09 run)
         audit = audit.assign(saliency_n_steps=None)
+    for col in behaviour.STATUS_COLUMNS:
+        if col not in audit:
+            # Stage 3 runs per cell, after every condition is diagnosed
+            # (scripts.t609_behaviour); until then it has not been evaluated
+            audit = audit.assign(**{col: "not_evaluated"})
     audit[AUDIT_COLUMNS].to_parquet(audit_out, index=False)
     return label_out, audit_out
 
@@ -356,13 +389,16 @@ def diagnose_condition(
         label_rows.append({
             "condition_id": condition_id, "encoder_id": encoder_id, "item_id": item_id,
             "block_id": block_tgt, "src_lang": lang_src, "tgt_lang": lang_tgt,
-            "assigned_label": row["assigned_label"], "modules_fired": row["modules_fired"],
-            "r_frag": row["r_frag"], "labse_sim": row["labse_sim"], "seed": int(failure_row["seed"]),
+            "assigned_label": row["assigned_label"], "label_group": label_group(row["assigned_label"]),
+            "modules_fired": row["modules_fired"], "r_frag": row["r_frag"], "labse_sim": row["labse_sim"], "seed": int(failure_row["seed"]),
         })
         audit_rows.append({
             "condition_id": condition_id, "encoder_id": encoder_id, "item_id": item_id,
             "block_id": block_tgt, "src_lang": lang_src, "tgt_lang": lang_tgt,
             "seed": int(failure_row["seed"]), **row,
+            # Stage 3 needs every condition of the cell; scripts.t609_behaviour fills these
+            **{col: "not_evaluated" for col in behaviour.STATUS_COLUMNS},
+            "label_group": label_group(row["assigned_label"]),
         })
 
     loaded_by_run.clear()
