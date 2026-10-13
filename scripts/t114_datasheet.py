@@ -16,7 +16,6 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from datetime import datetime, timezone
 
 import pandas as pd
 
@@ -41,7 +40,10 @@ def build(argv=None) -> str:
     lines = [
         "# Datasheet — Indic financial-NLP parallel corpus v1.0",
         "",
-        f"Generated {datetime.now(timezone.utc).date().isoformat()} from the frozen "
+        # No generation date: it would make two builds from the same artefacts
+        # differ (rule 7) and `--check` fail every day after the file was written.
+        # The freeze dates below come from the manifests.
+        "Generated from the frozen "
         "manifests and the reports that produced them. Every figure below is read "
         "back out of those artefacts rather than transcribed, so this document "
         "cannot quietly disagree with the data it describes.",

@@ -6,6 +6,8 @@ both that §8's required content is present and that the numbers actually come
 from the artefacts rather than from the text.
 """
 
+from datetime import date
+
 import pandas as pd
 import pytest
 
@@ -111,9 +113,12 @@ def test_tau_is_reported_per_task_with_its_basis(datasheet):
         assert f"| `task_{task}` |" in datasheet
 
 
-def test_regenerating_is_deterministic_apart_from_the_date():
+def test_regenerating_is_deterministic():
     first, second = build(), build()
     assert first == second
+    # A wall-clock date would pass the line above on any one day and still make
+    # `--check` report a current datasheet as stale the next.
+    assert date.today().isoformat() not in first
 
 
 def test_the_bengali_digit_system_difference_is_stated_not_hidden(datasheet):

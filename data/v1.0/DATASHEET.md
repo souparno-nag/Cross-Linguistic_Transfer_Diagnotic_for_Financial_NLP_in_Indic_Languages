@@ -1,6 +1,6 @@
 # Datasheet — Indic financial-NLP parallel corpus v1.0
 
-Generated 2026-10-04 from the frozen manifests and the reports that produced them. Every figure below is read back out of those artefacts rather than transcribed, so this document cannot quietly disagree with the data it describes.
+Generated from the frozen manifests and the reports that produced them. Every figure below is read back out of those artefacts rather than transcribed, so this document cannot quietly disagree with the data it describes.
 
 **123,680 rows across 36 splits and three tasks.** Each task is a separate corpus sharing one design.
 
