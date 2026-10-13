@@ -20,6 +20,42 @@
       "published_accuracy": 0.17,
       "note": "ESG themes, 10-class. Table 4 row `3 H IB`. The paper states every model scored <30% on task 3 for all three languages because there are <100 instances per ESG label; accuracy 0.17 is the majority-class share (92/532). Their remedy is paraphrase augmentation to 4774 training rows (the `*-P` models, ~0.42 F1), which is out of Phase 2 scope. Our non-augmented IndicBERT baseline reproduces this regime and lands above their number.",
       "diagnosis": ""
+    },
+    "task2_ben_indicbert": {
+      "task": 2,
+      "lang": "ben",
+      "model": "IndicBERT",
+      "published_macro_f1": 0.8,
+      "published_accuracy": 0.8,
+      "note": "Sustainability, binary. Table 4 row `2 B IB`: Pr 0.80, Re 0.80, F1 0.80, Acc 0.80. The paper's IndicBERT drops from 0.86 on Hindi to 0.80 here; ours is flat at 0.82 across Hindi, Bengali and Telugu, so we land below the paper on Hindi and above it on Bengali and Telugu. Same split-and-tuning differences as the Hindi diagnosis.",
+      "diagnosis": ""
+    },
+    "task2_tel_indicbert": {
+      "task": 2,
+      "lang": "tel",
+      "model": "IndicBERT",
+      "published_macro_f1": 0.79,
+      "published_accuracy": 0.78,
+      "note": "Sustainability, binary. Table 4 row `2 T IB`: Pr 0.79, Re 0.79, F1 0.79, Acc 0.78. See the Bengali note.",
+      "diagnosis": ""
+    },
+    "task3_ben_indicbert": {
+      "task": 3,
+      "lang": "ben",
+      "model": "IndicBERT",
+      "published_macro_f1": 0.05,
+      "published_accuracy": 0.17,
+      "note": "ESG themes, 10-class. Table 4 row `3 B IB`: Pr 0.03, Re 0.17, F1 0.05, Acc 0.17, identical to the Hindi row. Those are the scores of a model that predicts one class for every item, so this gate only shows our run does better than that; it cannot show that we reproduce the paper. Even our runs that never trained (peak train macro-F1 < 0.5, reports/baselines.md) score 0.064-0.068, above 0.05.",
+      "diagnosis": ""
+    },
+    "task3_tel_indicbert": {
+      "task": 3,
+      "lang": "tel",
+      "model": "IndicBERT",
+      "published_macro_f1": 0.05,
+      "published_accuracy": 0.17,
+      "note": "ESG themes, 10-class. Table 4 row `3 T IB`: Pr 0.03, Re 0.17, F1 0.05, Acc 0.17, identical to the Hindi row. Those are the scores of a model that predicts one class for every item, so this gate only shows our run does better than that; it cannot show that we reproduce the paper. Even our runs that never trained (peak train macro-F1 < 0.5, reports/baselines.md) score 0.064-0.068, above 0.05.",
+      "diagnosis": ""
     }
   }
 }

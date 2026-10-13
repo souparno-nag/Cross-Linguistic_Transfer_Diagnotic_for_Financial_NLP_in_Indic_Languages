@@ -278,11 +278,10 @@ Run the Phase 3 mismatch filter over the new predictions so Phase 6 can label th
 **Done:** `data/failures/{condition}.parquet` written with `encoder_id` populated.
 **Coordinate with Phase 6 before running** — they must have finished T-601 first.
 
-**Status: NOT STARTED**, deliberately. The inputs already exist —
-`data/failures/task_{n}/mbert-base/` holds the six runnable Hindi-sourced conditions
-per task, written by T-307 with the encoder namespaced — so this task is about
-handing them over, not producing them. Held pending the coordination the brief
-requires.
+**Status: DONE.** The inputs were already written by T-307, with the encoder namespaced
+(`data/failures/task_{n}/mbert-base/`), so this task was only the handover. Phase 6's full
+run (2026-10-09, commit `ff68c1a`) read them for both encoders; the mBERT diagnoses are in
+`data/diagnostics/task_{2,3}/mbert-base/`, 18 conditions each.
 
 ---
 

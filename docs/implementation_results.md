@@ -201,10 +201,10 @@ As of this writing, the following has been implemented and unit-tested:
 - A machine-translated ESG term lexicon (`configs/esg_terms.json`, `T-603`),
   hand-curated in Hindi and translated into Bengali, Telugu, and Malayalam via the
   Phase 1 translation model, feeding the terminology-gap signal.
-- A manual spot-check harness (`scripts/t607_spotcheck.py`, `T-607`), not yet
-  exercised.
+- A manual spot-check harness (`scripts/t607_spotcheck.py`, `T-607`), judged on
+  13 Oct 2026 (see G.1).
 
-Two things remain open and constitute the bulk of the pending work:
+One design decision and one phase of work remain:
 
 1. **The orthographic/numeral-mismatch module** from the original five-module design
    is deliberately excluded and is absent from the live precedence chain; failures it
@@ -212,16 +212,11 @@ Two things remain open and constitute the bulk of the pending work:
    rather than assumed: Bengali natives use Bengali digits while MT output is ASCII, but
    mismatched items fail at or below the base rate, so a label would be spurious
    (CLAUDE4.md "Scope decisions"; `reports/digit_audit.md`).
-2. **The pipeline has been exercised on one condition only** — `task_2`,
-   Hindi→Bengali, both the native- and machine-translated-target arms
-   (`data/diagnostics/task_2/transfer_hin_to_ben*.parquet`) — as an end-to-end
-   correctness check. It has not yet been run over the full failure-set grid produced
-   by Phases 3 and 4 (both tasks, all source/target/encoder combinations), no manual
-   spot-check against human judgment has been performed (`T-608`), and no
-   `reports/spotcheck.md` or aggregate diagnostic report yet exists. Running the
-   pipeline at scale, spot-checking its labels, and — as a strictly separate,
-   not-yet-started phase (Phase 7) — aggregating the resulting labels into
-   root-cause findings, is the immediate next work.
+2. **The pipeline has been run over the full failure-set grid** (both tasks, all 18
+   transfer conditions, both encoders; `reports/diagnostics_summary.md`) and its labels
+   spot-checked by hand (`T-608`, 98.5% agreement on task 2 IndicBERT-v2; see G.1).
+   Aggregating the resulting labels into root-cause findings is a strictly separate,
+   not-yet-started phase (Phase 7) and is the immediate next work.
 
 ### G.1 Phase 6 test status (as of 3 Oct 2026)
 
@@ -348,6 +343,12 @@ clearing Phase 3 to proceed.
 |---|---|---|---|
 | `task2_hin_indicbert` | 0.823 ± 0.004 | 0.86 | Pass (diagnosed) |
 | `task3_hin_indicbert` | 0.153 ± 0.025 | 0.05 | Pass (above) |
+
+The Bengali and Telugu baselines (Phase 4, T-402/T-403) were scored against the same
+table on 13 Oct 2026 and pass above the published value: `task_2` 0.820 vs 0.80
+(Bengali) and 0.819 vs 0.79 (Telugu); `task_3` 0.127 and 0.095 vs 0.05. The `task_3`
+figure is what predicting one class for every item scores, so those two passes show
+only that the models do better than that.
 
 ## C. Zero-Shot Transfer Loss (Phase 3, Hindi Source)
 

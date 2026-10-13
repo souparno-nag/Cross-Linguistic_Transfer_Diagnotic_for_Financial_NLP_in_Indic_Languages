@@ -200,24 +200,26 @@ Fine-tune IndicBERT-v2 on `B_nat`, 3 seeds, evaluate in-language.
 a written diagnosis of the gap. **No Bengali transfer claim proceeds until this passes.**
 GPU ≈30 min for both tasks at 3 seeds, measured — not the 4h first budgeted.
 
-**Status: runs DONE, gate UNSCORED.** Bengali task 2 reproduces Hindi almost exactly
+**Status: DONE, gate PASSES (scored 2026-10-13).** Bengali task 2 reproduces Hindi almost exactly
 — 0.8201 ± 0.0279 against 0.8226 ± 0.0044, all three seeds healthy. Task 3's seed 0
 never trained (peak train macro-F1 0.152 against its siblings' 0.688 and 0.997), which
 moves the mean from 0.1585 to 0.1269 and quadruples the spread;
 `reports/baselines.md` now shows the converged-seed figure alongside the all-seeds
 mean rather than instead of it.
 
-**Blocked on a number this repo does not have.** `configs/published_baselines.json`
-carries only Ghosh et al.'s Hindi values. Their Bengali figures (Table 4, rows `2 B IB`
-and `3 B IB`) must be added before this gate can be scored at all — the runs can go
-ahead, but "within ±2 of published" has nothing to compare against until then.
+**Gate, scored once Table 4's Bengali rows were added to `configs/published_baselines.json`:**
+task 2 0.8201 against published 0.80, task 3 0.1269 against 0.05, both above
+(`reports/baseline_gate.md`). The paper's IndicBERT falls from 0.86 on Hindi to 0.80 on
+Bengali while ours stays at 0.82, so we sit below the paper on Hindi and above it here.
+Task 3's pass means little: the published 0.05 is what predicting one class for every
+item scores, and even our seed that never trained (0.0635) beats it.
 
 ### T-403 — Telugu baseline ⚠️ GATE
 
 Same for `T_nat`.
 **Done:** within ±2 of the published Telugu baseline, or a diagnosis. GPU ≈30 min.
 
-**Status: runs DONE, gate UNSCORED.** Telugu task 2 lands on the other two blocks at
+**Status: DONE, gate PASSES (scored 2026-10-13).** Telugu task 2 lands on the other two blocks at
 0.8191 ± 0.0148, all seeds converging. Task 3 is worse: two of three seeds never
 trained, and a third — seed 0 — was cut off by early stopping while still improving
 (loss down 45.6%, train F1 still climbing at the patience cutoff), which is a third
@@ -225,8 +227,9 @@ kind of outcome distinct from both success and failure to start. T-406 establish
 that this is IndicBERT-specific rather than a schedule problem, so the protocol was
 not changed.
 
-Blocked on the published Telugu numbers (`2 T IB`, `3 T IB`) in the same way T-402 is
-blocked on the Bengali ones.
+**Gate:** task 2 0.8191 against published 0.79, task 3 0.0952 against 0.05, both above
+(`reports/baseline_gate.md`). Task 3's pass carries the same caveat as T-402: both untrained
+seeds (0.0682, 0.0678) clear the published 0.05 on their own.
 
 ### T-404 — Bengali-source zero-shot evaluation
 
@@ -310,9 +313,9 @@ Run the Phase 3 mismatch filter over all new predictions.
 **Done:** `data/failures/{condition}.parquet` with `encoder_id` and `block_id`
 populated. **Coordinate with Phase 6 first** — they need T-601 finished.
 
-**Status: artefacts written, handover NOT done** — deliberately, as at T-506. All 18
-transfer conditions per task are exported for both encoders. The coordination the
-brief requires has not happened, so nothing has been handed over.
+**Status: DONE.** All 18 transfer conditions per task are exported for both encoders.
+Handed over in practice: Phase 6's full run (2026-10-09, commit `ff68c1a`) read every one
+of them, and `data/diagnostics/task_{2,3}/` holds 18 conditions per encoder.
 
 ### T-408 — Source-selection comparison table
 

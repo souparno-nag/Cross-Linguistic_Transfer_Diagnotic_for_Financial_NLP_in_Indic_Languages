@@ -1303,10 +1303,9 @@ was never released.
 Frozen only after τ was settled: `labse_sim` and `translation_drift` are baked into the
 splits, so freezing earlier would have sealed a threshold that was still moving.
 
-**One acceptance criterion elsewhere is still open at freeze time.** T-104's hand-check
-— 20 sentences per direction read by someone who reads Bengali, Telugu and Malayalam —
-has never been done. The corpus is frozen with that outstanding, and T-114's datasheet
-must record it as a limitation rather than let the freeze imply it was cleared.
+**T-104's hand-check was still open at freeze time** and was signed off by the project
+maintainer afterwards, on 2026-09-10 (see T-104). It covers a sample, 180 rows per task,
+not the corpus; T-114's datasheet states it in those terms.
 
 ---
 
@@ -1386,11 +1385,13 @@ stay that way:
 
 1. **No native Malayalam**, so Malayalam results confound transfer with translation
    quality and have no human reference to calibrate τ against.
-2. **No native-speaker verification of any target split** — T-104's hand-check was
-   never done. The automated checks establish that numerals, labels, structure and
-   script survive; nothing establishes that the sentences mean the right thing. This is
-   the release's most significant open item, and §8's "Telugu-target splits" phrasing
-   understates it: it applies to every direction.
+2. **Human verification covers a sample, not the corpus** — T-104's hand-check was
+   signed off by the project maintainer on 2026-09-10, over 180 rows per task: 0.3% of
+   task 1's MT output, 0.9% of task 2's, 3.8% of task 3's. It is a maintainer sign-off,
+   not an independent audit by native speakers of each target language. Outside that
+   sample the automated checks establish that numerals, labels, structure and script
+   survive; nothing establishes that the sentences mean the right thing. This applies
+   to every direction, not only §8's "Telugu-target splits".
 3. **LaBSE similarity rewards literalness, not adequacy** — MT outscores human
    translation of the same items in every pair where both exist, so `labse_sim` ranks
    directions usefully and is a poor absolute quality score.

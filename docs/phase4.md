@@ -273,10 +273,11 @@ about which runs trained.
 
 ## Limitations
 
-- **Neither validation gate has been scored.** The phase requires the Bengali and Telugu
-  baselines to land within 2 points of IndicFinNLP's published monolingual numbers, and
-  those published numbers are not in this repository — only the Hindi ones are. The runs
-  are complete and healthy; the comparison against the paper has not been made.
+- **The Bengali and Telugu validation gates pass, but task 3's pass is weak.** Scored on
+  2026-10-13 against IndicFinNLP's Table 4: task 2 Bengali 0.820 vs 0.80 and Telugu 0.819
+  vs 0.79, both above. On task 3 the published figure (0.05) is what predicting one class
+  for every item scores, so beating it shows only that our runs do better than that;
+  even the seeds that never trained clear it.
 - **Two encoders, not three.** XLM-R cannot be fine-tuned on this hardware. It and mBERT
   have identically-sized transformer bodies and differ mainly in vocabulary and
   pretraining breadth, which made that pair the one controlled test of whether breadth
