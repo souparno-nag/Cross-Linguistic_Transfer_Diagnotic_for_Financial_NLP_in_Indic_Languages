@@ -170,9 +170,9 @@ phase completes the full reachable grid: 63 of 63 (condition × seed) pairs on e
 task, for each of the two encoders — 126 results per task, up from 21 of 63 before
 this phase.
 
-## G. Phase 6 — Diagnostic Pipeline (In Progress)
+## G. Phase 6 — Diagnostic Pipeline
 
-Phase 6 is the project's not-yet-complete component. Its purpose is to take each
+Phase 6 is the project's diagnostic component. Its purpose is to take each
 transfer failure identified in Phases 3/4 (`data/failures/{condition}.parquet`) and
 assign it exactly one linguistic cause, so that the *size* of the transfer gap
 measured so far can eventually be explained rather than only reported. Its
@@ -215,8 +215,8 @@ One design decision and one phase of work remain:
 2. **The pipeline has been run over the full failure-set grid** (both tasks, all 18
    transfer conditions, both encoders; `reports/diagnostics_summary.md`) and its labels
    spot-checked by hand (`T-608`, 98.5% agreement on task 2 IndicBERT-v2; see G.1).
-   Aggregating the resulting labels into root-cause findings is a strictly separate,
-   not-yet-started phase (Phase 7) and is the immediate next work.
+   Aggregating the resulting labels into root-cause findings is a strictly separate
+   phase (Phase 7), described in G.2.
 
 ### G.1 Phase 6 test status (as of 3 Oct 2026)
 
@@ -267,6 +267,22 @@ One design decision and one phase of work remain:
 - **Other conditions:** `scripts/t601_diagnostics.py` covers all tasks, source blocks
   and encoders (resumable, no silent CPU fallback, encoder-namespaced output). Run on
   tasks 2 and 3 for IndicBERT-v2 and mBERT.
+
+### G.2 Phase 7 — aggregation into findings
+
+Phase 7 (`CLAUDE7.md`, `src/findings.py`, `scripts/t701_shares.py`–`t707_findings.py`)
+counts Phase 6's labels and changes none of them. The unit is a failed (item, seed) row;
+a group's share of a label is the fraction of its failures carrying it (decided 13 Oct
+2026: labels are not compared against correct predictions). Shares are reported pooled
+with a bootstrap 95% CI, resampling (condition, item) clusters so that an item failing on
+three seeds counts as one draw, and per seed as mean ± std. A difference between two
+groups is a finding only if the CIs do not overlap and the difference points the same way
+on both encoders (on both tasks, for the encoder comparison), a rule fixed before any
+table was read. Every comparison is re-run without the task-3 IndicBERT-v2 runs that never
+trained, and known measurement artefacts are attached to any comparison they could
+explain. `reports/findings.md` is generated from the artefacts with a `--check` mode, as
+the datasheet is; all 72 cells reconcile row for row with `data/failures/`, and a rerun is
+byte-identical. 20 tests (`tests/test_findings.py`).
 
 ## H. Engineering Constraints Common to All Phases
 
@@ -448,7 +464,39 @@ rather than hidden, since a model that never learned scores equally badly at hom
 abroad and would otherwise present as an implausibly good "transfer" result; mBERT
 showed no equivalent failures under identical settings.
 
-## F. Summary
+## F. Root-Cause Findings (Phase 7)
+
+Phase 6 labelled every failure; Phase 7 counts the labels (`reports/findings.md`, every
+claim citing a row of `reports/phase7/robustness.md`). Shares are of failures, so they
+describe what failures are made of, not what makes failure more likely.
+
+Across the four (task, encoder) cells, 9.2–19.7% of failures are unattributed, 8.8–12.0%
+carry a linguistic label and 69.0–79.4% a data or model-behaviour label: most failures are
+characterised by where they occur (in every target language, in one text provenance, on
+some seeds, or under a collapsed classifier) rather than by a property of the target
+sentence. Of 228 (comparison, measure) rows, 22 meet the finding rule, and 11 of those
+could be produced by a known measurement artefact on their own.
+
+- **Target and direction (T-702).** The larger morphological-masking share into Telugu
+  than out of it (17–20% vs 0–8%, task 2) rests on comparisons with Hindi targets, which
+  the module cannot label; on Bengali↔Telugu the linguistic share is within noise.
+  The one artefact-free difference: task-2 failures out of Telugu carry more
+  model-behaviour labels than those into it.
+- **Source (T-703).** No difference in cause mix between Hindi- and Bengali-source
+  failures met the rule on either task, while Hindi-source failures are more frequent
+  (task 2: 32.9% vs 27.7% of evaluated rows on IndicBERT-v2, 17.0% vs 13.4% on mBERT).
+  Telugu-source failures carry more model-behaviour labels than Hindi-source ones on
+  task 2.
+- **Encoder (T-704).** IndicBERT-v2 fails on 29.6% of task-2 rows against mBERT's 15.0%;
+  27.3% of its task-2 failures are class collapse, which never occurs for mBERT, and it has
+  more `cross_lingual_hard` failures. mBERT's failures are more often `seed_unstable` and
+  `provenance_specific`, on both tasks.
+- **Native vs MT text (T-705).** On MT target text, 9.5–25.0% of failures are labelled
+  `translation_drift` or `provenance_specific`. The only native-vs-MT differences meeting
+  the rule are in `translation_drift`, which is an artefact of the measure: τ passes 95%
+  of human translations by construction and LaBSE scores literal MT above them.
+
+## G. Summary
 
 Table VII condenses the headline quantitative results across phases.
 
@@ -464,9 +512,11 @@ Table VII condenses the headline quantitative results across phases.
 | Encoder comparison winner (12/12 cells) | mBERT over IndicBERT-v2 |
 | Directional asymmetry (Indo-Aryan↔Dravidian) | 2.6–4.8 points, all three tasks |
 | Evaluation coverage | 126 of 126 planned results per task |
-| Diagnostic pipeline coverage | 1 of many conditions run end-to-end |
+| Diagnostic pipeline coverage | 72 of 72 cells (2 tasks × 2 encoders × 18 conditions) |
+| Unattributed failures (per task × encoder) | 9.2–19.7% |
+| Phase 7 comparisons meeting the finding rule | 22 of 228 (11 artefact-free) |
 
-## G. Limitations of Results Obtained So Far
+## H. Limitations of Results Obtained So Far
 
 The results above are subject to limitations already identified and documented
 during implementation, carried forward here rather than restated in full: no native
@@ -475,11 +525,12 @@ difficulty with translation quality and has no human reference against which to
 calibrate τ; no native speaker of Bengali, Telugu, or Malayalam has reviewed the
 translated corpus beyond a 1–4%-of-rows spot check by a project maintainer; the LaBSE
 similarity measure is a validated *relative* ranking tool but a poor *absolute*
-quality score; neither the Bengali nor the Telugu baseline has been checked against a
-published reference figure, unlike the Hindi baseline; and the three-encoder
+quality score; the Bengali and Telugu baselines pass against the published figures, but
+on task 3 that figure is what a one-class predictor scores, so the pass shows little;
+and the three-encoder
 comparison that would separate capacity from multilinguality as an explanation for
-mBERT's advantage could not be run on the available hardware. Most importantly for
-the immediate next steps, **no causal explanation for any transfer failure yet
-exists** — Phases 1–5 establish the size and shape of the effect; explaining it is
-the explicit purpose of the Phase 6 diagnostic pipeline described in Section III-G,
-and of the not-yet-started Phase 7 aggregation of its output into findings.
+mBERT's advantage could not be run on the available hardware. The cause labels of
+Phases 6–7 carry their own limits (`reports/findings.md` §7): shares are of failures
+only; `morphological_masking` and `terminology_gap` do not predict failure better than
+chance; the data and model labels describe where a failure occurs rather than why; and
+the hand spot-check covers task 2 IndicBERT-v2 only.

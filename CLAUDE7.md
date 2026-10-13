@@ -6,7 +6,34 @@ source language, encoder and test-text provenance. Do **not** change diagnostic 
 thresholds or labels (Phase 6), and do not train or evaluate models (Phases 2–5). If a
 request drifts there, say so and stop.
 
-**Status: NOT STARTED.** Drafted 2026-10-13.
+**Status: DONE, 2026-10-13.** All seven tasks complete; `reports/findings.md` is the
+result. The whole phase rebuilds in about 30 s on CPU, byte-identical on rerun:
+
+```
+python -m scripts.t701_shares && python -m scripts.t702_by_target && \
+python -m scripts.t703_by_source && python -m scripts.t704_by_encoder && \
+python -m scripts.t705_provenance && python -m scripts.t706_robustness && \
+python -m scripts.t707_findings
+```
+
+### Decisions made while building it
+
+- **Bootstrap unit is the (condition, item) cluster**, not the row. An item failing on
+  three seeds is one draw; resampling rows would make every interval too narrow. The
+  condition is part of the key because grouped tables pool conditions that share item ids.
+- **T-702–T-704 use native-text conditions only** (`kind == "transfer"`), so provenance
+  is not mixed into the target, source and encoder comparisons. T-705 owns provenance.
+- **T-703 compares each pair of sources on the targets both reach** (hin vs ben on
+  mal+tel, and so on); pooling every target would compare targets as much as sources.
+- **Level-2 `unattributed` is not tested separately**; it is level-1 `unattributed`
+  again, and testing it twice would count one result as two.
+- **Known artefacts are attached automatically** (`findings.CAVEATS`): a comparison with
+  Hindi targets on one side, for `morphological_masking` or `linguistic`; native-vs-MT
+  `translation_drift`; Bengali native vs MT. T-707 lists artefact-caveated findings
+  separately, and for the Hindi blind spot shows the same measure on a Hindi-free pair.
+- **Failure rate** is failed rows over evaluated rows. A failure needs the source
+  prediction to be right, so a stronger model has more chances to fail; read rates with
+  that in mind.
 
 ---
 
@@ -116,6 +143,10 @@ Level-1 and level-2 shares for all 72 cells, mean ± std over seeds and bootstra
 per (cell, seed); failure counts reconcile with `data/failures/` row for row; the script
 exits non-zero otherwise.
 
+**Status: DONE.** 72/72 cells, 42,242 failed rows, every one reconciled; pooled totals
+match `reports/diagnostics_summary.md` exactly. Unattributed 9.2–19.7% per (task, encoder),
+0.3–28.8% per cell.
+
 ### T-702 — By target language and typology
 Cause mix grouped by target language and by quadrant (IA→IA, IA→Dr, Dr→IA, Dr→Dr), with
 the transfer gap from `reports/source_comparison.md` beside it.
@@ -127,12 +158,21 @@ language pairs?
 **Done when:** the table exists and the question is answered under rule 5, including
 "no difference" if that is the answer.
 
+**Status: DONE.** No artefact-free linguistic difference. The morphological-masking
+difference into vs out of Telugu rests on Hindi targets, which the module cannot label; on
+ben↔tel the linguistic share is within noise. Artefact-free: task-2 failures out of
+Telugu carry more model-behaviour labels.
+
 ### T-703 — By source language
 The question: Hindi is the worst source on both encoders (T-408). Do Hindi-source failures
 have a different cause mix from Bengali- and Telugu-source ones, or the same mix at a
 higher volume?
 
 **Done when:** answered under rule 5.
+
+**Status: DONE.** Hindi vs Bengali: no difference held on either task, at a higher Hindi
+failure rate. Hindi vs Telugu, task 2: Telugu-source failures carry more model-behaviour
+labels.
 
 ### T-704 — By encoder
 The question: mBERT beats IndicBERT-v2 on every measure (Phase 5). Which labels account
@@ -143,6 +183,10 @@ for the difference — for example, does IndicBERT-v2 fail more often through
 comparison *between* encoders; require CIs to separate on both tasks instead, and say
 that is the rule used.
 
+**Status: DONE.** Held on both tasks: IndicBERT-v2 failures carry more `class_collapse`
+(27.3% vs 0.0% on task 2) and `cross_lingual_hard`; mBERT's more `seed_unstable` and
+`provenance_specific`.
+
 ### T-705 — Native vs MT target text
 `provenance_specific` and `translation_drift` shares, native vs MT, per target language.
 How much of the transfer loss does our own translation account for?
@@ -150,11 +194,19 @@ How much of the transfer loss does our own translation account for?
 **Done when:** answered for Bengali, Hindi and Telugu targets, with the Bengali
 digit-system caveat; Malayalam reported as having no native contrast.
 
+**Status: DONE.** On MT text 9.5–25.0% of failures carry `translation_drift` or
+`provenance_specific`. The only native-vs-MT differences that hold are in
+`translation_drift`, an artefact of the measure.
+
 ### T-706 — Robustness summary
 One table of every candidate finding from T-702 to T-705: held on both encoders, held on
 one encoder only, or within noise.
 
 **Done when:** every claim in T-707's report points to a row in this table.
+
+**Status: DONE.** 228 rows with stable ids (`R702-01` …): 22 held (11 artefact-caveated),
+8 opposite-direction, 78 one replicate only, 120 within noise. 20 verdicts change without
+the runs that never trained, one of them to `held` (`R705-53`).
 
 ### T-707 — Findings report
 `reports/findings.md`, generated from T-701–T-706's artefacts the way T-114's datasheet is,
@@ -170,6 +222,9 @@ Bengali and Telugu baselines were never checked against the paper.
 
 **Done when:** `reports/findings.md` exists and `--check` passes; README and
 implementation_results.md updated.
+
+**Status: DONE.** `--check` passes, and `tests/test_findings.py` fails if the committed
+report drifts from its artefacts. README and `docs/implementation_results.md` updated.
 
 ---
 

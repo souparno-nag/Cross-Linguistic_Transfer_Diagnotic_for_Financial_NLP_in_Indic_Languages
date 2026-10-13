@@ -8,7 +8,7 @@ on the way. Financial text was chosen because it is unusually easy to check for 
 a translated sentence either kept its numbers, currency symbols and percentages intact or
 it did not, which gives an objective check that plain sentence quality does not.
 
-The project has five completed phases:
+The project has seven completed phases:
 
 1. **Corpus construction** — build a parallel corpus across Hindi, Bengali, Telugu and
    Malayalam, where "parallel" means the same underlying content exists in every
@@ -30,10 +30,15 @@ The project has five completed phases:
    encoders — which matters because Hindi has the most data and was this project's
    original choice.
 
-A sixth phase (diagnosing *why* the model fails on specific items — e.g. does it lose
-numerals, named entities, or long sentences disproportionately) is in progress
-separately; nothing in this repository claims to explain a cause yet, only to measure
-the size of the effect.
+6. **Failure diagnosis** — give every wrong prediction exactly one cause label: the
+   translation lost the meaning, a key word was split or had an ending attached, the
+   model looked at different words, or — when no language cause fits — a pattern in the
+   data or the model (the item fails in every language, only one training run got it
+   wrong, the model predicts one class for everything). What fits nothing is labelled
+   `unattributed` and reported, not hidden.
+7. **Root-cause findings** — count those labels across every experiment and ask whether
+   the mix of causes explains the size of the effects found in phases 3–5. Mostly it
+   does not: see below.
 
 ## Why this exists
 
@@ -151,6 +156,26 @@ Phase 4 — source-language comparison
   ├─ T-406   repeat the whole grid on the second encoder
   ├─ T-407   export the failed-instance sets for the diagnostic phase
   └─ T-408   which source transfers best, and does language family predict it?
+        │
+        ▼   data/failures/  (right in the source language, wrong in the target)
+Phase 6 — failure diagnosis
+  ├─ T-601   router: semantic gate first, then linguistic modules, one label each
+  ├─ T-602   tokenizer fragmentation
+  ├─ T-604   morphological masking (a grammatical ending hides the key word)
+  ├─ T-605   saliency divergence via Integrated Gradients
+  ├─ T-606   audit trail of every module that fired
+  ├─ T-608   hand spot-check of the labels                                  98.5%
+  └─ T-609   data and model-behaviour labels for what language does not explain
+        │
+        ▼   data/diagnostics/  (one cause label per failure)
+Phase 7 — root-cause findings
+  ├─ T-701   share of each label in every one of the 72 experiment cells
+  ├─ T-702   by target language and direction (is "into Dravidian" different?)
+  ├─ T-703   by source language (why is Hindi the worst start?)
+  ├─ T-704   by encoder (what does mBERT do differently?)
+  ├─ T-705   native vs machine-translated test text
+  ├─ T-706   which differences hold on both encoders
+  └─ T-707   generate reports/findings.md from the above
 ```
 
 T-207 is a hard gate: Phase 3 is not allowed to start until the Hindi baseline
@@ -218,6 +243,49 @@ better language to train on), on the sustainability task:
 See `docs/phase3.md` for the per-direction numbers out of Hindi, `docs/phase4.md` for
 the source comparison, and `reports/{transfer_results,source_comparison}.md` for the
 generated tables.
+
+### What the failures are made of (phases 6 and 7)
+
+A "failure" here is an item the model got right in its training language and wrong in
+the target language. Every one got a cause label; `reports/findings.md` counts them.
+Each share below is a share of *failures*: it says what the failures are made of, not
+that a label makes failure more likely.
+
+**Most failures are explained by where they happen, not by the sentence.** Across the
+four task-and-encoder combinations, 9–20% of failures fit no cause at all, 9–12% get a
+language-level cause, and 69–79% get a data or model-behaviour label: the item fails in
+every target language, fails on only one kind of test text, fails on only some training
+runs, or the model has collapsed to predicting one class. Those labels describe a
+pattern; they do not name a mechanism.
+
+**The extra cost of moving into Telugu or Malayalam does not come with extra language
+causes.** At first sight it does: failures going into Telugu get the "grammatical ending"
+label far more often than failures coming out of it. But the comparison has Hindi on one
+side, and that label can never fire on Hindi, which writes those endings as separate
+words. Comparing Bengali↔Telugu instead, with no Hindi involved, the difference no
+longer passes the test: the language labels as a whole are within noise, and the
+grammatical-ending label separates on one encoder only. The one difference that does hold
+runs the other way: on the sustainability task, failures coming *out of* Telugu are more
+often model-behaviour failures than those going in.
+
+**Hindi fails more often, but no differently that the test can see.** Between Hindi- and
+Bengali-source failures, no difference in the mix of causes passed the test on either
+task. Hindi simply fails more (33% vs 28% of items on IndicBERT-v2, 17% vs 13% on
+mBERT, sustainability task).
+
+**mBERT and IndicBERT-v2 fail in different ways.** IndicBERT-v2 fails twice as often on
+the sustainability task, and 27% of its failures come from collapsing to one class, which
+mBERT never does. mBERT's failures are more often unstable across training runs, or
+specific to one kind of test text.
+
+**Our own translation is not the main cause.** On machine-translated test text, about
+10–25% of failures are labelled as the translation's doing. Apart from the drift label,
+whose native-vs-MT difference is an artefact of how drift is measured, no difference
+between human-written and machine-translated test text passed the test.
+
+All of this comes with the limits in `reports/findings.md` §7: two of the language labels
+are no better than chance at predicting failure, and the hand spot-check covered one of
+the four task-and-encoder combinations.
 
 ## Known limitations
 
@@ -308,7 +376,10 @@ availability. The code is built to checkpoint and resume rather than to be babys
 - `reports/capacity_dilution.md` — does the Indic-specialised encoder win, and where?
 - `reports/source_comparison.md` — every source language against every target, on every
   encoder: which source transfers best, and does language family predict it?
-- `CLAUDE.md`, `CLAUDE2.md`, `CLAUDE3.md`, `CLAUDE4.md`, `CLAUDE5.md`, `CLAUDE6.md` — the original
+- `reports/findings.md` — what the failure-cause labels add up to, with every claim
+  pointing to its row in `reports/phase7/robustness.md`
+- `reports/diagnostics_summary.md` — the cause-label distribution per experiment
+- `CLAUDE.md`, `CLAUDE2.md` … `CLAUDE7.md` — the original
   phase specifications this work was built against, including the hard rules and
   working agreements each phase follows
 
