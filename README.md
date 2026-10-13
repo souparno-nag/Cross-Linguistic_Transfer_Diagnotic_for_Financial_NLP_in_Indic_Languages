@@ -96,6 +96,7 @@ data/
   failures/       the subset of predictions that are genuine transfer failures (Phase 3)
 reports/          generated audit/quality/results reports (Markdown + Parquet), one directory per task
 checkpoints/      trained model weights (gitignored; regenerate with scripts/t206_baseline.py)
+dashboard/        Streamlit results dashboard: transfer, causes, sentence explorer (read-only)
 tests/            one test file per src/ module
 ```
 
@@ -360,6 +361,25 @@ Run everything as a module from the repository root, e.g. `python -m scripts.t20
 **Long-running jobs (translation generation, model training) are meant to be run by a
 human, not launched unattended** — they take hours and depend on intermittent GPU
 availability. The code is built to checkpoint and resume rather than to be babysat.
+
+## Dashboard
+
+```
+streamlit run dashboard/app.py
+```
+
+Three pages, switched by task in the sidebar:
+
+- **Transfer** — how much macro-F1 each model loses from its training language to each
+  test language, as one heatmap per model.
+- **Causes** — what each setup's failures are made of (Phase 7's label shares), on native
+  or machine-translated test text, by cause group or by individual cause.
+- **Explorer** — one failed sentence at a time: the training-language and test-language
+  text, every training run's prediction on both models, the cause each failure got, and
+  every check's result behind it.
+
+It only reads artefacts that already exist (`reports/`, `data/v1.0/`, `data/predictions/`,
+`data/diagnostics/`), loads no model and needs no GPU.
 
 ## Documentation
 

@@ -48,5 +48,9 @@ captum
 indic-nlp-library
 morfessor
 
+# Results dashboard (dashboard/, `streamlit run dashboard/app.py`). Read-only
+# over existing artefacts; altair, its chart library, comes with it.
+streamlit==1.65.0
+
 # Tests (CLAUDE.md §10).
 pytest
