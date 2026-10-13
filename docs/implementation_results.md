@@ -264,8 +264,11 @@ Two things remain open and constitute the bulk of the pending work:
   Unattributed fell from 88–91% to 9.2% / 19.7% / 11.8% / 14.4% (task 2 IndicBERT-v2,
   task 2 mBERT, task 3 IndicBERT-v2, task 3 mBERT). The linguistic group is 8.8–12.0% of
   failures.
-- **Still open:** T-608 spot-check not filled in; task 3 IndicBERT-v2 IG is 8.2%
-  unconverged, above the 5% limit.
+- **T-608 spot-check (13 Oct 2026):** 197/200 = 98.5% agreement on task 2 IndicBERT-v2,
+  50 rows per target language (`reports/task_2/spotcheck.md`). 160 of the 200 rows carry
+  data or model labels; on the 40 linguistic and unattributed rows agreement is 37/40.
+  No systematic disagreement, so no threshold changed. Task 3 and mBERT were not sampled.
+- **Still open:** task 3 IndicBERT-v2 IG is 8.2% unconverged, above the 5% limit.
 - **Other conditions:** `scripts/t601_diagnostics.py` covers all tasks, source blocks
   and encoders (resumable, no silent CPU fallback, encoder-namespaced output). Run on
   tasks 2 and 3 for IndicBERT-v2 and mBERT.

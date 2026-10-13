@@ -340,6 +340,14 @@ Purpose-built fixtures that trigger each module in isolation.
 thresholds **once**, with the change documented — not iterated until the numbers look
 good.
 
+**Status: done 2026-10-13, 197/200 = 98.5% agreement** (`reports/task_2/spotcheck.md`).
+Scope: task 2, IndicBERT-v2 only, 50 rows per target language; task 3 and mBERT were not
+sampled. 160 of the 200 rows carry data or model labels, which are read off the prediction
+logs, so the linguistic labels rest on 40 rows: morphological_masking 17/18,
+terminology_gap 2/2, unattributed 18/19, translation_drift 0/1. The three disagreements
+fall on three different labels, so none is systematic and no threshold was changed.
+Re-running `scripts.t607_spotcheck --task 2` overwrites the judged sheet.
+
 ### T-609 — Stage 3: data and model-behaviour modules
 `src/behaviour.py`, `scripts/t609_behaviour.py`. Four modules (see Modules), run per
 (task, encoder) cell on gate-passed rows, then labels and `label_group` re-resolved.
