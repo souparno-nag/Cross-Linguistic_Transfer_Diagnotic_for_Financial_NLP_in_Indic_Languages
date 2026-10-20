@@ -387,6 +387,8 @@ It only reads artefacts that already exist (`reports/`, `data/v1.0/`, `data/pred
   reasoning, all seven phases, code map, results and limitations, glossary
 - `docs/finetuning_architecture.md` — beginner's guide to the classifier and training loop:
   model, data pipeline, one training step, settings, memory limits, how to read a run
+- `docs/zero_shot_transfer.md` — beginner's guide to zero-shot evaluation: frozen inference,
+  the transfer gap, conditions, seed noise, the failed-instance filter, how to read results
 - `docs/phase1.md` — corpus construction, task by task (T-101–T-114)
 - `docs/phase2.md` — training pipeline and Hindi baselines (T-201–T-208)
 - `docs/phase3.md` — zero-shot transfer evaluation (T-301–T-308)
