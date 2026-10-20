@@ -389,6 +389,8 @@ It only reads artefacts that already exist (`reports/`, `data/v1.0/`, `data/pred
   model, data pipeline, one training step, settings, memory limits, how to read a run
 - `docs/zero_shot_transfer.md` — beginner's guide to zero-shot evaluation: frozen inference,
   the transfer gap, conditions, seed noise, the failed-instance filter, how to read results
+- `docs/diagnostic_pipeline.md` — beginner's guide to Phase 6: the gate, the linguistic and
+  data/model modules, precedence, the audit trail, and how far to trust each label
 - `docs/phase1.md` — corpus construction, task by task (T-101–T-114)
 - `docs/phase2.md` — training pipeline and Hindi baselines (T-201–T-208)
 - `docs/phase3.md` — zero-shot transfer evaluation (T-301–T-308)
