@@ -497,7 +497,7 @@ seed give identical metrics**.
 How it's achieved:
 
 - **`seed_everything()`** pins Python's, NumPy's and PyTorch's generators (CPU and GPU) and
-  forces deterministic GPU algorithms.
+  switches cuDNN (the GPU maths library) to its deterministic mode.
 - **Seed before building the model.** The linear head is randomly initialised. A test
   caught that if the seed isn't set *before* constructing it, two runs start from
   different head weights and diverge from the very first epoch.
