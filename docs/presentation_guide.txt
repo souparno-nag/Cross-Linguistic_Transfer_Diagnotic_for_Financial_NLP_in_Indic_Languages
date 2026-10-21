@@ -1,0 +1,209 @@
+PRESENTATION GUIDE  (15 minutes, read-aloud notes)
+Cross-Linguistic Transfer Diagnostic for Financial NLP in Indic Languages
+
+How to use this: each section has a time budget, what to say (plain words, say it
+your own way), and one number to land. If you run long, cut the lines marked [CUT].
+Total: about 10 sections, ~1.5 minutes each.
+
+======================================================================
+1. OPENING                                              0:00 - 1:00
+======================================================================
+SAY:
+- "A model trained on Hindi financial text is used on Bengali or Telugu with no
+  retraining. It gets much worse. My project asks: how much worse, and WHY?"
+- "Most work stops at 'it got worse'. I built a pipeline that tries to name a cause
+  for each individual failure."
+
+LAND: two questions - how much is lost, and what is it lost to.
+
+======================================================================
+2. THE PROBLEM                                          1:00 - 2:30
+======================================================================
+SAY:
+- Languages: Hindi, Bengali (Indo-Aryan); Telugu, Malayalam (Dravidian). Different
+  scripts, different word structure.
+- Zero-shot transfer = train on one language, test on another, zero examples of the
+  second.
+- The hard part is fairness: if Hindi and Bengali test sets contain different
+  sentences, you cannot tell if the drop is language or just a harder test set.
+- My answer: build a corpus where the SAME sentence exists in every language.
+
+LAND: "same content, only the language changes."
+
+======================================================================
+3. THE CORPUS (Phase 1)                                 2:30 - 4:30
+======================================================================
+SAY:
+- Source data: IndicFinNLP - Hindi, Bengali, Telugu. Three tasks: numerals in
+  financial text (task 1), sustainable vs not (task 2, binary), ESG headlines
+  (task 3, 10 classes).
+- No Malayalam upstream, so I machine-translated into it. Used IndicTrans2 (1B model),
+  direct Indic-to-Indic, never through English. 9 translation directions.
+- Frozen, immutable release: about 123,700 rows over 36 splits, Parquet only,
+  checksummed.
+- Quality gate: LaBSE similarity between source and translation. Threshold 0.82 for
+  task 2; I recalibrated task 3 to 0.73 because short headlines score lower even for
+  human translations. Low-scoring rows are flagged, never deleted.
+- Early surprise: tasks 2 and 3 are already parallel across languages (the same
+  sentences, shuffled). I had to align them before anything else.
+
+LAND: 1 in 6 task-1 numerals (17.2%) did not survive translation intact -
+financial numbers are fragile.
+[CUT] the alignment details and the two translation corruption modes.
+
+======================================================================
+4. THE MODELS (Phase 2)                                 4:30 - 6:00
+======================================================================
+SAY:
+- Classifier = pretrained encoder + [CLS] vector + one linear layer. Deliberately
+  minimal so nothing but the encoder can explain differences.
+- Two encoders: IndicBERT-v2 (34M parameters, Indic-specialised) and mBERT (179M,
+  broad multilingual). XLM-R did not fit on my 4 GB GPU - state this honestly.
+- Three seeds everywhere, config hashes, resumable training.
+- In-language results (held-out Hindi): task 2 macro-F1 0.82 (IndicBERT) vs 0.87
+  (mBERT); task 3 is much harder: 0.15 vs 0.34.
+
+LAND: mBERT beats IndicBERT-v2 even in-language - a first hint that specialised is
+not automatically better.
+[CUT] training details (AdamW, warmup, fp16).
+
+======================================================================
+5. ZERO-SHOT TRANSFER (Phase 3)                         6:00 - 8:00
+======================================================================
+SAY:
+- Frozen model, eval mode, no gradient - enforced by assertions in the code.
+- Transfer gap = score in source language minus score in target language, on the
+  same items. 9 cells, 3 seeds each, with bootstrap confidence intervals.
+- Task 2 (IndicBERT-v2): about 0.95 macro-F1 at home falls to 0.50-0.70 elsewhere -
+  often close to guessing. Gaps of about 0.26 to 0.45.
+- Best cell: Bengali to Hindi. Worst: Hindi to Bengali/Telugu.
+- Translationese test: the same Hindi model on native Hindi vs machine-translated
+  Hindi loses 6-7 points - translation alone costs something.
+- Task 3 is low everywhere; some Telugu-source gaps are within seed noise, so I say
+  so rather than claim an effect.
+
+LAND: transfer is far from free, and not symmetric: into Dravidian costs more than
+back out.
+NOTE if asked: the 0.95 "home" score is measured on the paired items, not the
+held-out fold - that is why it differs from the baselines in section 4.
+
+======================================================================
+6. WHICH SOURCE, WHICH ENCODER (Phases 4-5)             8:00 - 9:30
+======================================================================
+SAY:
+- I trained Bengali and Telugu sources too, so every language is tried as a source.
+- Hindi turned out to be the WORST source on both encoders - the obvious choice is
+  not the best one.
+- Does language-family closeness predict the best source? Mixed: yes in some
+  cells, no in others. Do not overclaim.
+- mBERT beat IndicBERT-v2 on every measure. But mBERT is also about 5x bigger, so I
+  cannot separate "more languages" from "more parameters". That test did not fit
+  the hardware.
+
+LAND: an honest "not yet known" is a result.
+
+======================================================================
+7. THE DIAGNOSTIC PIPELINE (Phase 6)                    9:30 - 12:00
+======================================================================
+SAY:
+- Start from a failure: the model got this sentence RIGHT in the source language and
+  WRONG in the target. That rules out "just a hard item".
+- Stage 1, the gate: is the translation still faithful (LaBSE below threshold)? If
+  not, label it translation drift and stop. Order matters, or my own translation
+  noise would be blamed on the language.
+- Stage 2, linguistic checks: tokenizer fragmentation (text chopped into 2x more
+  pieces), morphological masking (key term hidden inside a suffixed word), and
+  terminology gap (Integrated Gradients: does the model look at the key term as much
+  in the target?).
+- Stage 3, data and model checks: fails in all three target languages? right on
+  another seed? run predicts one class for everything? right on the machine vs
+  native twin text?
+- Exactly one label per failure by a fixed priority, plus a full audit trail. If
+  nothing fires: "unattributed" - reported openly.
+- Rules: no tuning thresholds to get a tidy chart; thresholds come from a null
+  distribution of correct pairs.
+
+LAND: "every failure gets one label and a receipt."
+[CUT] Integrated Gradients details; just say "attention attribution".
+
+======================================================================
+8. FINDINGS (Phase 7)                                   12:00 - 13:30
+======================================================================
+SAY:
+- Share of failures by group, across 4 task/encoder cells:
+    data labels ........ 45% - 72%   (mostly: the item fails in every target language)
+    model labels ....... 7% - 34%    (seed instability, class collapse)
+    linguistic ......... 9% - 12%
+    unattributed ....... 9% - 20%
+- Meaning: most failures are described by WHERE they happen, not by a property of the
+  target sentence. Rule-based linguistic causes explain only about a tenth.
+- A difference counts only if confidence intervals do not overlap AND it points the
+  same way on both encoders. Under that strict rule, few comparisons survive: e.g.
+  Telugu-source runs show more model-instability labels than Hindi-source on task 2;
+  most other comparisons are within noise.
+
+LAND: the pipeline works as a tool, and the honest headline is "not mainly a
+tokenizer or morphology problem".
+
+======================================================================
+9. LIMITATIONS (say these before someone asks)          13:30 - 14:30
+======================================================================
+- Morphological masking and terminology gap are labelled as causes, but my own
+  validity checks show they do not predict failure (masked terms do not fail more;
+  attribution fires at about chance). Reported as limitations next to the result.
+- Data and model labels are descriptive: they say where, not why.
+- Hand check: 197/200 agreement, but only task 2 IndicBERT, and only 40 of the 200
+  rows were linguistic labels.
+- No native Malayalam. Translation quality was sample-checked (about 180 rows per
+  task), not fully audited by native speakers.
+- Same sentences across languages is deliberate: results mean "language changes,
+  content fixed", not "works on unseen text".
+- 4 GB GPU: no XLM-R; task 3 is at its data ceiling.
+
+======================================================================
+10. CLOSE                                               14:30 - 15:00
+======================================================================
+SAY:
+- Built: a frozen parallel corpus, a controlled transfer measurement, and a
+  diagnostic pipeline with audit trail.
+- Learned: transfer loses a lot; Hindi is not the best source; a bigger general
+  encoder beat the Indic one; most failures are not explained by simple linguistic
+  rules.
+- Next: a controlled test of capacity vs multilinguality, better validity for the
+  morphology and terminology checks.
+- "Thank you - happy to take questions."
+
+======================================================================
+LIKELY QUESTIONS (short answers)
+======================================================================
+Q: Isn't testing on translated versions of the training sentences a leak?
+A: It is the design. I want to hold content fixed so only the language changes. It
+   measures the cost of switching language, not generalisation to new text.
+
+Q: Why trust machine-translated Malayalam?
+A: I don't fully - it is flagged as a limitation. Quality was checked by LaBSE on
+   every pair and by hand on a sample, and Malayalam has no native reference.
+
+Q: Why only two encoders?
+A: XLM-R needs 4.14 GiB just for weights and optimiser state; my GPU has 3.68 GiB.
+
+Q: What does a gap of 0.45 mean?
+A: Macro-F1 falls from about 0.95 to about 0.50 - near guessing for a two-class task.
+
+Q: How do you know a label is right?
+A: Data/model labels are read directly from logs. Linguistic labels are rule-based
+   with known weak validity; I report that rather than hide it.
+
+Q: Why does "unattributed" matter?
+A: It is the honest measure of coverage. A pipeline explaining 100% of failures
+   would be suspicious.
+
+======================================================================
+DELIVERY TIPS
+======================================================================
+- Pace: if at 6:00 you are not yet at section 5, cut section 4 to 30 seconds.
+- Have two numbers memorised: "about 0.95 falls to 0.50-0.70" and "9 to 20 percent
+  unattributed".
+- Say "not a finding" out loud when a gap is within noise - it builds credibility.
+- Deeper background: docs/understanding_the_project.md, docs/finetuning_architecture.md,
+  docs/zero_shot_transfer.md, docs/diagnostic_pipeline.md.
