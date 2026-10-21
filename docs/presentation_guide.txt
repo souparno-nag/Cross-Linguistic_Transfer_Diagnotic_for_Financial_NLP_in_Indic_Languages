@@ -31,7 +31,7 @@ SAY:
 LAND: "same content, only the language changes."
 
 ======================================================================
-3. THE CORPUS (Phase 1)                                 2:30 - 4:30
+3. THE CORPUS (Phase 1)                                 2:30 - 4:00
 ======================================================================
 SAY:
 - Source data: IndicFinNLP - Hindi, Bengali, Telugu. Three tasks: numerals in
@@ -52,20 +52,79 @@ financial numbers are fragile.
 [CUT] the alignment details and the two translation corruption modes.
 
 ======================================================================
-4. THE MODELS (Phase 2)                                 4:30 - 6:00
+4. THE MODELS (Phase 2)                                 4:00 - 6:00
 ======================================================================
-SAY:
-- Classifier = pretrained encoder + [CLS] vector + one linear layer. Deliberately
-  minimal so nothing but the encoder can explain differences.
-- Two encoders: IndicBERT-v2 (34M parameters, Indic-specialised) and mBERT (179M,
-  broad multilingual). XLM-R did not fit on my 4 GB GPU - state this honestly.
-- Three seeds everywhere, config hashes, resumable training.
-- In-language results (held-out Hindi): task 2 macro-F1 0.82 (IndicBERT) vs 0.87
-  (mBERT); task 3 is much harder: 0.15 vs 0.34.
+(This section now gets 2 minutes; section 3 was shortened to 1.5 minutes.
+In section 3, keep the corpus design and the "1 in 6 numerals" line; cut the rest.)
+
+SAY, in this order:
+
+a) The picture. Draw or show this on one slide:
+
+     sentence
+        |   tokenizer: text -> numbers (pieces of words)
+        v
+     PRETRAINED ENCODER   (a stack of attention layers; every token looks at
+        |                  every other token, layer after layer)
+        v
+     one vector per token
+        |   keep ONLY the first one: the [CLS] vector
+        v
+     ONE LINEAR LAYER     (a weight matrix: vector -> one score per class)
+        |
+        v
+     scores -> probabilities -> prediction (cross-entropy loss in training)
+
+b) Plain-words walkthrough.
+- The encoder is the expensive, pretrained part. It already "knows" language from
+  reading huge amounts of text in many languages. That is where cross-lingual
+  ability lives.
+- [CLS] is a special slot at the start of every sentence. It has no meaning of its
+  own; through the layers it gathers information from all the other tokens. We use
+  it as the whole-sentence summary.
+- The linear layer is the only part trained from scratch. It is tiny: for task 2
+  (2 classes) about 1,500 numbers (768 x 2 + 2 for mBERT); for task 3 (10 classes)
+  about 7,700. Each class gets a weighted sum of the summary vector; the biggest
+  score wins.
+- Fine-tuning updates BOTH the new layer AND the whole encoder, so the summary
+  vector learns to carry what the task needs.
+
+c) Why so minimal (the key point for the committee).
+- We take the raw [CLS] output, not BERT's extra "pooler" layer. No extra hidden
+  layers, no custom pooling, no loss tricks.
+- Reason: this is a MEASURING instrument, not the contribution. If the head were
+  fancy, a transfer gap could come from the head. With a bare head, differences
+  come from the encoder and the language.
+- Same architecture for both encoders and all tasks; only the number of output
+  classes changes.
+
+d) Training recipe in one breath (only if asked, or [CUT]).
+- AdamW, learning rate 2e-5, weight decay 0.01, 10% warmup then linear decay,
+  batch 16 (mBERT uses 8 x 2 accumulation so the effective batch is still 16),
+  mixed precision, up to 20 epochs, stop early on dev macro-F1 and keep the best
+  epoch. Three seeds.
+
+e) The two encoders.
+- IndicBERT-v2: 34M parameters, Indic-specialised.
+- mBERT: 179M parameters, 100+ languages. About 5x bigger.
+- XLM-R did not fit on my 4 GB GPU (needs 4.14 GiB just for weights and optimiser
+  state, the card has 3.68 GiB). State this honestly.
+
+f) In-language results (held-out Hindi): task 2 macro-F1 0.82 (IndicBERT) vs 0.87
+   (mBERT); task 3 is much harder: 0.15 vs 0.34.
+
+g) Versus the base paper (IndicFinNLP). Be careful and accurate:
+- The paper fine-tuned IndicBERT and mBERT for tasks 2 and 3 but does NOT describe
+  the head or pooling. Its Table 10 gives settings: learning rate 2e-5, batch 32,
+  2.5 epochs, weight decay 0.01.
+- So: same family of models and same learning rate, but a different training
+  schedule, and our head is the bare [CLS]+linear version. Do not claim the
+  architectures are identical.
 
 LAND: mBERT beats IndicBERT-v2 even in-language - a first hint that specialised is
-not automatically better.
-[CUT] training details (AdamW, warmup, fp16).
+not automatically better. And: "the model is deliberately plain so the transfer
+results are about language, not the classifier."
+[CUT] (d) and (g) unless asked. Keep (a), (b), (c) - they are the core.
 
 ======================================================================
 5. ZERO-SHOT TRANSFER (Phase 3)                         6:00 - 8:00
@@ -183,6 +242,15 @@ A: It is the design. I want to hold content fixed so only the language changes. 
 Q: Why trust machine-translated Malayalam?
 A: I don't fully - it is flagged as a limitation. Quality was checked by LaBSE on
    every pair and by hand on a sample, and Malayalam has no native reference.
+
+Q: Why not add a bigger head or use the pooler?
+A: To keep the classifier a neutral probe. Extra layers would make it unclear
+   whether a transfer gap comes from the head or from the language.
+
+Q: Is your architecture the same as the paper's?
+A: The paper does not describe its head. It gives settings (lr 2e-5, batch 32,
+   2.5 epochs); ours are lr 2e-5, batch 16, up to 20 epochs with early stopping.
+   Same model families, different recipe. I would not call it identical.
 
 Q: Why only two encoders?
 A: XLM-R needs 4.14 GiB just for weights and optimiser state; my GPU has 3.68 GiB.
